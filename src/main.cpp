@@ -1045,6 +1045,7 @@ int main() {
                 scenes.currentScene()->heap()->enableAllocation();scenes.changeSiblingScene(2);courseObjects.invalidate();
                 animationPass&=loadDriver();prepareGarageFixture();driftEffects.reset();raceEffects.reset();resetKartFx();accumulator=0;
             }
+            if(fullRace&&(down&KEY_SELECT))raceHud.speedometer=!raceHud.speedometer;
             if(qaMode&&((down&KEY_SELECT)||(!replay&&(down&(KEY_X|KEY_Y))))){
                 renderer.waitForGpu();
                 if(!replay&&(down&(KEY_X|KEY_Y))){

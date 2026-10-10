@@ -594,6 +594,17 @@ void RaceHud::drawOverlay(Renderer& renderer,const RaceItems& items,unsigned sta
     lap=std::clamp(lap,1u,3u);
     gold(impl_->digits[lap],HudDigits[lap],lifted(HudLapCurrent,-lapLift));
     gold(impl_->digits[3],HudDigits[3],lifted(HudLapTotal,-lapLift));
+    // Speedometer (not in the original): the player's speed in the game's own
+    // units, which Wii speedometer mods label km/h. Bottom right, the one free
+    // corner, in the lap counter's gold digits; leaves downward with the HUD.
+    if(speedometer)if(const auto* kart=Kinoko::Kart::KartObjectManager::Instance()->object(0)){
+        const unsigned speed=std::min(999u,unsigned(std::lround(std::abs(kart->move()->speed()))));
+        char text[4];const int n=std::snprintf(text,sizeof text,"%u",speed);
+        constexpr float Size=22,Advance=15,Right=392,Top=194;
+        const float lift=exitLift(1.f);
+        for(int i=0;i<n;++i){const unsigned d=unsigned(text[i]-'0');gold(impl_->digits[d],HudDigits[d],{Right-Size-float(n-1-i)*Advance,Top+lift,Size,Size});}
+        renderer.drawScreenText("KM/H",Right-26,Top+Size+3+lift,1.f,0xffffffffu);
+    }
     rank=std::clamp(rank,1u,12u);
     auto& rs=impl_->rankSpin;
     if(!rs.shown){rs.shown=rank;rs.lastTick=tick;}
