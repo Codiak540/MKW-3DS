@@ -10,3 +10,4 @@ node_modules/
 vendor/
 __pycache__/
 .toolchain/
+build-cia-log.txt
