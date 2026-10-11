@@ -23,7 +23,7 @@ vehicles each):
 - **Speedometer** on the race HUD (SELECT toggles it)
 - **Tricks on R** off ramps (Mario Kart 7 style), plus X/Y for tricks and wheelies
 - **Smoke and dust**: start-boost smoke, burnout, drift smoke, off-road dust, landing puffs
-- **Toadette's braids** restored, plus HUD fixes
+- Model and HUD fixes
 - HOME Menu name and icon, and the standard Nintendo 3DS start-up logo
 
 In progress: Battle (Balloon Battle, Coin Runners) and Team VS, and the Grand
