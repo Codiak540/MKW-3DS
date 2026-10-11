@@ -80,7 +80,8 @@ def log(*a):print('[build_cia]',*a,flush=True)
 
 def run(cmd,**kw):
     log('$',' '.join(str(c) for c in cmd))
-    env=dict(os.environ,PYTHONPATH=os.pathsep.join(p for p in (str(ROOT/'vendor/gclib'),os.environ.get('PYTHONPATH')) if p))
+    # PYTHONUTF8: text files are UTF-8 on every OS (Windows would default to cp1252).
+    env=dict(os.environ,PYTHONUTF8='1',PYTHONPATH=os.pathsep.join(p for p in (str(ROOT/'vendor/gclib'),os.environ.get('PYTHONPATH')) if p))
     subprocess.run([str(c) for c in cmd],cwd=ROOT,check=True,env=env,**kw)
 
 def shared_checkout():
