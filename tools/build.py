@@ -17,6 +17,8 @@ def main():
  # The content stamp the update CIA checks against the SD card's content.txt.
  sys.path.insert(0,str(ROOT/'tools/release'));from build_cia import content_fingerprint
  stamp='#pragma once\n// Converted game files this code expects (tools/release/build_cia.py).\n#define MKW_CONTENT "'+content_fingerprint()+'"\n'
+ # Shown on the lower screen at start-up, so a console shows which update it runs.
+ stamp+='#define MKW_VERSION "'+(ROOT/'tools/release/VERSION').read_text().strip()+'"\n'
  if not (out/'content_version.hpp').is_file() or (out/'content_version.hpp').read_text()!=stamp:(out/'content_version.hpp').write_text(stamp)
  (out/'shader_data.hpp').write_text('#pragma once\n#include <cstdint>\nalignas(4) static const uint8_t mkw_shader[]={'+','.join(map(str,(out/'mkw.shbin').read_bytes()))+'};\n')
  arch=['-march=armv6k','-mtune=mpcore','-mfloat-abi=hard','-mtp=soft']

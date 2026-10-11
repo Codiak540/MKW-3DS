@@ -184,6 +184,20 @@ static void drawMenuBackdrop(mkw::Renderer& renderer,mkw::MenuRenderer& menuRend
 }
 // Update CIA: the SD card's game files must exist and match this build's
 // content stamp. Otherwise explain what to do on the top screen until a key.
+// The build version in the lower screen's corner, in the console's 8x8 font,
+// until the first race draws that screen. The lower framebuffer is BGR8,
+// rotated: w is the screen's height and columns run bottom to top.
+static void drawVersion(u8* framebuffer,u16 w,bool embedded){
+    char text[64];snprintf(text,sizeof text,"v%s%s%s",MKW_VERSION,embedded?"":" quick update",kQa?" (test)":"");
+    const ConsoleFont& font=consoleGetDefault()->font;
+    const int length=int(std::strlen(text)),left=320-4-8*length,top=240-4-8;
+    for(int c=0;c<length;++c){
+        const unsigned glyph=u8(text[c])-font.asciiOffset;if(glyph>=font.numChars)continue;
+        for(int row=0;row<8;++row){const u8 bits=font.gfx[glyph*8+row];
+            for(int col=0;col<8;++col)if(bits&(0x80>>col)){
+                const int x=left+c*8+col,y=top+row;u8* p=framebuffer+(size_t(x)*w+(w-1-y))*3;p[0]=p[1]=p[2]=0x90;}}
+    }
+}
 static bool sdContentReady(){
     char found[80]={};
     if(FILE* f=fopen("sdmc:/3ds/mkw-3ds/content.txt","r")){if(!fgets(found,sizeof found,f))found[0]=0;fclose(f);}
@@ -235,6 +249,7 @@ int main() {
     const bool embedded=assets.mounted&&exists("romfs:/Race/Common.szs");
     const char* assetRoot=embedded?"romfs:/":DATA;
     report(embedded?"assets: embedded RomFS":"assets: external SD package");
+    report("version " MKW_VERSION);
 #ifndef MKW_EXTERNAL_ASSETS
     if(!embedded&&!sdContentReady())return 1;
 #endif
@@ -312,7 +327,12 @@ int main() {
     if(fullRace){
         for(unsigned i=0;i<2;++i){
             u16 w=0,h=0;auto* framebuffer=gfxGetFramebuffer(GFX_BOTTOM,GFX_LEFT,&w,&h);
-            if(framebuffer)std::memset(framebuffer,0,size_t(w)*h*3);
+            if(framebuffer){std::memset(framebuffer,0,size_t(w)*h*3);drawVersion(framebuffer,w,embedded);}
+            // QA: the lower screen as drawn, unrotated (version-bottom.ppm, 320x240).
+            if(kQa&&framebuffer&&i==0)if(FILE* f=fopen("sdmc:/3ds/mkw-3ds/version-bottom.ppm","wb")){
+                fprintf(f,"P6 %u %u 255\n",unsigned(h),unsigned(w));
+                for(int y=0;y<w;++y)for(int x=0;x<h;++x){const u8* p=framebuffer+(size_t(x)*w+(w-1-y))*3;const u8 rgb[3]={p[2],p[1],p[0]};fwrite(rgb,1,3,f);}
+                fclose(f);}
             gfxSwapBuffers();
         }
         gfxFlushBuffers();
@@ -1147,7 +1167,11 @@ int main() {
             if(menu.page!=mkw::UiPage::Race&&menu.page!=mkw::UiPage::Results){
                 if(menu.page==mkw::UiPage::Pause)raceSound.pause(true);
                 // A Grand Prix's next race starts without visiting the menus.
-                auto action=nextRaceQueued?mkw::UiAction::StartRace:runMenu();nextRaceQueued=false;renderer.setDeferred(deferredRace);if(action==mkw::UiAction::Exit)break;
+                const bool queued=nextRaceQueued;
+                auto action=queued?mkw::UiAction::StartRace:runMenu();nextRaceQueued=false;renderer.setDeferred(deferredRace);if(action==mkw::UiAction::Exit)break;
+                // runMenu releases the finished race; the queued race skips it, so
+                // release here or the next course loads on top of this one.
+                if(queued&&raceResident){renderer.waitForGpu();releaseRace();}
                 if(action==mkw::UiAction::ResumeRace){
                     if(restoreRaceGraphics&&restoreRaceGraphics())raceSound.pause(false);
                     else {report("FAIL resume graphics load");releaseRace();menu.enter(mkw::UiPage::Error);}
