@@ -79,9 +79,15 @@ Nintendo files) in one of these ways:
 | **Universal-Updater**: Settings → Add store → scan this, then install *Mario Kart Wii 3DS (update)* whenever there's a new version | <img src="docs/universal-updater-qr.png" width="160"> |
 | **Manually**: download `MKW-3DS-Update.cia` from the [latest release](../../releases/latest) and install it with FBI | |
 
+The update installs like a Nintendo game update, on top of the game: your
+HOME Menu icon, banner and music (made from your disc) stay as they are.
+
 The QR codes always fetch the newest update. If an update needs newer game
 files, the game tells you on start-up: run the latest builder again (it only
 redoes what changed) and copy `build/release/sd-card/3ds` to your SD card again.
+If you install a newer full CIA later, also install the latest update (or
+delete the old one in FBI → Titles): an installed update always runs instead
+of the game's own code.
 
 ## Controls
 

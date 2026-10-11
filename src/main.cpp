@@ -187,8 +187,8 @@ static void drawMenuBackdrop(mkw::Renderer& renderer,mkw::MenuRenderer& menuRend
 // The build version in the lower screen's corner, in the console's 8x8 font,
 // until the first race draws that screen. The lower framebuffer is BGR8,
 // rotated: w is the screen's height and columns run bottom to top.
-static void drawVersion(u8* framebuffer,u16 w,bool embedded){
-    char text[64];snprintf(text,sizeof text,"v%s%s%s",MKW_VERSION,embedded?"":" quick update",kQa?" (test)":"");
+static void drawVersion(u8* framebuffer,u16 w){
+    char text[32];snprintf(text,sizeof text,"v%s%s",MKW_VERSION,kQa?" (test)":"");
     const ConsoleFont& font=consoleGetDefault()->font;
     const int length=int(std::strlen(text)),left=320-4-8*length,top=240-4-8;
     for(int c=0;c<length;++c){
@@ -198,11 +198,19 @@ static void drawVersion(u8* framebuffer,u16 w,bool embedded){
                 const int x=left+c*8+col,y=top+row;u8* p=framebuffer+(size_t(x)*w+(w-1-y))*3;p[0]=p[1]=p[2]=0x90;}}
     }
 }
-static bool sdContentReady(){
-    char found[80]={};
-    if(FILE* f=fopen("sdmc:/3ds/mkw-3ds/content.txt","r")){if(!fgets(found,sizeof found,f))found[0]=0;fclose(f);}
+// The content stamp beside a copy of the game files (empty when absent).
+static void readContent(const char* root,char (&found)[80]){
+    found[0]=0;char path[64];snprintf(path,sizeof path,"%scontent.txt",root);
+    if(FILE* f=fopen(path,"r")){if(!fgets(found,sizeof found,f))found[0]=0;fclose(f);}
     found[strcspn(found,"\r\n")]=0;
-    if(found[0]&&!strcmp(found,MKW_CONTENT)&&exists("sdmc:/3ds/mkw-3ds/Race/Common.szs"))return true;
+}
+static bool contentMatches(const char* root){
+    char found[80];readContent(root,found);char common[64];snprintf(common,sizeof common,"%sRace/Common.szs",root);
+    return !strcmp(found,MKW_CONTENT)&&exists(common);
+}
+static bool sdContentReady(){
+    char found[80];readContent("sdmc:/3ds/mkw-3ds/",found);
+    if(contentMatches("sdmc:/3ds/mkw-3ds/"))return true;
     report(found[0]?"content: SD files from another builder version":"content: SD files missing");
     consoleInit(GFX_TOP,nullptr);
     printf("\n  Mario Kart Wii 3DS - update\n\n");
@@ -210,10 +218,11 @@ static bool sdContentReady(){
         printf("  The game files aren't on your SD card.\n\n");
         printf("  This is the small update CIA. It needs the\n  game files made by the builder:\n\n");
         printf("  1. Run the builder with your disc.\n  2. Copy build/release/sd-card/3ds to the\n     root of your SD card.\n\n");
-        printf("  Or install the full CIA instead.\n");
+        printf("  Or install the full CIA from the latest\n  builder instead.\n");
     }else{
         printf("  Your game files are from a different\n  builder version than this update.\n\n");
-        printf("  Run the latest builder again (it only redoes\n  what changed), then copy\n  build/release/sd-card/3ds to your SD card.\n");
+        printf("  Run the latest builder again (it only redoes\n  what changed), then copy\n  build/release/sd-card/3ds to your SD card.\n\n");
+        printf("  Installed a newer full CIA? Install the\n  latest quick update too, or delete the old\n  update in FBI (Titles).\n");
     }
     printf("\n  Press any button to exit.");
     while(aptMainLoop()){hidScanInput();if(hidKeysDown())break;gspWaitForVBlank();}
@@ -243,10 +252,12 @@ int main() {
         bool mounted=R_SUCCEEDED(romfsInit());
         ~AssetMount(){if(mounted)romfsExit();}
     } assets;
-    // The full CIA carries the game files in its RomFS. The update CIA carries
-    // only code and reads the files the builder put in sdmc:/3ds/mkw-3ds, which
-    // must come from the same builder version (content.txt, MKW_CONTENT).
-    const bool embedded=assets.mounted&&exists("romfs:/Race/Common.szs");
+    // The full CIA carries the game files in its RomFS. A quick update is
+    // installed over it and runs this code with that RomFS, so the files there
+    // are used only when they are the content this code expects (content.txt,
+    // MKW_CONTENT; full CIAs before 0.4.2 have none). Otherwise the files the
+    // builder put in sdmc:/3ds/mkw-3ds must match.
+    const bool embedded=assets.mounted&&contentMatches("romfs:/");
     const char* assetRoot=embedded?"romfs:/":DATA;
     report(embedded?"assets: embedded RomFS":"assets: external SD package");
     report("version " MKW_VERSION);
@@ -327,7 +338,7 @@ int main() {
     if(fullRace){
         for(unsigned i=0;i<2;++i){
             u16 w=0,h=0;auto* framebuffer=gfxGetFramebuffer(GFX_BOTTOM,GFX_LEFT,&w,&h);
-            if(framebuffer){std::memset(framebuffer,0,size_t(w)*h*3);drawVersion(framebuffer,w,embedded);}
+            if(framebuffer){std::memset(framebuffer,0,size_t(w)*h*3);drawVersion(framebuffer,w);}
             // QA: the lower screen as drawn, unrotated (version-bottom.ppm, 320x240).
             if(kQa&&framebuffer&&i==0)if(FILE* f=fopen("sdmc:/3ds/mkw-3ds/version-bottom.ppm","wb")){
                 fprintf(f,"P6 %u %u 255\n",unsigned(h),unsigned(w));
