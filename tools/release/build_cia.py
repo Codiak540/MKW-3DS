@@ -232,6 +232,20 @@ def stamp_done(stamp,name,fingerprint):
     if text.startswith('fingerprint '):return text.split()[1]==fingerprint
     return _legacy_stamp_ok(name)
 
+# Names the retail sound archive uses with different case from the disc's own
+# files (issue #18). Case-sensitive file systems (Linux) get a link under the
+# referenced name; elsewhere it already resolves. Kept here, outside the cook
+# tools, so the content stamp (and every player's quick updates) is unchanged.
+DISC_CASE_ALIASES={'data/extracted/sound/strm/n_Snowboard32_f.brstm':'data/extracted/sound/strm/n_Snowboard32_F.brstm'}
+
+def add_case_aliases():
+    for alias,real in DISC_CASE_ALIASES.items():
+        alias,real=ROOT/alias,ROOT/real
+        if alias.exists() or not real.is_file():continue
+        try:os.link(real,alias)
+        except OSError:shutil.copyfile(real,alias)
+        log(f'linked {alias.name} to {real.name} (case-sensitive file system)')
+
 def stage_cook(disc,jobs,force,check=False):
     shared=shared_checkout();stamps=ROOT/'build/release/cook';stamps.mkdir(parents=True,exist_ok=True)
     rerun=force
@@ -254,7 +268,7 @@ def stage_cook(disc,jobs,force,check=False):
         start=time.monotonic()
         log(f'step {[n for n,*_ in COOK_STEPS].index(name)+1}/{len(COOK_STEPS)}: {name}')
         for c in commands:
-            scrub_appledouble();run([str(a).replace('{py}',sys.executable).replace('{disc}',str(disc)).replace('{jobs}',str(jobs)) for a in c])
+            scrub_appledouble();add_case_aliases();run([str(a).replace('{py}',sys.executable).replace('{disc}',str(disc)).replace('{jobs}',str(jobs)) for a in c])
         stamp.write_text(f'fingerprint {fingerprint}\n{time.monotonic()-start:.0f} s\n')
         for path in PRUNE_AFTER.get(name,()):shutil.rmtree(ROOT/path,ignore_errors=True)
 
