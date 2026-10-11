@@ -259,6 +259,38 @@ def add_case_aliases():
         except OSError:shutil.copyfile(real,alias)
         log(f'linked {alias.name} to {real.name} (case-sensitive file system)')
 
+# Peak memory of one worker in steps that run several at once. The course
+# maps render 1024-2048 px float images: about 0.9 GiB per worker, so a many-
+# core PC with modest RAM ran out with one per core. The worker count is not
+# part of any fingerprint, so this changes no stamp.
+JOB_MEMORY={'race bottom screen':1.25*2**30}
+
+def available_memory():
+    """Free physical memory in bytes, or None when unknown."""
+    try:
+        if sys.platform=='win32':
+            import ctypes
+            class Status(ctypes.Structure):
+                _fields_=[('length',ctypes.c_ulong),('load',ctypes.c_ulong),('total',ctypes.c_ulonglong),('avail',ctypes.c_ulonglong),
+                          ('totalPage',ctypes.c_ulonglong),('availPage',ctypes.c_ulonglong),('totalVirtual',ctypes.c_ulonglong),
+                          ('availVirtual',ctypes.c_ulonglong),('availExtended',ctypes.c_ulonglong)]
+            st=Status();st.length=ctypes.sizeof(Status)
+            return st.avail if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(st)) else None
+        if sys.platform=='darwin':
+            # macOS reclaims cached memory freely: count most of the total.
+            return int(int(subprocess.run(['sysctl','-n','hw.memsize'],capture_output=True,text=True).stdout)*0.6)
+        for line in open('/proc/meminfo'):
+            if line.startswith('MemAvailable:'):return int(line.split()[1])*1024
+    except Exception:pass
+    return None
+
+def step_jobs(name,jobs):
+    per=JOB_MEMORY.get(name);free=available_memory() if per else None
+    if not free:return jobs
+    fit=max(1,int(free*0.8//per))
+    if fit<jobs:log(f'{name}: {fit} at a time ({free/2**30:.1f} GiB free memory)')
+    return min(jobs,fit)
+
 def stage_cook(disc,jobs,force,check=False):
     shared=shared_checkout();stamps=ROOT/'build/release/cook';stamps.mkdir(parents=True,exist_ok=True)
     rerun=force
@@ -281,7 +313,7 @@ def stage_cook(disc,jobs,force,check=False):
         start=time.monotonic()
         log(f'step {[n for n,*_ in COOK_STEPS].index(name)+1}/{len(COOK_STEPS)}: {name}')
         for c in commands:
-            scrub_appledouble();add_case_aliases();run([str(a).replace('{py}',sys.executable).replace('{disc}',str(disc)).replace('{jobs}',str(jobs)) for a in c])
+            scrub_appledouble();add_case_aliases();run([str(a).replace('{py}',sys.executable).replace('{disc}',str(disc)).replace('{jobs}',str(step_jobs(name,jobs))) for a in c])
         stamp.write_text(f'fingerprint {fingerprint}\n{time.monotonic()-start:.0f} s\n')
         for path in PRUNE_AFTER.get(name,()):shutil.rmtree(ROOT/path,ignore_errors=True)
 
