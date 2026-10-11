@@ -8,6 +8,7 @@ from gclib.texture_utils import decode_image
 from gclib.gx_enums import ImageFormat,PaletteFormat
 from PIL import Image
 from gx_material import material_state,retail_lighting,GMDL_SUBMESH
+from devkitpro import tool
 WATER_WORDS={'water','sea','river','fountain','lake'}
 # Lower-case words of a source name, split at underscores, digits and case
 # changes: 'TR_houseALL' -> tr, house, all; 'water0_HIG' -> water, hig.
@@ -32,7 +33,7 @@ def cook(source,out,prefix,max_texture=256,preserve_vertices=False,reuse_texture
   else:im.save(png)
   alpha=im.getchannel('A').getextrema()[0]<255;fmt='etc1a4' if alpha else 'etc1'
   if not reuse_textures:
-   subprocess.run(['/opt/devkitpro/tools/bin/tex3ds','-f',fmt,'-q','high','-z','none','-o',str(png.with_suffix('.t3x')),str(png)],check=True,stdout=subprocess.DEVNULL)
+   subprocess.run([str(tool('tex3ds')),'-f',fmt,'-q','high','-z','none','-o',str(png.with_suffix('.t3x')),str(png)],check=True,stdout=subprocess.DEVNULL)
   elif not png.with_suffix('.t3x').is_file():raise ValueError('Missing reusable texture: '+str(png))
   audits.append({'source':t['name'],'name':name,'size':size,'alpha':alpha})
  # Materials tools/export_brres.ts could not translate (its receipt's fallbacks).

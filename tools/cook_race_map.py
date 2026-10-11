@@ -28,12 +28,13 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+from devkitpro import tool
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'vendor/gclib'))
 
-TEX3DS = '/opt/devkitpro/tools/bin/tex3ds'
+TEX3DS = str(tool('tex3ds'))
 UI = ROOT / 'assets/race-ui'
 GAME = UI / 'Race/game_image'
 GAME_U = UI / 'Race_U/game_image'

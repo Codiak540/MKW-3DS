@@ -15,6 +15,7 @@ from pathlib import Path
 from cook_race_hud import sections, string, sample
 from cook_menu_animations import animation as brlan
 from cook_race_items import decode_tpl, cook_image_sprite
+from devkitpro import tool
 
 ROOT = Path(__file__).resolve().parents[1]
 UI = ROOT / 'assets/race-ui'
@@ -275,7 +276,7 @@ def texture_file(image, name, out, fmt):
     import subprocess
     png = out / 'textures' / (name + '.png')
     image.save(png)
-    subprocess.run(['/opt/devkitpro/tools/bin/tex3ds', '-f', fmt, '-z', 'none', '-o', str(png.with_suffix('.t3x')), str(png)],
+    subprocess.run([str(tool('tex3ds')), '-f', fmt, '-z', 'none', '-o', str(png.with_suffix('.t3x')), str(png)],
                    check=True, stdout=subprocess.DEVNULL)
     return 'textures/' + name + '.t3x'
 

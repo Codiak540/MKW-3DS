@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'vendor/gclib'))
 from gclib.texture_utils import decode_image
 from gclib.gx_enums import ImageFormat, PaletteFormat
+from devkitpro import tool
 U16 = lambda b, p: struct.unpack_from('>H', b, p)[0]
 U32 = lambda b, p: struct.unpack_from('>I', b, p)[0]
 F = lambda b, p, n=1: list(struct.unpack_from('>' + str(n) + 'f', b, p))
@@ -166,7 +167,7 @@ def cook(archive, output, bike=False):
         png = output / ('drift_' + name + '.png')
         im.save(png)
         # Original colour and 8-bit alpha matter for these small bright textures.
-        subprocess.run(['/opt/devkitpro/tools/bin/tex3ds', '-f', 'rgba8', '-z', 'none',
+        subprocess.run([str(tool('tex3ds')), '-f', 'rgba8', '-z', 'none',
                         '-o', str(png.with_suffix('.t3x')), str(png)], check=True, stdout=subprocess.DEVNULL)
     br = archive.with_suffix('.breff').read_bytes()
     idx = entries(br)
