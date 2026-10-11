@@ -5,7 +5,7 @@ Every archive is checked against its SHA-256 in toolchain.lock.json before
 anything is unpacked; a mismatch deletes the download and stops. Never
 fetches game files.
 """
-import hashlib, io, json, os, platform, stat, sys, urllib.request, zipfile
+import hashlib, io, json, os, platform, shutil, stat, subprocess, sys, urllib.error, urllib.request, zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 LOCK=json.loads((Path(__file__).with_name('toolchain.lock.json')).read_text())
@@ -24,7 +24,15 @@ def fetch(url,sha256):
     path=downloads/url.rsplit('/',1)[1]
     if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest()==sha256:return path.read_bytes()
     print('downloading',url)
-    with urllib.request.urlopen(url,timeout=120) as r:data=r.read()
+    try:
+        with urllib.request.urlopen(url,timeout=120) as r:data=r.read()
+    except urllib.error.URLError as error:
+        # python.org's macOS Python trusts no certificates until its "Install
+        # Certificates" step runs; curl uses the system's. The SHA-256 check
+        # below verifies the download either way.
+        if not shutil.which('curl'):raise
+        print('  Python could not download it (%s); trying curl'%getattr(error,'reason',error))
+        data=subprocess.run(['curl','-fsSL',url],check=True,capture_output=True,timeout=300).stdout
     if hashlib.sha256(data).hexdigest()!=sha256:raise SystemExit(f'checksum mismatch: {url}')
     path.write_bytes(data);return data
 

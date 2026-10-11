@@ -39,7 +39,10 @@ def main():
     p.add_argument('--output', type=Path, default=ASSETS / 'menu.pak')
     a = p.parse_args()
     manifest = json.loads((ASSETS / 'models/menu-ui.json').read_text())
-    used = json.loads((ROOT / 'build/host-tools/sprite-scales.json').read_text())
+    # Measured by tools/optimize_menu_textures.py; without clang++ that step used
+    # the shipped copy (older builders didn't copy it into build/).
+    measured = ROOT / 'build/host-tools/sprite-scales.json'
+    used = json.loads((measured if measured.is_file() else ROOT / 'tools/menu_sprite_scales.json').read_text())
     atlases = {s['key'] for s in manifest['borderSlices']}
     files = set()
     for key, record in manifest['sprites'].items():

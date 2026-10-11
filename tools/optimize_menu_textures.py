@@ -45,6 +45,10 @@ def measure():
         if not SHIPPED.is_file():
             raise SystemExit('clang++ is needed to measure menu sprites (install LLVM from https://llvm.org)')
         print('clang++ not found: using the shipped menu sprite measurements', flush=True)
+        # Later steps (tools/pack_menu_assets.py) read the measurement from build/.
+        out = ROOT / 'build/host-tools/sprite-scales.json'
+        out.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(SHIPPED, out)
         return json.loads(SHIPPED.read_text())
     exe = ROOT / 'build/host-tools/menu_sprite_scales'
     exe.parent.mkdir(parents=True, exist_ok=True)
