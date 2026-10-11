@@ -158,7 +158,9 @@ def _local_module(name):
     return None
 def step_fingerprint(cmd):
     commands=cmd if cmd and isinstance(cmd[0],list) else [cmd]
-    files=set();queue=[ROOT/a for c in commands for a in c if isinstance(a,str) and a.endswith(('.py','.mjs')) and (ROOT/a).is_file()]
+    # Only checked-in sources count: build/export_*.mjs are generated bundles
+    # (machine-specific), represented by the tools/*.ts they are built from.
+    files=set();queue=[ROOT/a for c in commands for a in c if isinstance(a,str) and a.startswith('tools/') and a.endswith(('.py','.mjs')) and (ROOT/a).is_file()]
     exporters=any('build/export_' in a or 'bundle_cooker' in a for c in commands for a in c if isinstance(a,str))
     if any(a.startswith('npm') for c in commands for a in c if isinstance(a,str)):queue.append(ROOT/'package-lock.json')
     while queue:

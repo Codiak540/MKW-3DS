@@ -13,8 +13,12 @@ import numpy as np
 from PIL import Image
 ROOT=Path(__file__).resolve().parents[2]
 sys.path[:0]=[str(ROOT/'tools'),str(ROOT/'vendor/gclib')]
-from cook_race_items import decode_tpl
 UI=ROOT/'assets/menu-ui'
+
+def decode_tpl(path):
+    # Disc art only (the full CIA); generic() must not need the texture tools.
+    from cook_race_items import decode_tpl as decode
+    return decode(path)
 
 def title_scene():
     # The title screen as tools/cook_menu_ui.py composes it (832x456 canvas).
