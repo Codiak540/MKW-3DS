@@ -62,6 +62,27 @@ New 3DS / New 2DS run at 60 FPS (30 FPS with the 3D slider up); Old 3DS / 2DS at
 
 **Please don't share built CIAs**: they contain Nintendo's game files. Share this builder instead.
 
+## Quick updates (no rebuilding)
+
+After your first build, updates are a small download, and you can do them
+straight from your 3DS.
+
+**Once:** copy the folder **`build/release/sd-card/3ds`** from the builder to the
+**root of your SD card** (it adds the converted game files as `sd:/3ds/mkw-3ds`).
+
+**Then, for every update**, install the small **update CIA** (about 2 MB, no
+Nintendo files) in one of these ways:
+
+| | |
+|---|---|
+| **FBI**: Remote Install → Scan QR Code | <img src="docs/fbi-update-qr.png" width="160"> |
+| **Universal-Updater**: Settings → Add store → scan this, then install *Mario Kart Wii 3DS (update)* whenever there's a new version | <img src="docs/universal-updater-qr.png" width="160"> |
+| **Manually**: download `MKW-3DS-Update.cia` from the [latest release](../../releases/latest) and install it with FBI | |
+
+The QR codes always fetch the newest update. If an update needs newer game
+files, the game tells you on start-up: run the latest builder again (it only
+redoes what changed) and copy `build/release/sd-card/3ds` to your SD card again.
+
 ## Controls
 
 | Button | Action |

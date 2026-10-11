@@ -41,5 +41,12 @@ Needs a 3DS with custom firmware (https://3ds.hacks.guide).
 2. Install it with FBI. Mario Kart Wii appears on the HOME Menu.
 3. For sound, run DSP1 once to dump your sound firmware.
 
+QUICK UPDATES
+-------------
+Also copy the folder build/release/sd-card/3ds to the root of your SD card.
+After that, updates are a small "update CIA" (about 2 MB) you can install
+from your 3DS with FBI or Universal-Updater; see README.md. No rebuilding,
+unless the game says its files are out of date.
+
 Old 3DS and 2DS run at 30 FPS. New 3DS and New 2DS run at 60 FPS
 (30 FPS with the 3D slider up).

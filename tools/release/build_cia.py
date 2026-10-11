@@ -281,5 +281,6 @@ def main():
     if a.cci:stage_package(a.version,True,a.keep_stage)
     log('done:',cia)
     log('Copy it to your SD card and install it with FBI, or use FBI remote install.')
+    log('For quick updates later, also copy build/release/sd-card/3ds to the root of your SD card (see README).')
 
 if __name__=='__main__':main()

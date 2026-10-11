@@ -63,6 +63,9 @@ jobs:
           .venv/bin/pip install --quiet numpy Pillow
           .venv/bin/python tools/release/package_cia.py --update --version "$(cat tools/release/VERSION)" \
             --output "$PWD/MKW-3DS-Update-${TAG}.cia"
+          # A fixed name too, so releases/latest/download/MKW-3DS-Update.cia (the
+          # FBI QR code and the Universal-Updater store) always gets the newest.
+          cp "MKW-3DS-Update-${TAG}.cia" MKW-3DS-Update.cia
       - uses: actions/upload-artifact@v4
         with:
           name: MKW-3DS-Update-${{ env.TAG }}
@@ -72,4 +75,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
-          files: MKW-3DS-Update-*.cia
+          files: |
+            MKW-3DS-Update-*.cia
+            MKW-3DS-Update.cia
