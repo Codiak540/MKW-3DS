@@ -194,6 +194,17 @@ def _legacy_stamp_ok(name):
         except OSError:return False
     return True
 
+# The content stamp: every conversion step's fingerprint plus the packaging
+# scripts that lay out the SD folder. The update CIA is compiled with it
+# (tools/build.py -> MKW_CONTENT) and the builder writes it to the SD folder
+# (content.txt), so code and game files from different builders don't mix.
+PACKAGE_SCRIPTS=('tools/package_sd.py','tools/package_standalone.py')
+def content_fingerprint():
+    digest=hashlib.sha256()
+    for name,cmd,_ in COOK_STEPS:digest.update(f'{name}\0{step_fingerprint(cmd)}\n'.encode())
+    for script in PACKAGE_SCRIPTS:digest.update((ROOT/script).read_bytes().replace(b'\r\n',b'\n'))
+    return digest.hexdigest()[:32]
+
 def stamp_done(stamp,name,fingerprint):
     if not stamp.is_file():return False
     text=stamp.read_text().strip()
@@ -229,12 +240,22 @@ def stage_cook(disc,jobs,force,check=False):
 def stage_compile(jobs):
     run([sys.executable,'tools/build.py','--jobs',str(jobs),'--release'])
 
+SD_OUTPUT=ROOT/'build/release/sd-card'
+
 def stage_package(version,cci,keep_stage):
     run([sys.executable,'tools/package_sd.py','--no-zip'])
     import package_cia
-    try:return package_cia.package(cci,version)
-    finally:
-        if not keep_stage:shutil.rmtree(ROOT/'build/playable',ignore_errors=True)
+    target=package_cia.package(cci,version)
+    # The staged files become the SD card copy for the update CIA:
+    # build/release/sd-card/3ds/mkw-3ds plus its content stamp.
+    if not cci:
+        shutil.rmtree(SD_OUTPUT,ignore_errors=True)
+        if keep_stage:shutil.copytree(ROOT/'build/playable',SD_OUTPUT)
+        else:shutil.move(str(ROOT/'build/playable'),str(SD_OUTPUT))
+        (SD_OUTPUT/'3ds/mkw-3ds/content.txt').write_text(content_fingerprint()+'\n')
+        log('SD card files for update CIAs:',SD_OUTPUT/'3ds')
+    elif not keep_stage:shutil.rmtree(ROOT/'build/playable',ignore_errors=True)
+    return target
 
 def main():
     p=argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter)

@@ -49,6 +49,26 @@ def sound(source,path,seconds=2.9,fade=.4):
     with wave.open(str(path),'wb') as w:
         w.setnchannels(2);w.setsampwidth(2);w.setframerate(rate);w.writeframes(out.tobytes())
 
+def generic(out):
+    # The update CIA is built without a disc (on GitHub), so its HOME Menu art
+    # is drawn here: no Nintendo artwork. A chequered flag on red, the title.
+    from PIL import ImageDraw
+    out.mkdir(parents=True,exist_ok=True)
+    def flag(size,cells):
+        im=Image.new('RGBA',(size,size),(200,30,40,255));d=ImageDraw.Draw(im);c=size//(cells+2)
+        for y in range(cells):
+            for x in range(cells):
+                if (x+y)%2==0:d.rectangle([c+x*c,c+y*c,c+x*c+c-1,c+y*c+c-1],fill=(255,255,255,255))
+                else:d.rectangle([c+x*c,c+y*c,c+x*c+c-1,c+y*c+c-1],fill=(20,20,20,255))
+        return im
+    flag(48,4).save(out/'icon.png')
+    banner=Image.new('RGBA',(256,128),(200,30,40,255));banner.alpha_composite(flag(96,6),(16,16))
+    d=ImageDraw.Draw(banner);d.text((124,44),'Mario Kart Wii 3DS',fill=(255,255,255,255));d.text((124,64),'update',fill=(255,230,120,255))
+    banner.save(out/'banner.png')
+    with wave.open(str(out/'banner.wav'),'wb') as w:
+        w.setnchannels(2);w.setsampwidth(2);w.setframerate(32730);w.writeframes(bytes(4*32730//2))
+    return out/'icon.png',out/'banner.png',out/'banner.wav'
+
 def make(out,music):
     out.mkdir(parents=True,exist_ok=True)
     icon(out/'icon.png');banner(out/'banner.png');sound(music,out/'banner.wav')

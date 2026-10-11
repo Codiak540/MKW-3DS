@@ -27,21 +27,26 @@ def version_number(text):
 def run(*args):
     subprocess.run([str(a) for a in args],check=True)
 
-def package(cci=False,version='0.1.0',output=None):
+def package(cci=False,version='0.1.0',output=None,update=False):
+    # update: the code-only CIA. Its game files come from the SD card (written
+    # by the builder) and its HOME Menu art is drawn without the disc.
     elf=ROOT/'build/mkw-3ds.elf'
     if not elf.is_file():raise SystemExit('Build the program first (tools/build.py)')
-    if not (SOURCE/'manifest.json').is_file():raise SystemExit('Stage the package first (tools/package_sd.py --no-zip)')
+    if not update and not (SOURCE/'manifest.json').is_file():raise SystemExit('Stage the package first (tools/package_sd.py --no-zip)')
     makerom,bannertool=tools()
     out=ROOT/'build/release';art=out/'art';out.mkdir(parents=True,exist_ok=True)
-    icon,banner,sound=home_menu_art.make(art,SOURCE/'movies/title_bgm.wav')
+    if update:art=out/'art-update';icon,banner,sound=home_menu_art.generic(art)
+    else:icon,banner,sound=home_menu_art.make(art,SOURCE/'movies/title_bgm.wav')
     run(bannertool,'makebanner','-i',banner,'-a',sound,'-o',art/'banner.bnr')
     run(bannertool,'makesmdh','-s',TITLE,'-l',TITLE+' (unofficial port)','-p','mkw-3ds',
         '-i',icon,'-o',art/'icon.icn','-r','regionfree','-f','visible,allow3d,recordusage')
-    target=output or out/('mkw-3ds.cci' if cci else 'mkw-3ds.cia')
+    target=output or out/('mkw-3ds-update.cia' if update else 'mkw-3ds.cci' if cci else 'mkw-3ds.cia')
     temporary=target.with_name(target.name+'.tmp')
     # Beside the staged package, so hard links work wherever the player builds.
-    with tempfile.TemporaryDirectory(prefix='mkw-cia-romfs-',dir=SOURCE.resolve().parents[2]) as stage:
-        assets=stage_assets(Path(stage))
+    with tempfile.TemporaryDirectory(prefix='mkw-cia-romfs-',dir=(ROOT/'build') if update else SOURCE.resolve().parents[2]) as stage:
+        if update:
+            (Path(stage)/'update.txt').write_text('Game files are read from sdmc:/3ds/mkw-3ds (made by the builder).\n');assets={}
+        else:assets=stage_assets(Path(stage))
         try:
             run(makerom,'-f','cci' if cci else 'cia','-target','t','-exefslogo','-elf',elf,'-rsf',RSF,
                 '-icon',art/'icon.icn','-banner',art/'banner.bnr','-ver',version_number(version),
@@ -63,5 +68,6 @@ if __name__=='__main__':
     # version rises: bump tools/release/VERSION for every build you share.
     p.add_argument('--version',default=(Path(__file__).parent/'VERSION').read_text().strip())
     p.add_argument('--output',type=Path)
+    p.add_argument('--update',action='store_true',help='code-only update CIA: game files from the SD card, no disc needed')
     a=p.parse_args()
-    package(a.cci,a.version,a.output)
+    package(a.cci,a.version,a.output,a.update)

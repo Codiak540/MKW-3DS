@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Incremental native ARM11 build. No game data downloaded or embedded by default."""
-import argparse, concurrent.futures, hashlib, json, os, subprocess
+import argparse, concurrent.futures, hashlib, json, os, subprocess, sys
 from pathlib import Path
 from build_hardware_sdk import build_citro3d
 from devkitpro import tool, arm, root as devkitpro_root
@@ -14,6 +14,10 @@ def main():
  kin=ROOT/'vendor/kinoko';cxx=arm('arm-none-eabi-g++')
  # DVLE 0: scene shader; DVLE 1: NW4R EF particles (src/effect.v.pica).
  subprocess.run([str(tool('picasso')),'-o',str(out/'mkw.shbin'),str(ROOT/'src/mkw.v.pica'),str(ROOT/'src/effect.v.pica')],check=True)
+ # The content stamp the update CIA checks against the SD card's content.txt.
+ sys.path.insert(0,str(ROOT/'tools/release'));from build_cia import content_fingerprint
+ stamp='#pragma once\n// Converted game files this code expects (tools/release/build_cia.py).\n#define MKW_CONTENT "'+content_fingerprint()+'"\n'
+ if not (out/'content_version.hpp').is_file() or (out/'content_version.hpp').read_text()!=stamp:(out/'content_version.hpp').write_text(stamp)
  (out/'shader_data.hpp').write_text('#pragma once\n#include <cstdint>\nalignas(4) static const uint8_t mkw_shader[]={'+','.join(map(str,(out/'mkw.shbin').read_bytes()))+'};\n')
  arch=['-march=armv6k','-mtune=mpcore','-mfloat-abi=hard','-mtp=soft']
  flags=arch+['-std=gnu++23','-O2','-g','-D__3DS__','-DREVOLUTION','-mword-relocations','-ffunction-sections','-fdata-sections','-fno-exceptions','-fno-rtti','-fcheck-new','-fno-strict-aliasing','-ffp-contract=off','-Wall','-Wno-psabi','-I'+str(kin/'include'),'-I'+str(kin/'source'),'-I'+str(ROOT/'include'),'-I'+str(ROOT/'vendor/citro3d/include'),'-I'+str(dkp/'libctru/include'),'-I'+str(out)]
@@ -26,7 +30,7 @@ def main():
  codegen=['-O2','-g','-mword-relocations','-ffunction-sections','-fdata-sections','-fno-exceptions','-fno-rtti','-fno-strict-aliasing','-ffp-contract=off']
  sources=[p for p in sorted((kin/'source').rglob('*.cc')) if not p.name.startswith('._') and p.name not in ('main.cc','KReplaySystem.cc','Context.cc')]+[p for p in sorted((ROOT/'src').glob('*.cpp')) if not p.name.startswith('._')]
  # All headers invalidate objects; conservative but reproducible.
- headers=[out/'shader_data.hpp']+list(kin.rglob('*.hh'))+list((ROOT/'include').rglob('*.hpp'))+list((ROOT/'vendor/citro3d/include').rglob('*.h'))+list((dkp/'libctru/include').rglob('*.h'))
+ headers=[out/'shader_data.hpp',out/'content_version.hpp']+list(kin.rglob('*.hh'))+list((ROOT/'include').rglob('*.hpp'))+list((ROOT/'vendor/citro3d/include').rglob('*.h'))+list((dkp/'libctru/include').rglob('*.h'))
  signature=hashlib.sha256((' '.join(flags+lto)+subprocess.check_output([str(cxx),'--version'],text=True)).encode()+b''.join(p.read_bytes() for p in sorted(headers) if not p.name.startswith('._'))).hexdigest()
  stamp=out/'compile-signature';changed=not stamp.exists() or stamp.read_text()!=signature
  def compile(src):

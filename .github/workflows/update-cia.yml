@@ -1,0 +1,59 @@
+# Builds the code-only update CIA for each published release and attaches it.
+# No disc is involved: the update CIA reads the game files that each player's
+# builder put on their SD card (build/release/sd-card/3ds).
+name: Update CIA
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag or branch to build (e.g. v0.4.0)
+        required: true
+      attach:
+        description: Attach the CIA to that tag's release
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: Tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git python3 python3-venv curl ca-certificates
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - name: Sources and Python packages
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          python3 tools/bootstrap.py
+          python3 -m venv .venv
+          .venv/bin/pip install --quiet numpy Pillow pycryptodome
+      - name: Compile
+        run: .venv/bin/python tools/build.py --release --jobs 4
+      - name: Package
+        run: |
+          VERSION="$(cat tools/release/VERSION)"
+          .venv/bin/python tools/release/package_cia.py --update --version "$VERSION" \
+            --output "$PWD/MKW-3DS-Update-${TAG}.cia"
+      - name: Keep as a run artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MKW-3DS-Update-${{ env.TAG }}
+          path: MKW-3DS-Update-*.cia
+      - name: Attach to the release
+        if: github.event_name == 'release' || inputs.attach
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          files: MKW-3DS-Update-*.cia
