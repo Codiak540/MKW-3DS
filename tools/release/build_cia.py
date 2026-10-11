@@ -139,6 +139,19 @@ def stage_disc(disc):
     if bad:raise SystemExit(f'{len(bad)} extracted files differ from an unmodified USA disc (first: {bad[0]}). Use a clean dump.')
     log(f"disc verified: {ident['game_id']} revision {ident['revision']}, {len(got)} files")
 
+def check_game_code(disc):
+    """The menus read colours from the disc's game code (rel/StaticR.rel),
+    which the 53-file disc check does not cover. A copy left by an attempt with
+    another image is extracted again; a modified one (a Wiimmfi or otherwise
+    patched ISO) stops here with a clear message instead of deep in step 27."""
+    from verify_menu_retail import EXPECTED_HASH
+    rel=ROOT/'build/itembox-retail.rel'
+    def ok():return rel.is_file() and hashlib.sha256(rel.read_bytes()).hexdigest()==EXPECTED_HASH
+    if ok() or not disc:return
+    rel.unlink(missing_ok=True)
+    run([sys.executable,'tools/extract_disc.py',disc,'data/extracted','--file','rel/StaticR.rel','--to',rel])
+    if not ok():raise SystemExit('The game code on this disc (rel/StaticR.rel) is modified. Patched images (Wiimmfi, mods, translations) do not work: use a clean dump of your disc.')
+
 def scrub_appledouble():
     """Delete macOS '._' metadata files from the cooked trees. macOS writes
     one beside every file on volumes without extended attributes (exFAT, FAT),
@@ -306,7 +319,7 @@ def main():
     p.add_argument('--check',action='store_true',help='verify tools, disc and cooked assets, then stop')
     p.add_argument('--cook-only',action='store_true',help='stop after cooking')
     a=p.parse_args()
-    stage_tools();stage_sources();stage_disc(a.disc);stage_cook(a.disc,a.jobs,a.force_cook,a.check)
+    stage_tools();stage_sources();stage_disc(a.disc);check_game_code(a.disc);stage_cook(a.disc,a.jobs,a.force_cook,a.check)
     if a.check:log('check passed: ready to compile and package');return
     if a.cook_only:log('cook complete');return
     if not a.skip_compile:stage_compile(a.jobs)
