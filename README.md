@@ -17,7 +17,7 @@ sound into 3DS formats.
 On top of dudewhat's original release (Solo VS, 24 drivers, the 6 starting
 vehicles each):
 
-- **Grand Prix** (150cc): the cup's four courses in order, with points and standings
+- **Grand Prix** in 50cc (karts), 100cc (bikes) and 150cc: the cup's four courses in order, with points and standings
 - **Time Trials**: solo, a Triple Mushroom, best time per course saved to the SD card
 - **All 12 vehicles** for every driver, including the unlockables
 - **Speedometer** on the race HUD (SELECT toggles it)
@@ -27,7 +27,7 @@ vehicles each):
 - HOME Menu name and icon, and the standard Nintendo 3DS start-up logo
 
 In progress: Battle (Balloon Battle, Coin Runners) and Team VS, and the Grand
-Prix award ceremony. Not yet: 50cc/100cc/Mirror, online play.
+Prix award ceremony. Not yet: Mirror, online play.
 
 ## What you need
 

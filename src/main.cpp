@@ -104,6 +104,8 @@ using mkw::Courses;
 using mkw::CourseCount;
 static unsigned courseChoice=0,driverChoice=0,vehicleChoice=0;
 static bool fullRace=false,automaticDrift=false;
+// Kinoko engine class: 0 = 50cc, 1 = 100cc, 2 = 150cc (Grand Prix choice; VS and Time Trials race 150cc).
+static unsigned engineClass=2;
 // Time Trials: one racer, no item boxes, a Triple Mushroom at the start, and
 // the best finish per course kept on the SD card (milliseconds, 0 = none).
 static bool timeTrial=false,newRecord=false;
@@ -130,7 +132,7 @@ static void showControls(bool ready){
 static const auto& selectedVehicle(){return mkw::GarageChoices[driverChoice*mkw::VehiclesPerDriver+vehicleChoice];}
 static void configure(K::System::RaceConfig* config,void* context) {
     if(replayData){config->setGhost(replayData);config->raceScenario().players[0].type=K::System::RaceConfig::Player::Type::Ghost;return;}
-    auto& s=config->raceScenario();s.course=Courses[courseChoice].id;
+    auto& s=config->raceScenario();s.course=Courses[courseChoice].id;s.engineClass=u8(engineClass);
     if(fullRace){static_cast<mkw::RaceGrid*>(context)->configure(*config,driverChoice*mkw::VehiclesPerDriver+vehicleChoice,timeTrial?1:12);s.players[0].driftIsAuto=automaticDrift;return;}
     auto& p=s.players[0];p.type=K::System::RaceConfig::Player::Type::Local;
     const auto& driver=selectedVehicle();
@@ -615,7 +617,8 @@ int main() {
         if(FILE* f=fopen("sdmc:/3ds/mkw-3ds/menu-result.json","w")){fprintf(f,"{\"pass\":%s,\"pages\":%u,\"transition_frames\":%u,\"top_only\":true}\n",ok&&captured==expected?"true":"false",unsigned(std::size(pages)),motionFrames);fclose(f);}else ok=false;
         report(ok?"MENU SCREENSHOT PASS":"MENU SCREENSHOT FAIL");renderer.waitForGpu();menuModels.reset(renderer);menuIcons.reset(renderer);menuRenderer.release();renderer.shutdown();gfxExit();return ok?0:4;
     }
-    auto applySelection=[&](){timeTrial=menu.selection.mode==mkw::UiMode::TimeTrials;newRecord=false;if(timeTrial)loadBestTimes();courseChoice=menu.selection.course;driverChoice=menu.selection.driver;vehicleChoice=menu.selection.vehicle;automaticDrift=menu.selection.automatic;};
+    auto applySelection=[&](){timeTrial=menu.selection.mode==mkw::UiMode::TimeTrials;newRecord=false;if(timeTrial)loadBestTimes();courseChoice=menu.selection.course;driverChoice=menu.selection.driver;vehicleChoice=menu.selection.vehicle;automaticDrift=menu.selection.automatic;
+        engineClass=menu.selection.mode==mkw::UiMode::GrandPrix&&menu.selection.engineClass==mkw::UiEngineClass::CC50?0:menu.selection.mode==mkw::UiMode::GrandPrix&&menu.selection.engineClass==mkw::UiEngineClass::CC100?1:2;};
     if(fullRace){if(runMenu()!=mkw::UiAction::StartRace){finishAutoplay();renderer.waitForGpu();menuModels.reset(renderer);menuIcons.reset(renderer);menuRenderer.release();mkw::SoundSystem::instance().stop();mkw::MenuMovieAudio::shutdown();renderer.shutdown();gfxExit();return 0;}applySelection();menu.raceStarted();raceLoadStart=svcGetSystemTick();}
     bool dataReady=exists("Race/Common.szs")&&courseAvailable(courseChoice);
     if(dataReady&&(kQa&&exists("sdmc:/3ds/mkw-3ds/trace-test.txt"))) {
@@ -747,7 +750,7 @@ int main() {
     auto beginRaceSound=[&](){
         if(!fullRace)return;
         const auto& scenario=K::System::RaceConfig::Instance()->raceScenario();
-        mkw::RaceSound::Setup setup;setup.course=unsigned(Courses[courseChoice].id);setup.engineClass=std::min(unsigned(menu.selection.engineClass),2u);
+        mkw::RaceSound::Setup setup;setup.course=unsigned(Courses[courseChoice].id);setup.engineClass=engineClass;
         setup.mode=setup.course>=0x20&&setup.course<0x2a?3:1;setup.preview=intro.active();
         setup.racers=std::min<unsigned>(scenario.playerCount,12);
         for(unsigned i=0;i<setup.racers;++i){const auto& p=scenario.players[i];setup.racer[i]={uint8_t(p.character),uint8_t(p.vehicle),p.type==K::System::RaceConfig::Player::Type::Local};}
@@ -1960,6 +1963,7 @@ int main() {
         if(raceLoadStart){
             const double ms=double(svcGetSystemTick()-raceLoadStart)*1000.0/SYSCLOCK_ARM11;raceLoadStart=0;lastRaceFrame=0;
             LOGF("race_load_ms=%.1f course=%s driver=%u vehicle=%u failed=%d",ms,Courses[courseChoice].name,driverChoice,vehicleChoice,int(trackLoadFailed));menuProfile->event(line);
+            if(!trackLoadFailed){auto* karts=K::Kart::KartObjectManager::Instance();LOGF("engine_class=%u base_speed player=%.2f cpu1=%.2f",engineClass,karts->object(0)->move()->statBaseSpeed(),raceGrid.count()>1?karts->object(1)->move()->statBaseSpeed():0.f);}
         }
         if(menuProfile->enabled()){const auto now=svcGetSystemTick();menuProfile->raceFrame(lastRaceFrame?float(double(now-lastRaceFrame)*1000.0/SYSCLOCK_ARM11):0.f);lastRaceFrame=now;}
         if(frames==1)report("graphics first frame submitted");

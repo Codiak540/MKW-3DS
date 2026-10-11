@@ -13,7 +13,17 @@ namespace mkw {
 // resident. On an Old 3DS the ordinary heap also holds Kinoko's 16 MiB arena
 // and is the scarce region, while LINEAR has room once menu textures are gone,
 // so bank storage comes from the (thread-safe, see linear_lock.cpp) LINEAR heap.
-void DriverAnimation::reset(){if(data_)linearFree(data_);data_=nullptr;ready=false;rigidParts_.clear();count_=faceCount_=hairNodeCount_=hairClipCount_=uvClipCount_=0;baseUV_.clear();lastClip_=-1;hasPreviousPose_=false;cachedVertices_=nullptr;cachedSettled_=false;poseBoundsValid_=false;usedMatrices_.fill(false);neutralUv_=nullptr;uvBuffer_=nullptr;uvNeutral_=true;shared_={};handleDrive_=dash_=shake_=-1;gpu_=false;shapeHidden_.fill(false);}
+// Banks are read only by the CPU. They stay in LINEAR while it has room, so
+// the ordinary heap keeps its Old 3DS headroom (main.cpp), and spill to the
+// heap once LINEAR would drop under the reserve later race loads need: eleven
+// bike riders' banks (100cc Grand Prix) are about 5.5 MiB more than karts'.
+static uint8_t* allocateBank(size_t size,bool& linear){
+    constexpr size_t LinearReserve=3u<<20;
+    linear=linearSpaceFree()>size+LinearReserve;
+    if(linear)if(void* p=linearAlloc(size))return static_cast<uint8_t*>(p);
+    linear=false;return static_cast<uint8_t*>(std::aligned_alloc(16,(size+15)&~size_t(15)));
+}
+void DriverAnimation::reset(){if(data_){if(dataLinear_)linearFree(data_);else std::free(data_);}data_=nullptr;ready=false;rigidParts_.clear();count_=faceCount_=hairNodeCount_=hairClipCount_=uvClipCount_=0;baseUV_.clear();lastClip_=-1;hasPreviousPose_=false;cachedVertices_=nullptr;cachedSettled_=false;poseBoundsValid_=false;usedMatrices_.fill(false);neutralUv_=nullptr;uvBuffer_=nullptr;uvNeutral_=true;shared_={};handleDrive_=dash_=shake_=-1;gpu_=false;shapeHidden_.fill(false);}
 bool DriverAnimation::gpuSkin(Model& model){
     if(!ready||gpu_||matrices_>Renderer::MaxSkinBones||vertices_!=model.vertexCount)return false;
     if(skinNormals_){
@@ -64,13 +74,13 @@ bool DriverAnimation::load(const char* path,const Model& model){
     bool ok=false;size_t size=0;
     if(const long packed=pack::size(path);packed>=0){
         size=size_t(packed);if(size<28||size>12*1024*1024)return false;
-        data_=static_cast<uint8_t*>(linearAlloc(size));if(!data_)return false;
+        data_=allocateBank(size,dataLinear_);if(!data_)return false;
         ok=pack::readInto(path,data_,size);
     }else{
         FILE* f=std::fopen(path,"rb");if(!f)return false;std::fseek(f,0,SEEK_END);long length=std::ftell(f);std::rewind(f);
         if(length<0){std::fclose(f);return false;}size=size_t(length);
         if(size<28||size>12*1024*1024){std::fclose(f);return false;}
-        data_=static_cast<uint8_t*>(linearAlloc(size));if(!data_){std::fclose(f);return false;}
+        data_=allocateBank(size,dataLinear_);if(!data_){std::fclose(f);return false;}
         ok=std::fread(data_,1,size,f)==size;std::fclose(f);
     }
     auto u32=[](const uint8_t* p){uint32_t v;std::memcpy(&v,p,4);return v;};

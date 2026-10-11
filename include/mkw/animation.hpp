@@ -82,7 +82,7 @@ private:
     void evaluate(const Clip& c,unsigned a,unsigned b,float t,unsigned tick,float blend);
     std::vector<std::vector<RigidPart>> rigidParts_;
     std::array<int,64> baseTextures_{};
-    uint8_t* data_=nullptr;const SourceVertex* source_=nullptr;const Range* ranges_=nullptr;
+    uint8_t* data_=nullptr;bool dataLinear_=false;const SourceVertex* source_=nullptr;const Range* ranges_=nullptr;
     unsigned vertices_=0,matrices_=0,shapes_=0,count_=0,faceCount_=0,transitionTick_=0;
     int lastClip_=-1;
     int handleDrive_=-1,dash_=-1,shake_=-1;
