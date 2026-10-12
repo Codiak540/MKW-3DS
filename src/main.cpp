@@ -201,15 +201,15 @@ static void drawText(u8* framebuffer,u16 w,int left,int top,const char* text,u32
                 const int x=left+c*8+col,y=top+row;u8* p=framebuffer+(size_t(x)*w+(w-1-y))*3;p[0]=u8(rgb);p[1]=u8(rgb>>8);p[2]=u8(rgb>>16);}}
     }
 }
-// The build version in the lower screen's corner and, on the first launch
-// after an update, what it adds (WHATS_NEW.txt), until the first race draws
-// that screen.
-static void drawStartScreen(u8* framebuffer,u16 w,bool whatsNew){
+// The build version in the lower screen's corner and, on the first launch of
+// a version (install or update), what it adds (WHATS_NEW.txt) and the project
+// link, until the first race draws that screen.
+static void drawStartScreen(u8* framebuffer,u16 w,int whatsNew){
     char text[48];snprintf(text,sizeof text,"v%s%s",MKW_VERSION,kQa?" (test)":"");
     drawText(framebuffer,w,320-4-8*int(std::strlen(text)),240-12,text,0x909090);
     if(!whatsNew)return;
     int y=12;
-    snprintf(text,sizeof text,"Updated to v%s",MKW_VERSION);drawText(framebuffer,w,16,y,text,0xffd040);y+=12;
+    snprintf(text,sizeof text,whatsNew==2?"Updated to v%s":"Mario Kart Wii 3DS v%s",MKW_VERSION);drawText(framebuffer,w,16,y,text,0xffd040);y+=12;
     if(MKW_QUICK_UPDATE){
         drawText(framebuffer,w,16,y,"Quick update: no rebuild needed.",0xffffff);y+=10;
         drawText(framebuffer,w,16,y,"Your game files stay as they are.",0xffffff);y+=16;
@@ -224,19 +224,18 @@ static void drawStartScreen(u8* framebuffer,u16 w,bool whatsNew){
     }
     drawText(framebuffer,w,16,240-26,ProjectUrl,0x60a0ff);
 }
-// True only on the first launch after an update: the SD card records another
-// version, or records none and this is a quick update (always installed over
-// an earlier version; 0.4.1 and older wrote no record). A first install only
-// records its version, and later launches match it.
-static bool firstLaunchAfterUpdate(){
+// The first launch of each version, a first install included: the SD card
+// records the version that last ran, so later launches match it and stay quiet.
+// Returns 0 when already seen, 1 for a first install, 2 for an update (another
+// version recorded, or a quick update, which always replaces an older one).
+static int firstLaunchOfVersion(){
     char seen[32]={};
     if(FILE* f=fopen("sdmc:/3ds/mkw-3ds/last-version.txt","r")){if(!fgets(seen,sizeof seen,f))seen[0]=0;fclose(f);}
     seen[strcspn(seen,"\r\n")]=0;
-    if(!strcmp(seen,MKW_VERSION))return false;
-    const bool updated=seen[0]||MKW_QUICK_UPDATE;
+    if(!strcmp(seen,MKW_VERSION))return 0;
     mkdir("sdmc:/3ds",0777);mkdir("sdmc:/3ds/mkw-3ds",0777);
     if(FILE* f=fopen("sdmc:/3ds/mkw-3ds/last-version.txt","w")){fprintf(f,"%s\n",MKW_VERSION);fclose(f);}
-    return updated;
+    return seen[0]||MKW_QUICK_UPDATE?2:1;
 }
 // The content stamp beside a copy of the game files (empty when absent).
 static void readContent(const char* root,char (&found)[80]){
@@ -379,7 +378,7 @@ int main() {
     // Wii presentation is confined to the upper LCD. Keep both lower buffers
     // black rather than allocating a second GPU render target.
     if(fullRace){
-        const bool whatsNew=firstLaunchAfterUpdate();
+        const int whatsNew=firstLaunchOfVersion();
         for(unsigned i=0;i<2;++i){
             u16 w=0,h=0;auto* framebuffer=gfxGetFramebuffer(GFX_BOTTOM,GFX_LEFT,&w,&h);
             if(framebuffer){std::memset(framebuffer,0,size_t(w)*h*3);drawStartScreen(framebuffer,w,whatsNew);}

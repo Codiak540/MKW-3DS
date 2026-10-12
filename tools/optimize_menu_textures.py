@@ -36,15 +36,16 @@ SHIPPED = ROOT / 'tools/menu_sprite_scales.json'
 
 
 def measure():
-    # The measurement depends only on the menu code and the converted USA menu
-    # files, which are the same for every build: tools/menu_sprite_scales.json
-    # ships it for machines without clang++ (most Windows PCs). With clang++ the
-    # helper is rebuilt and re-run, so menu code changes are measured afresh;
-    # MKW_UPDATE_SPRITE_SCALES=1 then refreshes the shipped copy.
-    if not shutil.which('clang++'):
+    # The measurement depends on the menu code and the converted USA menu files.
+    # Player builds use the shipped tools/menu_sprite_scales.json on every OS,
+    # so Mac and Windows convert the same textures and a later menu code change
+    # (a quick update) does not change the converted files. Developers measure
+    # afresh with clang++ and MKW_UPDATE_SPRITE_SCALES=1, which refreshes it.
+    measuring = os.environ.get('MKW_UPDATE_SPRITE_SCALES') == '1'
+    if not measuring or not shutil.which('clang++'):
         if not SHIPPED.is_file():
-            raise SystemExit('clang++ is needed to measure menu sprites (install LLVM from https://llvm.org)')
-        print('clang++ not found: using the shipped menu sprite measurements', flush=True)
+            raise SystemExit('tools/menu_sprite_scales.json is missing (measure with clang++ and MKW_UPDATE_SPRITE_SCALES=1)')
+        print('using the shipped menu sprite measurements', flush=True)
         # Later steps (tools/pack_menu_assets.py) read the measurement from build/.
         out = ROOT / 'build/host-tools/sprite-scales.json'
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -58,8 +59,7 @@ def measure():
                     *[str(ROOT / s) for s in sources]], check=True)
     out = ROOT / 'build/host-tools/sprite-scales.json'
     subprocess.run([str(exe), str(out)], check=True)
-    if os.environ.get('MKW_UPDATE_SPRITE_SCALES') == '1':
-        shutil.copyfile(out, SHIPPED)
+    shutil.copyfile(out, SHIPPED)
     return json.loads(out.read_text())
 
 
