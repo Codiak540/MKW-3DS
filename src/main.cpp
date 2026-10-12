@@ -216,12 +216,13 @@ static void drawStartScreen(u8* framebuffer,u16 w,int whatsNew){
     }else y+=4;
     drawText(framebuffer,w,16,y,"What's new:",0xffd040);y+=12;
     const char* line=MKW_WHATS_NEW;
-    while(*line&&y<240-40){
+    while(*line&&y<240-52){
         const char* end=std::strchr(line,'\n');const size_t n=end?size_t(end-line):std::strlen(line);
         char buffer[40];snprintf(buffer,sizeof buffer,"%.*s",int(std::min<size_t>(n,38)),line);
         drawText(framebuffer,w,16,y,buffer,0xd0d0d0);y+=10;
         line+=n;if(*line=='\n')++line;
     }
+    drawText(framebuffer,w,16,240-40,"This message only shows once.",0x909090);
     drawText(framebuffer,w,16,240-26,ProjectUrl,0x60a0ff);
 }
 // The first launch of each version, a first install included: the SD card
