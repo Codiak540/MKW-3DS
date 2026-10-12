@@ -318,6 +318,8 @@ int main() {
     K::EGG::Vector3f test(3,4,0);
     LOGF("math_length=%.9f bits=%08lx",test.length(),(unsigned long)K::f2u(test.length()));
     if(kQa)setenv("KINOKO_FILESYSTEM_ROOT",assetRoot,1);
+    // Every asset path is relative to the game files: RomFS or the SD folder.
+    if(chdir(assetRoot)!=0){report("FAIL asset directory");gfxExit();return 1;}
     bool qaMode=false;if(kQa)for(const char* test:{"trace","smoke","controls","replay","effects","animation","roster","garage","garage_controls","menu","objects"}){char marker[64];snprintf(marker,sizeof marker,"sdmc:/3ds/mkw-3ds/%s-test.txt",test);qaMode|=exists(marker);}
     fullRace=!qaMode;
     // consoleInit changes the bottom LCD to RGB565 and disables double buffering.
