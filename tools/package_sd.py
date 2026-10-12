@@ -188,6 +188,10 @@ for key,rows in battle['ui'].items():
   relative=Path(row['texture'])
   if relative.parent!=Path('textures/ui')/safe_name(key,'UI archive') or relative.suffix!='.t3x':raise ValueError('Invalid UI texture path')
   safe_name(relative.stem,'UI texture');files[assets/relative]=relative
+for name in battle['uiData']:
+ relative=Path(name)
+ if relative.parts[0]!='ui-data' or len(relative.parts)!=3 or relative.suffix not in ('.brfnt','.bmg'):raise ValueError('Invalid UI data path')
+ safe_name(relative.parent.name,'UI archive');safe_name(relative.stem,'UI data');files[assets/relative]=relative
 # Every effect archive (tools/cook_effect_archives.py): REFX tables and textures.
 effect_archives=json.loads((assets/'models/effect-archives.json').read_text())
 if effect_archives.get('version')!=1:raise ValueError('Cook the effect archives (tools/cook_effect_archives.py) before packaging')

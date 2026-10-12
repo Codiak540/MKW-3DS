@@ -22,7 +22,9 @@ from devkitpro import tool
 OUT=ROOT/'sd-card/3ds/mkw-3ds'
 EXTRACTED=ROOT/'data/extracted'
 WORK=ROOT/'build/battle'
-UI_ARCHIVES={'race':'Scene/UI/Race.szs','award':'Scene/UI/Award.szs'}
+# Every English UI archive (not the Spanish _M / French _Q variants): any
+# later menu, bottom-screen layout or battle screen draws from these images.
+UI_ARCHIVES={p.stem.lower():f'Scene/UI/{p.name}' for p in sorted((EXTRACTED/'Scene/UI').glob('*.szs')) if not p.stem.endswith(('_M','_Q')) and p.stem!='Font'}
 
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 
@@ -55,6 +57,21 @@ def cook_animated(source,model,clip,name):
     audit=json.loads(subprocess.run(['node',str(ROOT/'build/export_driver.mjs'),str(source),str(bank),model],check=True,capture_output=True,text=True).stdout)
     return {'model':f'models/{name}.gmdl','bank':f'models/{name}.dskm','clips':[c['name'] for c in audit['clips']]}
 
+def copy_ui_data():
+    """Fonts (Font.szs .brfnt) and message text (.bmg) as they are, for text a
+    later update draws at run time; under ui-data/<archive>/."""
+    out=OUT/'ui-data'
+    if out.exists():shutil.rmtree(out)
+    rows=[]
+    for archive in ['Scene/UI/Font.szs',*UI_ARCHIVES.values()]:
+        key=Path(archive).stem.lower();folder=WORK/'ui'/key
+        if not folder.exists():unpack(EXTRACTED/archive,folder)
+        for f in sorted(p for p in folder.rglob('*') if p.is_file() and p.suffix in ('.brfnt','.bmg')):
+            target=out/key/(safe(f.relative_to(folder).with_suffix('').as_posix())+f.suffix)
+            target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(f,target)
+            rows.append(target.relative_to(OUT).as_posix())
+    return rows
+
 def main():
     argparse.ArgumentParser().parse_args()
     WORK.mkdir(parents=True,exist_ok=True)
@@ -65,8 +82,9 @@ def main():
         'lakituBoard':cook_static(common/'jugem_battle.brres','board_battle','lakitu_board_battle'),
         'luma':cook_animated(common/'tico.brres','tico','wait','rosalina_luma'),
         'ui':{key:convert_ui(key,archive) for key,archive in UI_ARCHIVES.items()},
+        'uiData':copy_ui_data(),
         'sources':{f:digest(EXTRACTED/f) for f in ['Race/Common.szs',*UI_ARCHIVES.values()]}}
     (OUT/'models/battle.json').write_text(json.dumps(manifest,indent=1)+'\n')
-    print('battle: 2 balloons, Lakitu board, Luma,',', '.join(f'{len(v)} {k} UI textures' for k,v in manifest['ui'].items()))
+    print(f"battle: 2 balloons, Lakitu board, Luma, {len(manifest['uiData'])} font/message files,",', '.join(f'{len(v)} {k} UI textures' for k,v in manifest['ui'].items()))
 
 if __name__=='__main__':main()
