@@ -209,25 +209,6 @@ def step_fingerprint(cmd):
         digest.update(f.relative_to(ROOT).as_posix().encode()+b'\0'+f.read_bytes().replace(b'\r\n',b'\n'))
     return digest.hexdigest()
 
-# Stamps from builders before fingerprints only say the step finished. Trust
-# them, except where a later version changed what the step makes.
-def _legacy_stamp_ok(name):
-    def json_at(rel):
-        try:return json.loads((ROOT/rel).read_text())
-        except (OSError,ValueError):return None
-    if name=='menu interface':
-        m=json_at(SD+'/models/menu-ui.json')
-        return bool(m) and bool(m.get('panelTails')) and any(g.get('group')=='SelectIn' for g in m.get('glows',[]))
-    if name=='karts and bikes':  # all twelve vehicles per driver
-        g=json_at(SD+'/models/garage.json');return bool(g)and len(g.get('choices',[]))==288
-    if name=='race effects':     # smoke and dust emitters
-        e=json_at('build/vfx/textures/race-effects.json');return bool(e)and 'rk_start0' in e.get('emitters',[])
-    if name=='drivers':          # Toadette's braids (her hair model's vertices)
-        d=ROOT/SD/'models/toadette_driver.dskm'
-        try:return d.is_file() and int.from_bytes(d.read_bytes()[8:12],'little')>1716
-        except OSError:return False
-    return True
-
 # The content stamp: every conversion step's fingerprint plus the packaging
 # scripts that lay out the SD folder. The update CIA is compiled with it
 # (tools/build.py -> MKW_CONTENT) and the builder writes it to the SD folder
@@ -242,8 +223,9 @@ def content_fingerprint():
 def stamp_done(stamp,name,fingerprint):
     if not stamp.is_file():return False
     text=stamp.read_text().strip()
-    if text.startswith('fingerprint '):return text.split()[1]==fingerprint
-    return _legacy_stamp_ok(name)
+    # A stamp from before fingerprints (builders before 0.3.5) cannot say what
+    # it was cooked from: run the step again rather than mix old and new output.
+    return text.startswith('fingerprint ') and text.split()[1]==fingerprint
 
 # Names the retail sound archive uses with different case from the disc's own
 # files (issue #18). Case-sensitive file systems (Linux) get a link under the
