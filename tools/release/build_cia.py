@@ -167,6 +167,16 @@ def step_fingerprint(cmd):
     # Only checked-in sources count: build/export_*.mjs are generated bundles
     # (machine-specific), represented by the tools/*.ts they are built from.
     files=set();queue=[ROOT/a for c in commands for a in c if isinstance(a,str) and a.startswith('tools/') and a.endswith(('.py','.mjs')) and (ROOT/a).is_file()]
+    # cook_menu_ui launches the fitter as a subprocess; its C++ measurement
+    # helper and shipped Windows fallback also determine the generated assets.
+    if any('tools/cook_menu_ui.py' in c for c in commands):
+        queue += [ROOT/'tools/optimize_menu_textures.py', ROOT/'tools/menu_sprite_scales.cpp',
+                  ROOT/'tools/menu_sprite_scales.json']
+        for name in ('menu_ui','menu_state','menu_transition','menu_focus','menu_index','menu_text_motion'):
+            for folder,ext in [('src','.cpp'),('include/mkw','.hpp')]:
+                source=ROOT/folder/(name+ext)
+                if source.is_file():files.add(source)
+        files |= {ROOT/'include/mkw/display_layout.hpp', ROOT/'include/mkw/color_fader.hpp'}
     exporters=any('build/export_' in a or 'bundle_cooker' in a for c in commands for a in c if isinstance(a,str))
     if any(a.startswith('npm') for c in commands for a in c if isinstance(a,str)):queue.append(ROOT/'package-lock.json')
     while queue:
@@ -192,6 +202,9 @@ def _legacy_stamp_ok(name):
     def json_at(rel):
         try:return json.loads((ROOT/rel).read_text())
         except (OSError,ValueError):return None
+    if name=='menu interface':
+        m=json_at(SD+'/models/menu-ui.json')
+        return bool(m) and bool(m.get('panelTails')) and any(g.get('group')=='SelectIn' for g in m.get('glows',[]))
     if name=='karts and bikes':  # all twelve vehicles per driver
         g=json_at(SD+'/models/garage.json');return bool(g)and len(g.get('choices',[]))==288
     if name=='race effects':     # smoke and dust emitters

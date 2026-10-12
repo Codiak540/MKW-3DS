@@ -163,12 +163,18 @@ def rewrite_header(sprites, atlases, slice_uvs):
         if not m:
             raise ValueError('Unexpected UiSprites row: ' + line[:80])
         key = m.group(1)
+        trailing = m.group(7)
+        if key in sprites or key in atlases:
+            # Metadata follows the actual allocation, including power-of-two
+            # padding; compressed file size is not GPU residency.
+            r = sprites.get(key) or atlases[key]
+            trailing = re.sub(r',\d+\},$', ',%d},' % r['bytes'], trailing)
         if key in sprites:
             r = sprites[key]
-            lines[n] = '{"%s","%s",%sf,%sf,%.8ff,%.8ff,%s' % (key, m.group(2), m.group(3), m.group(4), r['u'], r['v'], m.group(7))
+            lines[n] = '{"%s","%s",%sf,%sf,%.8ff,%.8ff,%s' % (key, m.group(2), m.group(3), m.group(4), r['u'], r['v'], trailing)
         elif key in atlases:
             w, h = atlases[key]['texture']
-            lines[n] = '{"%s","%s",%.8ff,%.8ff,%sf,%sf,%s' % (key, m.group(2), w, h, m.group(5), m.group(6), m.group(7))
+            lines[n] = '{"%s","%s",%.8ff,%.8ff,%sf,%sf,%s' % (key, m.group(2), w, h, m.group(5), m.group(6), trailing)
     text = head + 'inline constexpr UiSpriteInfo UiSprites[]={\n' + '\n'.join(lines) + '\n};' + tail
     head, rest = text.split('inline constexpr UiBorderSlice UiBorderSlices[]={\n', 1)
     body, tail = rest.split('\n};', 1)
@@ -190,10 +196,18 @@ def main():
     a = p.parse_args()
     WORK.mkdir(parents=True, exist_ok=True)
     manifest = json.loads((ASSETS / 'models/menu-ui.json').read_text())
-    screen = measure()
     records = manifest['sprites']
     slices = manifest['borderSlices']
     atlas_keys = sorted({s['key'] for s in slices})
+    # Measurement must use the original PNG atlas coordinates. The header
+    # may already contain a fitted atlas from a previous pass, whose UV
+    # footprint would otherwise be mistaken for the original atlas's size.
+    raw_sprites = {k: {'u': r['u'], 'v': r['v'], 'bytes': r['padded'][0]*r['padded'][1]*4}
+                   for k, r in records.items() if k not in atlas_keys}
+    raw_atlases = {k: {'texture': records[k]['padded'], 'bytes': records[k]['padded'][0]*records[k]['padded'][1]*4}
+                   for k in atlas_keys}
+    rewrite_header(raw_sprites, raw_atlases, {i: s['uv'] for i, s in enumerate(slices)})
+    screen = measure()
     by_atlas = {key: [] for key in atlas_keys}
     for index, s in enumerate(slices):
         by_atlas[s['key']].append((index, s))
