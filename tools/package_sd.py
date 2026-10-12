@@ -322,6 +322,24 @@ if '--list' in sys.argv:
 manifest={}
 for src,rel in files.items():
  dest=out/rel;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(src,dest);manifest[rel.as_posix()]=hashlib.sha256(dest.read_bytes()).hexdigest()
+# FAT32 allows one folder 65,536 entries, and a long file name takes several:
+# the loose textures folder outgrew it. menu.pak and race.pak already hold every
+# texture and the game reads them first (src/renderer.cpp Texture::load), so a
+# texture inside a pak is not also copied loose. Each one is checked against
+# its pak entry, so a stale pak fails here instead of on the console.
+def pak_entries(path):
+ b=path.read_bytes()
+ if b[:4]!=b'MPK1':raise ValueError('Not an MPK1 archive: '+path.name)
+ count,names=struct.unpack_from('<II',b,4);table=12;blob=12+12*count
+ for i in range(count):
+  name_at,offset,size=struct.unpack_from('<III',b,table+i*12)
+  yield b[blob+name_at:b.index(0,blob+name_at)].decode(),b[offset:offset+size]
+for archive in ('menu.pak','race.pak'):
+ if not (out/archive).is_file():continue
+ for name,data in pak_entries(out/archive):
+  if name.endswith('.t3x') and name in manifest:
+   if hashlib.sha256(data).hexdigest()!=manifest[name]:raise ValueError(f'{archive} is older than {name}: run tools/pack_menu_assets.py / tools/pack_race_assets.py')
+   (out/name).unlink();del manifest[name]
 controls='''MKW 3DS - native Wii menu asset port, 32 race archives and 10 arena asset sets
 Copy the 3ds folder to the SD card root. Launch mkw-3ds.3dsx with Homebrew Launcher.
 Menu: D-pad / Circle Pad choose, A confirm, B back. A or START skips the opening.

@@ -1361,8 +1361,6 @@ int main() {
                                 LOGF("QA held step=%u item=%d deployed=%d kind=%d mask=%u bombs=%u blasts=%u",physicsSteps,int(h.item),int(h.deployed),int(h.heldKind),unsigned(h.heldMask),bombs,blasts);
                             }
                         }
-                        // The CPU route threads between boxes: QA rolls the item roulette instead.
-                        if(physicsSteps%600==300&&qaGives.empty())raceItems->startRoulette(0);
                     }
                     // CPU items: retail AIItemRace commands from the previous AI tick.
                     for(unsigned i=1;i<raceGrid.count();++i){
