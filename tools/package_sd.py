@@ -180,6 +180,9 @@ battle=json.loads((assets/'models/battle.json').read_text())
 if battle.get('version')!=1:raise ValueError('Cook the battle content (tools/cook_battle.py) before packaging')
 files[assets/'models/battle.json']=Path('models/battle.json')
 models+=[safe_name(n,'battle model') for n in [*battle['balloons'].values(),battle['lakituBoard']]]
+luma=battle['luma'];model,bank=Path(luma['model']),Path(luma['bank'])
+if model.parent!=Path('models') or bank!=model.with_suffix('.dskm'):raise ValueError('Invalid Luma paths')
+models.append(safe_name(model.stem,'Luma model'));files[assets/bank]=bank
 for key,rows in battle['ui'].items():
  for row in rows:
   relative=Path(row['texture'])
