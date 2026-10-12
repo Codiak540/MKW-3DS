@@ -140,6 +140,41 @@ for category in ['hudItems','hudRanks','hudDigits','hudExtras']:
   relative=Path(sprite['path'])
   if relative.parent!=Path('textures') or relative.suffix!='.t3x':raise ValueError('Invalid race HUD texture path')
   textures.add(relative.stem)
+# Award ceremony, losing and ending scenes (tools/cook_ceremony.py): stages as
+# courses (archive for Kinoko, model lists, placed objects), award characters
+# with their animation banks, podium, trophies and camera moves.
+def safe_name(name,what):
+ if not name or any(c not in 'abcdefghijklmnopqrstuvwxyz_0123456789' for c in name):raise ValueError('Invalid '+what+' name: '+name)
+ return name
+ceremony=json.loads((assets/'models/ceremony.json').read_text())
+if ceremony.get('version')!=1:raise ValueError('Cook the award ceremony (tools/cook_ceremony.py) before packaging')
+files[assets/'models/ceremony.json']=Path('models/ceremony.json')
+for stage in ceremony['stages']:
+ archive=Path('Race/Course')/(safe_name(stage['key'],'stage')+'.szs');files[ROOT/'data/extracted'/archive]=archive
+ receipt=Path(stage['receipt'])
+ if receipt.parent!=Path('models/courses'):raise ValueError('Invalid stage receipt')
+ files[assets/receipt]=receipt
+ for name in stage['model_lists']:
+  relative=Path(name)
+  if relative.parent!=Path('models') or relative.suffix!='.list':raise ValueError('Invalid stage model list')
+  files[assets/relative]=relative;models+=[safe_name(m,'stage model') for m in (assets/relative).read_text().split()]
+ if stage.get('object_visuals'):
+  visuals=Path(stage['object_visuals'])
+  if visuals.parent!=Path('models') or visuals.suffix!='.list':raise ValueError('Invalid stage object list')
+  files[assets/visuals]=visuals
+  for line in (assets/visuals).read_text().splitlines():
+   resource,model,mesh,bank=line.split()
+   models.append(safe_name(mesh,'stage object'))
+   if bank!='-':files[assets/'models'/(safe_name(bank,'stage object bank')+'.dobj')]=Path('models')/(bank+'.dobj')
+for character in ceremony['award']['characters']:
+ model,bank=Path(character['model']),Path(character['bank'])
+ if model.parent!=Path('models') or bank!=model.with_suffix('.dskm'):raise ValueError('Invalid award character paths')
+ models.append(safe_name(model.stem,'award model'));files[assets/bank]=bank
+models+=[safe_name(n,'award model') for n in [*ceremony['award']['stands'],ceremony['award']['shadow'],*ceremony['trophies'].values()]]
+for camera in ceremony['cameras']:
+ relative=Path(camera['file'])
+ if relative.parent!=Path('models/ceremony') or relative.suffix!='.scam':raise ValueError('Invalid ceremony camera path')
+ files[assets/relative]=relative
 for name in models:
  p=roster_asset(Path('models')/(name+'.gmdl'));b=p.read_bytes();magic,version,nv,ni,ns,nt=struct.unpack_from('<4s5I',b)
  if magic!=b'GMDL' or version not in GMDL_SUBMESH_BYTES:raise ValueError('Regenerate supported GMDL: '+str(p))

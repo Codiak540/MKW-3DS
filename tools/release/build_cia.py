@@ -62,6 +62,7 @@ COOK_STEPS=[
  ('race effects',['{py}','tools/cook_race_effects.py','--output','build/vfx/textures'],['build/vfx/textures/race-effects.bin']),
  ('blast effects',['{py}','tools/cook_blast.py'],['build/vfx/models/bomb_blast.gmdl']),
  ('Lakitu',['{py}','tools/cook_lakitu.py'],['build/vfx/models/lakitu_body.dskm']),
+ ('award ceremony',['{py}','tools/cook_ceremony.py','{disc}'],[SD+'/models/ceremony.json']),
  ('name balloons',['{py}','tools/cook_race_balloon.py'],['build/vfx/textures/hud_balloon_line.t3x']),
  ('race flow and results',['{py}','tools/cook_race_flow.py'],['build/race-flow/textures/flow_wipe.t3x']),
  ('audio',['{py}','tools/cook_audio.py'],['build/audio/audio/manifest.json']),
@@ -199,6 +200,8 @@ def step_fingerprint(cmd):
         if f.suffix!='.py':continue
         text=f.read_text(encoding='utf-8',errors='replace')
         exporters|='.mjs' in text
+        # Exporters kept in tools/ceremony/ (bundled by tools/ceremony/bundle.mjs).
+        if 'tools/ceremony/' in text:files|={p for p in (ROOT/'tools/ceremony').glob('*') if p.is_file()}
         for a,b in _IMPORT.findall(text):
             for name in ([a] if a else [n.strip().split(' ')[0] for n in b.split(',')]):
                 m=_local_module(name)
