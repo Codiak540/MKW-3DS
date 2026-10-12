@@ -185,6 +185,23 @@ for key,rows in battle['ui'].items():
   relative=Path(row['texture'])
   if relative.parent!=Path('textures/ui')/safe_name(key,'UI archive') or relative.suffix!='.t3x':raise ValueError('Invalid UI texture path')
   safe_name(relative.stem,'UI texture');files[assets/relative]=relative
+# Every effect archive (tools/cook_effect_archives.py): REFX tables and textures.
+effect_archives=json.loads((assets/'models/effect-archives.json').read_text())
+if effect_archives.get('version')!=1:raise ValueError('Cook the effect archives (tools/cook_effect_archives.py) before packaging')
+files[assets/'models/effect-archives.json']=Path('models/effect-archives.json')
+folded={}
+for archive in effect_archives['archives']:
+ folder=Path(archive['folder'])
+ if folder.parent!=Path('textures/fx') or safe_name(folder.name,'effect archive')!=folder.name:raise ValueError('Invalid effect archive folder')
+ for table in archive['tables']:
+  relative=Path(table['table'])
+  if relative.parent!=folder or relative.suffix!='.refx':raise ValueError('Invalid effect table path')
+  files[assets/relative]=relative
+  for texture in table['textures']:
+   # Original names keep their capitals; FAT32 ignores case, so no two may differ only by it.
+   safe_name(texture.lower(),'effect texture')
+   if (folder/texture.lower()) in folded and folded[folder/texture.lower()]!=texture:raise ValueError('Effect textures differ only by case: '+texture)
+   folded[folder/texture.lower()]=texture;files[assets/folder/(texture+'.t3x')]=folder/(texture+'.t3x')
 for name in models:
  p=roster_asset(Path('models')/(name+'.gmdl'));b=p.read_bytes();magic,version,nv,ni,ns,nt=struct.unpack_from('<4s5I',b)
  if magic!=b'GMDL' or version not in GMDL_SUBMESH_BYTES:raise ValueError('Regenerate supported GMDL: '+str(p))

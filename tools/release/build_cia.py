@@ -64,6 +64,7 @@ COOK_STEPS=[
  ('Lakitu',['{py}','tools/cook_lakitu.py'],['build/vfx/models/lakitu_body.dskm']),
  ('award ceremony',['{py}','tools/cook_ceremony.py','{disc}'],[SD+'/models/ceremony.json']),
  ('battle and award screens',['{py}','tools/cook_battle.py'],[SD+'/models/battle.json']),
+ ('effect archives',['{py}','tools/cook_effect_archives.py'],[SD+'/models/effect-archives.json']),
  ('name balloons',['{py}','tools/cook_race_balloon.py'],['build/vfx/textures/hud_balloon_line.t3x']),
  ('race flow and results',['{py}','tools/cook_race_flow.py'],['build/race-flow/textures/flow_wipe.t3x']),
  ('audio',['{py}','tools/cook_audio.py'],['build/audio/audio/manifest.json']),
