@@ -1,0 +1,6 @@
+50cc (karts) and 100cc (bikes) GP
+Grand Prix races 2-4: fixed memory
+  shortage (freezes, missing Lakitu)
+Lakitu: one rescue, no second grab
+Old 3DS: smoother drawing (DarthMDev)
+Version number on this screen

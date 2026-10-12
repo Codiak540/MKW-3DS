@@ -71,7 +71,12 @@ straight from your 3DS.
 **root of your SD card** (it adds the converted game files as `sd:/3ds/mkw-3ds`).
 
 **Then, for every update**, install the small **update CIA** (about 2 MB, no
-Nintendo files) in one of these ways:
+Nintendo files) in one of these ways.
+
+> **The update CIA is not the game.** It only updates a game you have built
+> yourself from your own disc. Installed on its own, nothing appears on the
+> HOME Menu (the 3DS hides updates). Build and install the full CIA first.
+> After an update, the game shows what's new on its first launch.
 
 | | |
 |---|---|

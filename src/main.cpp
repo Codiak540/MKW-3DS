@@ -189,16 +189,54 @@ static void drawMenuBackdrop(mkw::Renderer& renderer,mkw::MenuRenderer& menuRend
 // The build version in the lower screen's corner, in the console's 8x8 font,
 // until the first race draws that screen. The lower framebuffer is BGR8,
 // rotated: w is the screen's height and columns run bottom to top.
-static void drawVersion(u8* framebuffer,u16 w){
-    char text[32];snprintf(text,sizeof text,"v%s%s",MKW_VERSION,kQa?" (test)":"");
+static constexpr const char* ProjectUrl="github.com/MiniBandit/MKW-3DS";
+// One line of 8x8 console-font text on the lower screen (BGR8, rotated: w is
+// the screen's height and columns run bottom to top).
+static void drawText(u8* framebuffer,u16 w,int left,int top,const char* text,u32 rgb){
     const ConsoleFont& font=consoleGetDefault()->font;
-    const int length=int(std::strlen(text)),left=320-4-8*length,top=240-4-8;
-    for(int c=0;c<length;++c){
+    for(int c=0;text[c]&&left+c*8+8<=320;++c){
         const unsigned glyph=u8(text[c])-font.asciiOffset;if(glyph>=font.numChars)continue;
         for(int row=0;row<8;++row){const u8 bits=font.gfx[glyph*8+row];
             for(int col=0;col<8;++col)if(bits&(0x80>>col)){
-                const int x=left+c*8+col,y=top+row;u8* p=framebuffer+(size_t(x)*w+(w-1-y))*3;p[0]=p[1]=p[2]=0x90;}}
+                const int x=left+c*8+col,y=top+row;u8* p=framebuffer+(size_t(x)*w+(w-1-y))*3;p[0]=u8(rgb);p[1]=u8(rgb>>8);p[2]=u8(rgb>>16);}}
     }
+}
+// The build version in the lower screen's corner and, on the first launch
+// after an update, what it adds (WHATS_NEW.txt), until the first race draws
+// that screen.
+static void drawStartScreen(u8* framebuffer,u16 w,bool whatsNew){
+    char text[48];snprintf(text,sizeof text,"v%s%s",MKW_VERSION,kQa?" (test)":"");
+    drawText(framebuffer,w,320-4-8*int(std::strlen(text)),240-12,text,0x909090);
+    if(!whatsNew)return;
+    int y=12;
+    snprintf(text,sizeof text,"Updated to v%s",MKW_VERSION);drawText(framebuffer,w,16,y,text,0xffd040);y+=12;
+    if(MKW_QUICK_UPDATE){
+        drawText(framebuffer,w,16,y,"Quick update: no rebuild needed.",0xffffff);y+=10;
+        drawText(framebuffer,w,16,y,"Your game files stay as they are.",0xffffff);y+=16;
+    }else y+=4;
+    drawText(framebuffer,w,16,y,"What's new:",0xffd040);y+=12;
+    const char* line=MKW_WHATS_NEW;
+    while(*line&&y<240-40){
+        const char* end=std::strchr(line,'\n');const size_t n=end?size_t(end-line):std::strlen(line);
+        char buffer[40];snprintf(buffer,sizeof buffer,"%.*s",int(std::min<size_t>(n,38)),line);
+        drawText(framebuffer,w,16,y,buffer,0xd0d0d0);y+=10;
+        line+=n;if(*line=='\n')++line;
+    }
+    drawText(framebuffer,w,16,240-26,ProjectUrl,0x60a0ff);
+}
+// True only on the first launch after an update: the SD card records another
+// version, or records none and this is a quick update (always installed over
+// an earlier version; 0.4.1 and older wrote no record). A first install only
+// records its version, and later launches match it.
+static bool firstLaunchAfterUpdate(){
+    char seen[32]={};
+    if(FILE* f=fopen("sdmc:/3ds/mkw-3ds/last-version.txt","r")){if(!fgets(seen,sizeof seen,f))seen[0]=0;fclose(f);}
+    seen[strcspn(seen,"\r\n")]=0;
+    if(!strcmp(seen,MKW_VERSION))return false;
+    const bool updated=seen[0]||MKW_QUICK_UPDATE;
+    mkdir("sdmc:/3ds",0777);mkdir("sdmc:/3ds/mkw-3ds",0777);
+    if(FILE* f=fopen("sdmc:/3ds/mkw-3ds/last-version.txt","w")){fprintf(f,"%s\n",MKW_VERSION);fclose(f);}
+    return updated;
 }
 // The content stamp beside a copy of the game files (empty when absent).
 static void readContent(const char* root,char (&found)[80]){
@@ -215,16 +253,17 @@ static bool sdContentReady(){
     if(contentMatches("sdmc:/3ds/mkw-3ds/"))return true;
     report(found[0]?"content: SD files from another builder version":"content: SD files missing");
     consoleInit(GFX_TOP,nullptr);
-    printf("\n  Mario Kart Wii 3DS - update\n\n");
+    printf("\n  Mario Kart Wii 3DS\n\n");
     if(!found[0]){
-        printf("  The game files aren't on your SD card.\n\n");
-        printf("  This is the small update CIA. It needs the\n  game files made by the builder:\n\n");
-        printf("  1. Run the builder with your disc.\n  2. Copy build/release/sd-card/3ds to the\n     root of your SD card.\n\n");
-        printf("  Or install the full CIA from the latest\n  builder instead.\n");
+        printf("  This is a code update, not the whole game.\n\n");
+        printf("  You build the game yourself, on your\n  computer, from your own Mario Kart Wii\n  disc. It can't be downloaded.\n\n");
+        printf("  Builder and instructions:\n  %s\n\n",ProjectUrl);
+        printf("  Already built it? Copy build/release/\n  sd-card/3ds to the root of your SD card,\n  or install the full CIA you built.\n");
     }else{
         printf("  Your game files are from a different\n  builder version than this update.\n\n");
         printf("  Run the latest builder again (it only redoes\n  what changed), then copy\n  build/release/sd-card/3ds to your SD card.\n\n");
-        printf("  Installed a newer full CIA? Install the\n  latest quick update too, or delete the old\n  update in FBI (Titles).\n");
+        printf("  Installed a newer full CIA? Install the\n  latest quick update too, or delete the old\n  update in FBI (Titles).\n\n");
+        printf("  Help: %s\n",ProjectUrl);
     }
     printf("\n  Press any button to exit.");
     while(aptMainLoop()){hidScanInput();if(hidKeysDown())break;gspWaitForVBlank();}
@@ -338,9 +377,10 @@ int main() {
     // Wii presentation is confined to the upper LCD. Keep both lower buffers
     // black rather than allocating a second GPU render target.
     if(fullRace){
+        const bool whatsNew=firstLaunchAfterUpdate();
         for(unsigned i=0;i<2;++i){
             u16 w=0,h=0;auto* framebuffer=gfxGetFramebuffer(GFX_BOTTOM,GFX_LEFT,&w,&h);
-            if(framebuffer){std::memset(framebuffer,0,size_t(w)*h*3);drawVersion(framebuffer,w);}
+            if(framebuffer){std::memset(framebuffer,0,size_t(w)*h*3);drawStartScreen(framebuffer,w,whatsNew);}
             // QA: the lower screen as drawn, unrotated (version-bottom.ppm, 320x240).
             if(kQa&&framebuffer&&i==0)if(FILE* f=fopen("sdmc:/3ds/mkw-3ds/version-bottom.ppm","wb")){
                 fprintf(f,"P6 %u %u 255\n",unsigned(h),unsigned(w));
