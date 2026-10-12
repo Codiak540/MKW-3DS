@@ -53,7 +53,7 @@ def measure():
     exe = ROOT / 'build/host-tools/menu_sprite_scales'
     exe.parent.mkdir(parents=True, exist_ok=True)
     sources = ['tools/menu_sprite_scales.cpp', 'src/menu_ui.cpp', 'src/menu_state.cpp', 'src/menu_transition.cpp',
-               'src/menu_focus.cpp', 'src/menu_index.cpp']
+               'src/menu_focus.cpp', 'src/menu_index.cpp', 'src/menu_text_motion.cpp']
     subprocess.run(['clang++', '-std=c++2b', '-O2', '-I' + str(ROOT / 'include'), '-o', str(exe),
                     *[str(ROOT / s) for s in sources]], check=True)
     out = ROOT / 'build/host-tools/sprite-scales.json'

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Stage a private playable SD package from the user's locally cooked assets."""
 import hashlib,json,shutil,struct,zipfile
+from gx_material import GMDL_SUBMESH_BYTES
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];assets=ROOT/'sd-card/3ds/mkw-3ds';out=ROOT/'build/playable/3ds/mkw-3ds';out.mkdir(parents=True,exist_ok=True)
 roster_overlay=ROOT/'build/roster'
@@ -57,6 +58,15 @@ for choice in garage['choices']:
  for name in choice['animationBanks']:
   if name not in choice['models']:raise ValueError('Animation bank has no matching model')
   files[roster_asset(Path('models')/(name+'.dskm'))]=Path('models')/(name+'.dskm')
+shadow_root=ROOT/'build/vehicle-shadows'
+shadow_manifest=json.loads((shadow_root/'models/vehicle-shadows.json').read_text())
+expected={choice['prefix'] for choice in garage['choices']}
+if {row['prefix'] for row in shadow_manifest['choices']}!=expected:raise ValueError('Cook every vehicle shadow before packaging')
+for row in shadow_manifest['choices']:
+ relative=Path('models')/(row['prefix']+'shadow.gmdl');source=shadow_root/relative
+ if hashlib.sha256(source.read_bytes()).hexdigest()!=row['sha256']:raise ValueError('Vehicle shadow changed: '+str(relative))
+ files[source]=relative
+files[shadow_root/'models/vehicle-shadows.json']=Path('models/vehicle-shadows.json')
 textures={'drift_sparkTex2','drift_flash2','drift_rk_smoke2'}
 files[assets/'textures/drift-effects.bin']=Path('textures/drift-effects.bin')
 files[assets/'textures/drift-effects-bike.bin']=Path('textures/drift-effects-bike.bin')
@@ -132,8 +142,8 @@ for category in ['hudItems','hudRanks','hudDigits','hudExtras']:
   textures.add(relative.stem)
 for name in models:
  p=roster_asset(Path('models')/(name+'.gmdl'));b=p.read_bytes();magic,version,nv,ni,ns,nt=struct.unpack_from('<4s5I',b)
- if magic!=b'GMDL' or version not in (3,4):raise ValueError('Regenerate GMDL v3/v4: '+str(p))
- stride=44 if version==3 else 56 # v4: retail course lighting (tools/gx_material.py)
+ if magic!=b'GMDL' or version not in GMDL_SUBMESH_BYTES:raise ValueError('Regenerate supported GMDL: '+str(p))
+ stride=GMDL_SUBMESH_BYTES[version]
  for i in range(nt):textures.add(b[24+ns*stride+i*64:24+ns*stride+(i+1)*64].split(b'\0')[0].decode())
  files[p]=Path('models')/p.name
 for name in sorted(textures):files[roster_asset(Path('textures')/(name+'.t3x'))]=Path('textures')/(name+'.t3x')
@@ -172,6 +182,29 @@ for src in sorted(course_overlay.glob('models/*.gmdl'))+sorted(course_overlay.gl
  if src.name.startswith('._'):continue
  if rel not in packaged:raise ValueError('Course overlay file is not packaged: '+rel)
  overlay[rel]=src
+# Psea distance filtering: source base levels plus verified small mip chains.
+water_mipmaps=ROOT/'build/water-mipmaps'
+if (water_mipmaps/'receipt.json').is_file():
+ water=json.loads((water_mipmaps/'receipt.json').read_text())
+ for rel,info in water['textures'].items():
+  src=water_mipmaps/rel
+  if rel not in packaged or not rel.startswith('textures/obj16_psea_') or not rel.endswith('.t3x'):
+   raise ValueError('Invalid water mipmap override: '+rel)
+  if digest_file(src)!=info['sha256'] or digest_file(assets/rel)!=info['originalSha256']:
+   raise ValueError('Water mipmap source changed: '+rel)
+  if digest_file((assets/rel).with_suffix('.png'))!=info['pngSha256']:
+   raise ValueError('Water mipmap pixels changed: '+rel)
+  overlay[rel]=src
+# Original item channels and reflection maps, refreshed without disc extraction.
+item_lighting=ROOT/'build/item-lighting'
+if (item_lighting/'receipt.json').is_file():
+ for rel,info in json.loads((item_lighting/'receipt.json').read_text())['files'].items():
+  src=item_lighting/rel
+  if rel not in packaged or Path(rel).parts[0] not in ('models','textures'):
+   raise ValueError('Invalid item lighting override: '+rel)
+  if digest_file(src)!=info['sha256'] or digest_file(assets/rel)!=info['originalSha256']:
+   raise ValueError('Item lighting source changed: '+rel)
+  overlay[rel]=src
 # Race-flow UI (tools/cook_race_flow.py): out-of-bounds wipe, result board and
 # end-of-race menu textures, cooked into this tree's own overlay directory.
 flow=ROOT/'build/race-flow/textures'

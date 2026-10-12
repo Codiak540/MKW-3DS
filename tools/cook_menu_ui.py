@@ -330,6 +330,10 @@ def main():
   ('confirm','MenuSingle/button/blyt/common_w109_go_button.brlyt',('text',)),
  ]
  for name,resource,exclude in specs:bake_panel(name,resource,exclude=exclude)
+ # PressStart is a real layout/control, with a separate expanding light
+ # text pane and a squash/stretch confirmation animation. The fade group is
+ # evaluated live; keep an opaque reference pose for the text textures.
+ bake_panel('press_start','Title/press_start/blyt/press_start.brlyt',states=('',),exclude=('text',),bounds=(-200,-30,200,30),overrides={'press_start_null':{'alpha':1}})
  # Pages::LicenseSelect::OnInit uses top/bottom variants. Empty RKPD slots
  # hide only the native data panes; the authored blank card stays intact.
  empty_license=['mii']+[f'{prefix}_{i:02d}' for prefix in ['cc50','cc100','cc150','cc_mirror'] for i in range(8)]
@@ -448,6 +452,7 @@ def main():
  for required in roles.values():
   for label in required:
    if label not in labels:labels.append(label)
+ roles['press_start']=['Press the A Button']
  text_styles=[];style_labels={}
  for panel,panes in pane_records.items():
   role=re.sub(r'_(free|select|ok)$','',panel)
@@ -585,7 +590,9 @@ def main():
   for region in movie['regions']:lines.append('{'+','.join([json.dumps(region['key']),str(movie['frames']),f"{movie['fps']:.8f}f"] )+'},')
  lines+=['};','inline constexpr unsigned UiMovieFrameCount=16;','inline constexpr float UiSelectScale[]={'+','.join(f'{x:.8f}f' for x in scales)+'};','inline constexpr float UiMapBounds[32][4]={']
  lines += ['{'+','.join(f'{x:.8f}f' for x in m['bounds'])+'},' for m in maps]
- lines+=['};','}'];(ROOT/'include/mkw/menu_assets.hpp').write_text('\n'.join(lines)+'\n')
+ light_blend=pane_records['press_start']['text_light']['blend']
+ if light_blend not in ([1,4,5,3],[1,4,1,3]):raise ValueError('Unsupported PressStart light blend: '+str(light_blend))
+ lines+=['};','inline constexpr bool UiPressStartLightAdditive='+str(light_blend[2]==1).lower()+';','}'];(ROOT/'include/mkw/menu_assets.hpp').write_text('\n'.join(lines)+'\n')
  print(f'Cooked {len(records)} source UI sprites, {len(panel_records)} layout panels, {len(movie_records)} retail movies, 32 source minimaps; {len(evidence)} hashed sources')
  # The runtime textures are fitted to the 3DS screen and LZ11-compressed from
  # these full-resolution PNGs; that pass also rewrites the header's UVs.

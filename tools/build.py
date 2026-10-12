@@ -8,7 +8,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def main():
  p=argparse.ArgumentParser();p.add_argument('--jobs',type=int,default=6)
  # Release (the CIA builder): no test hooks, logs or engine assert text; no build paths.
- p.add_argument('--release',action='store_true');a=p.parse_args()
+ p.add_argument('--release',action='store_true');p.add_argument('--external-assets',action='store_true',help='3DSX test program using an existing compatible SD asset set');a=p.parse_args()
  dkp=devkitpro_root();out=ROOT/'build';out.mkdir(exist_ok=True)
  citro=build_citro3d(out,dkp)
  kin=ROOT/'vendor/kinoko';cxx=arm('arm-none-eabi-g++')
@@ -25,6 +25,7 @@ def main():
  # KartObjectProxy accessors live in .cc files and inline only at link time.
  # Same IEEE semantics (-ffp-contract=off, no fast-math); the app keeps
  # ordinary objects, so the linker --wrap list below is unaffected.
+ if a.external_assets:flags+=['-DMKW_EXTERNAL_ASSETS']
  if a.release:flags+=['-DMKW_RELEASE','-DKINOKO_QUIET','-ffile-prefix-map='+str(ROOT)+'/=']
  lto=['-flto=auto']
  codegen=['-O2','-g','-mword-relocations','-ffunction-sections','-fdata-sections','-fno-exceptions','-fno-rtti','-fno-strict-aliasing','-ffp-contract=off']
