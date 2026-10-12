@@ -25,7 +25,7 @@ for course in catalog['courses']:
  files[source]=archive;files[assets/receipt]=receipt
  # Placed objects: tools/cook_course_objects.py meshes and animation banks.
  visuals=assets/f"models/course_{course['id']:02d}_visuals.list"
- if course['kind']=='race':
+ if course['kind'] in ('race','arena'):
   if not visuals.is_file():raise ValueError('Cook course objects before packaging: '+course['name'])
   files[visuals]=Path('models')/visuals.name
   for line in visuals.read_text().splitlines():
@@ -175,6 +175,16 @@ for camera in ceremony['cameras']:
  relative=Path(camera['file'])
  if relative.parent!=Path('models/ceremony') or relative.suffix!='.scam':raise ValueError('Invalid ceremony camera path')
  files[assets/relative]=relative
+# Battle content and race/award UI images (tools/cook_battle.py).
+battle=json.loads((assets/'models/battle.json').read_text())
+if battle.get('version')!=1:raise ValueError('Cook the battle content (tools/cook_battle.py) before packaging')
+files[assets/'models/battle.json']=Path('models/battle.json')
+models+=[safe_name(n,'battle model') for n in [*battle['balloons'].values(),battle['lakituBoard']]]
+for key,rows in battle['ui'].items():
+ for row in rows:
+  relative=Path(row['texture'])
+  if relative.parent!=Path('textures/ui')/safe_name(key,'UI archive') or relative.suffix!='.t3x':raise ValueError('Invalid UI texture path')
+  safe_name(relative.stem,'UI texture');files[assets/relative]=relative
 for name in models:
  p=roster_asset(Path('models')/(name+'.gmdl'));b=p.read_bytes();magic,version,nv,ni,ns,nt=struct.unpack_from('<4s5I',b)
  if magic!=b'GMDL' or version not in GMDL_SUBMESH_BYTES:raise ValueError('Regenerate supported GMDL: '+str(p))
