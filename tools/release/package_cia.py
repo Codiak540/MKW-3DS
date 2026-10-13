@@ -18,10 +18,8 @@ RSF=Path(__file__).with_name('mkw-3ds.rsf')
 TITLE='Mario Kart Wii 3DS'  # HOME Menu name
 UNIQUE_ID=0xF4B57
 TITLE_ID=0x0004000000000000|UNIQUE_ID<<8
-# Quick updates install as this title's update (Patch), like a retail game
-# update: the system runs the update's code and keeps the application's icon,
-# banner and sound, which were made from the player's disc.
-UPDATE_TITLE_ID=0x0004000E00000000|UNIQUE_ID<<8
+# Quick updates are the same title with a higher version: installing replaces
+# the program (a Patch title, 0004000E, was never applied on a real 3DS).
 
 def version_number(text):
     major,minor,micro=(int(v) for v in text.split('.'))
@@ -36,38 +34,8 @@ def version_number(text):
 def run(*args):
     subprocess.run([str(a) for a in args],check=True)
 
-def retarget_update(cia):
-    """A Patch title's NCCH header names the patch, but its extended header
-    names the application it patches (3dbrew, Title list/Patches); makerom
-    writes the patch's ID in both, and the system then does not apply the
-    update. Point the extended header at the application, then fix the
-    hashes above it (NCCH header, TMD chunk and info records). The CIA is
-    not signed by Nintendo either way (CFW signature patches are needed to
-    install it)."""
-    import struct
-    b=bytearray(cia.read_bytes())
-    align=lambda x:(x+63)&~63
-    hs,_,_,cert,tik,tmd=struct.unpack_from('<IHHIII',b,0)
-    t=align(hs)+align(cert)+align(tik);c=t+align(tmd)
-    old,new=struct.pack('<Q',UPDATE_TITLE_ID),struct.pack('<Q',TITLE_ID)
-    if b[c+0x100:c+0x104]!=b'NCCH':raise SystemExit('update CIA content is not an NCCH')
-    ex=c+0x200
-    for at in (ex+0x1c8,ex+0x200,ex+0x600):  # jump ID, ACI and ACI-limit program IDs
-        if b[at:at+8]==old:b[at:at+8]=new
-    if b[ex+0x200:ex+0x208]!=new:raise SystemExit('extended header program ID not set')
-    b[c+0x160:c+0x180]=hashlib.sha256(bytes(b[ex:ex+0x400])).digest()
-    # TMD (RSA-2048 signature: 4+0x100+0x3c, then the 0x9c-byte header, 64 info records, chunk records)
-    h=t+0x140;info=h+0xc4;chunks=info+64*0x24
-    count=struct.unpack_from('>H',b,h+0x9e)[0]
-    if count!=1:raise SystemExit('update CIA should have one content')
-    size=struct.unpack_from('>Q',b,chunks+8)[0]
-    b[chunks+0x10:chunks+0x30]=hashlib.sha256(bytes(b[c:c+size])).digest()
-    b[info+4:info+0x24]=hashlib.sha256(bytes(b[chunks:chunks+0x30])).digest()
-    b[h+0xa4:h+0xc4]=hashlib.sha256(bytes(b[info:chunks])).digest()
-    cia.write_bytes(bytes(b))
-
 def package(cci=False,version='0.1.0',output=None,update=False):
-    # update: the code-only Patch CIA. Its game files come from the SD card
+    # update: the code-only CIA, the same title as the application. Its game files come from the SD card
     # (written by the builder) or the application's own RomFS when that matches;
     # its own HOME Menu art is drawn without the disc and is not what is shown.
     elf=ROOT/'build/mkw-3ds.elf'
@@ -95,12 +63,11 @@ def package(cci=False,version='0.1.0',output=None,update=False):
         try:
             run(makerom,'-f','cci' if cci else 'cia','-target','t','-exefslogo','-elf',elf,'-rsf',RSF,
                 '-icon',art/'icon.icn','-banner',art/'banner.bnr','-ver',version_number(version),
-                f'-DAPP_ROMFS={stage}','-DAPP_CATEGORY='+('Patch' if update else 'Application'),'-DAPP_REMASTER=0','-o',temporary)
-            if update:retarget_update(temporary)
+                f'-DAPP_ROMFS={stage}','-DAPP_CATEGORY=Application','-DAPP_REMASTER=0','-o',temporary)
             temporary.replace(target)
         finally:temporary.unlink(missing_ok=True)
     receipt={'file':str(target),'format':'cci' if cci else 'cia','sha256':digest(target),'bytes':target.stat().st_size,
-             'title_id':f'{UPDATE_TITLE_ID if update else TITLE_ID:016X}','version':version,'elf_sha256':digest(elf),'asset_count':len(assets),
+             'title_id':f'{TITLE_ID:016X}','version':version,'elf_sha256':digest(elf),'asset_count':len(assets),
              'assets_sha256':hashlib.sha256(json.dumps(assets,sort_keys=True).encode()).hexdigest(),
              'tools':json.loads((makerom.parent/'tools-verified.json').read_text())}
     target.with_name(target.name+'.receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
@@ -114,6 +81,6 @@ if __name__=='__main__':
     # version rises: bump tools/release/VERSION for every build you share.
     p.add_argument('--version',default=(Path(__file__).parent/'VERSION').read_text().strip())
     p.add_argument('--output',type=Path)
-    p.add_argument('--update',action='store_true',help='code-only update CIA (Patch title): game files from the SD card, no disc needed')
+    p.add_argument('--update',action='store_true',help='code-only update CIA (same title, higher version): game files from the SD card, no disc needed')
     a=p.parse_args()
     package(a.cci,a.version,a.output,a.update)
