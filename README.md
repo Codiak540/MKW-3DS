@@ -64,8 +64,14 @@ New 3DS / New 2DS run at 60 FPS (30 FPS with the 3D slider up); Old 3DS / 2DS at
 
 ## Quick updates (no rebuilding)
 
-After your first build, updates are a small download, and you can do them
-straight from your 3DS.
+> ### ⚠️ Quick updates need a game built with **v0.5.0 or newer**
+> If you built your game with **v0.4.1 or older**, the QR codes below will
+> **not** work for you: download the latest builder, build the game again, and
+> install the full CIA. After that, every later update is a quick update.
+> (The game also tells you this on start-up if its files are too old.)
+
+After a build with v0.5.0 or newer, updates are a small download, and you can
+do them straight from your 3DS.
 
 **Once:** copy the folder **`build/release/sd-card/3ds`** from the builder to the
 **root of your SD card** (it adds the converted game files as `sd:/3ds/mkw-3ds`).
@@ -87,9 +93,9 @@ Nintendo files) in one of these ways.
 The update installs like a Nintendo game update, on top of the game: your
 HOME Menu icon, banner and music (made from your disc) stay as they are.
 
-The QR codes always fetch the newest update. If an update needs newer game
-files, the game tells you on start-up: run the latest builder again (it only
-redoes what changed) and copy `build/release/sd-card/3ds` to your SD card again.
+The QR codes always fetch the newest update. If an update ever needs newer game
+files, the game tells you on start-up: download the latest builder, build again
+and copy `build/release/sd-card/3ds` to your SD card again.
 If you install a newer full CIA later, also install the latest update (or
 delete the old one in FBI → Titles): an installed update always runs instead
 of the game's own code.
