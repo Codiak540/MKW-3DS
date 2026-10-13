@@ -26,7 +26,12 @@ UPDATE_TITLE_ID=0x0004000E00000000|UNIQUE_ID<<8
 def version_number(text):
     major,minor,micro=(int(v) for v in text.split('.'))
     if not(0<=major<64 and 0<=minor<64 and 0<=micro<16):raise SystemExit('version must be major.minor.micro within 63.63.15')
-    return major<<10|minor<<4|micro
+    # makerom drops the TMD version's minor bits (0.5.1 came out as version 1,
+    # so the 3DS saw it as older than an earlier update). Count releases in
+    # the bits it keeps instead: a steadily rising number, 0 to 1023.
+    n=major*256+minor*16+micro
+    if n>1023:raise SystemExit('version too large for a title version')
+    return n>>4<<10|n&15
 
 def run(*args):
     subprocess.run([str(a) for a in args],check=True)
