@@ -291,7 +291,10 @@ int main() {
     // Embedded assets are read in place; writable diagnostics stay on SD.
     struct AssetMount {
         bool mounted=R_SUCCEEDED(romfsInit());
-        ~AssetMount(){if(mounted)romfsExit();}
+        // menu.pak and race.pak stay open for the session; with them in the CIA's
+        // RomFS, the C library would close them at exit after the RomFS device is
+        // gone (a data abort in _close_r on every exit, 0.5.0).
+        ~AssetMount(){mkw::pack::close();if(mounted)romfsExit();}
     } assets;
     // The full CIA carries the game files in its RomFS. A quick update is
     // installed over it and runs this code with that RomFS, so the files there
