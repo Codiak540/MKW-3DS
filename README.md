@@ -64,25 +64,26 @@ New 3DS / New 2DS run at 60 FPS (30 FPS with the 3D slider up); Old 3DS / 2DS at
 
 ## Quick updates (no rebuilding)
 
-> ### ⚠️ Quick updates need a game built with **v0.5.0 or newer**
-> If you built your game with **v0.4.1 or older**, the QR codes below will
-> **not** work for you: download the latest builder, build the game again, and
-> install the full CIA. After that, every later update is a quick update.
-> (The game also tells you this on start-up if its files are too old.)
+### Who can use the QR code, and who has to build
 
-After a build with v0.5.0 or newer, updates are a small download, and you can
-do them straight from your 3DS.
+| You are… | What to do |
+|---|---|
+| **Built your game with v0.5.0 or newer** and copied `build/release/sd-card/3ds` to your SD card | ✅ **Scan the QR code below.** That's all. |
+| **Built with v0.4.1 or older** (or any older version) | ❌ **The QR code will NOT work for you.** Download the latest builder, build the game again and install the full CIA. After that, later updates are quick updates. |
+| **Never built the game** (no CIA from your own disc) | ❌ **The QR code is not the game.** It is a small update of a game you build yourself from your own Mario Kart Wii disc. Without a built game and its SD files it only shows a "build the game first" message. Use the builder. |
+| **Built with v0.5.0 or newer but didn't copy the SD folder** | ❌ Copy `build/release/sd-card/3ds` to the **root of your SD card** first, then scan. |
+
+If you're unsure which version you built with, **build again with the latest
+builder**: it always works. The game also tells you on start-up when its files
+are too old for an update.
+
+### How to update
 
 **Once:** copy the folder **`build/release/sd-card/3ds`** from the builder to the
 **root of your SD card** (it adds the converted game files as `sd:/3ds/mkw-3ds`).
 
 **Then, for every update**, install the small **update CIA** (about 2 MB, no
-Nintendo files) in one of these ways.
-
-> **The update CIA is not the game.** It only updates a game you have built
-> yourself from your own disc. Installed on its own, nothing appears on the
-> HOME Menu (the 3DS hides updates). Build and install the full CIA first.
-> After an update, the game shows what's new on its first launch.
+game files) in one of these ways:
 
 | | |
 |---|---|
@@ -90,15 +91,12 @@ Nintendo files) in one of these ways.
 | **Universal-Updater**: Settings → Add store → scan this, then install *Mario Kart Wii 3DS (update)* whenever there's a new version | <img src="docs/universal-updater-qr.png" width="160"> |
 | **Manually**: download `MKW-3DS-Update.cia` from the [latest release](../../releases/latest) and install it with FBI | |
 
-The update installs like a Nintendo game update, on top of the game: your
-HOME Menu icon, banner and music (made from your disc) stay as they are.
+The update installs over your game like any CIA update: your saves and SD files
+stay. After an update, the game shows what's new on its first launch.
 
 The QR codes always fetch the newest update. If an update ever needs newer game
 files, the game tells you on start-up: download the latest builder, build again
 and copy `build/release/sd-card/3ds` to your SD card again.
-If you install a newer full CIA later, also install the latest update (or
-delete the old one in FBI → Titles): an installed update always runs instead
-of the game's own code.
 
 ## Controls
 
