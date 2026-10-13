@@ -21,13 +21,15 @@ TITLE_ID=0x0004000000000000|UNIQUE_ID<<8
 # Quick updates are the same title with a higher version: installing replaces
 # the program (a Patch title, 0004000E, was never applied on a real 3DS).
 
-def version_number(text):
+def version_number(text,update=False):
     major,minor,micro=(int(v) for v in text.split('.'))
     if not(0<=major<64 and 0<=minor<64 and 0<=micro<16):raise SystemExit('version must be major.minor.micro within 63.63.15')
     # makerom drops the TMD version's minor bits (0.5.1 came out as version 1,
     # so the 3DS saw it as older than an earlier update). Count releases in
     # the bits it keeps instead: a steadily rising number, 0 to 1023.
-    n=major*256+minor*16+micro
+    # An update sits one above the same release's full CIA, so installing it
+    # over that build raises the version and the HOME Menu redraws the icon.
+    n=major*256+minor*16+micro+update
     if n>1023:raise SystemExit('version too large for a title version')
     return n>>4<<10|n&15
 
@@ -68,7 +70,7 @@ def package(cci=False,version='0.1.0',output=None,update=False):
             (Path(stage)/'content.txt').write_text(content_fingerprint()+'\n')
         try:
             run(makerom,'-f','cci' if cci else 'cia','-target','t','-exefslogo','-elf',elf,'-rsf',RSF,
-                '-icon',art/'icon.icn','-banner',art/'banner.bnr','-ver',version_number(version),
+                '-icon',art/'icon.icn','-banner',art/'banner.bnr','-ver',version_number(version,update),
                 f'-DAPP_ROMFS={stage}','-DAPP_CATEGORY=Application','-DAPP_REMASTER=0','-o',temporary)
             temporary.replace(target)
         finally:temporary.unlink(missing_ok=True)
