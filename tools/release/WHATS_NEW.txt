@@ -1,3 +1,7 @@
-New Compiler-time optimizations,
-as well as general optimizations
-for the o3DS, by Codiak540
+Fixed: quick updates on Windows builds
+  (game files were wrongly refused)
+Fixed: crash when closing the game
+Fixed: race-start sound on OK, and no
+  hop/drift sounds after finishing
+  (DarthMDev)
+New o3DS optimizations by Codiak540
