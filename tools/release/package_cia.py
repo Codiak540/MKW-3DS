@@ -43,11 +43,17 @@ def package(cci=False,version='0.1.0',output=None,update=False):
     if not update and not (SOURCE/'manifest.json').is_file():raise SystemExit('Stage the package first (tools/package_sd.py --no-zip)')
     makerom,bannertool=tools()
     out=ROOT/'build/release';art=out/'art';out.mkdir(parents=True,exist_ok=True)
-    if update:art=out/'art-update';icon,banner,sound=home_menu_art.generic(art)
-    else:icon,banner,sound=home_menu_art.make(art,SOURCE/'movies/title_bgm.wav')
-    run(bannertool,'makebanner','-i',banner,'-a',sound,'-o',art/'banner.bnr')
-    run(bannertool,'makesmdh','-s',TITLE,'-l',TITLE+' (unofficial port)','-p','mkw-3ds',
-        '-i',icon,'-o',art/'icon.icn','-r','regionfree','-f','visible,allow3d,recordusage')
+    if update:
+        # The update is built without a disc (on GitHub), so it carries the
+        # HOME Menu icon and banner made once from a disc (tools/release/art),
+        # which the update then installs over the application's own.
+        art=out/'art-update';art.mkdir(parents=True,exist_ok=True)
+        for f in ('icon.icn','banner.bnr'):(art/f).write_bytes((Path(__file__).parent/'art'/f).read_bytes())
+    else:
+        icon,banner,sound=home_menu_art.make(art,SOURCE/'movies/title_bgm.wav')
+        run(bannertool,'makebanner','-i',banner,'-a',sound,'-o',art/'banner.bnr')
+        run(bannertool,'makesmdh','-s',TITLE,'-l',TITLE+' (unofficial port)','-p','mkw-3ds',
+            '-i',icon,'-o',art/'icon.icn','-r','regionfree','-f','visible,allow3d,recordusage')
     target=output or out/('mkw-3ds-update.cia' if update else 'mkw-3ds.cci' if cci else 'mkw-3ds.cia')
     temporary=target.with_name(target.name+'.tmp')
     # Beside the staged package, so hard links work wherever the player builds.
