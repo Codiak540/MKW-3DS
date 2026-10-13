@@ -73,6 +73,8 @@ New 3DS / New 2DS run at 60 FPS (30 FPS with the 3D slider up); Old 3DS / 2DS at
 | **Never built the game** (no CIA from your own disc) | ❌ **The QR code is not the game.** It is a small update of a game you build yourself from your own Mario Kart Wii disc. Without a built game and its SD files it only shows a "build the game first" message. Use the builder. |
 | **Built with v0.5.0 or newer but didn't copy the SD folder** | ❌ Copy `build/release/sd-card/3ds` to the **root of your SD card** first, then scan. |
 
+**Windows:** games built on Windows with v0.5.0 or v0.5.1 are refused by the v0.5.1 update (fixed in v0.5.2: use the latest update).
+
 If you're unsure which version you built with, **build again with the latest
 builder**: it always works. The game also tells you on start-up when its files
 are too old for an update.

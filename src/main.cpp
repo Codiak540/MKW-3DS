@@ -246,7 +246,7 @@ static void readContent(const char* root,char (&found)[80]){
 }
 static bool contentMatches(const char* root){
     char found[80];readContent(root,found);char common[64];snprintf(common,sizeof common,"%sRace/Common.szs",root);
-    return !strcmp(found,MKW_CONTENT)&&exists(common);
+    return (!strcmp(found,MKW_CONTENT)||!strcmp(found,MKW_CONTENT_WINDOWS_LEGACY))&&exists(common);
 }
 static bool sdContentReady(){
     char found[80];readContent("sdmc:/3ds/mkw-3ds/",found);
@@ -262,7 +262,6 @@ static bool sdContentReady(){
     }else{
         printf("  Your game files are from an older (or a\n  different) builder than this update needs.\n  Quick updates need v0.5.0 or newer.\n\n");
         printf("  Download the latest builder and build the\n  game again, then copy build/release/\n  sd-card/3ds to your SD card.\n\n");
-        printf("  Installed a newer full CIA? Install the\n  latest quick update too, or delete the old\n  update in FBI (Titles).\n\n");
         printf("  Help: %s\n",ProjectUrl);
     }
     printf("\n  Press any button to exit.");
