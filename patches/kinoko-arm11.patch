@@ -52,7 +52,7 @@ index ee849c9..d882277 100644
      if (root && root[0] != '\0') {
          // path relative to KINOKO_FILESYSTEM_ROOT
 diff --git a/source/egg/math/Math.hh b/source/egg/math/Math.hh
-index f0c4cc4..8424fae 100644
+index f0c4cc4..1539bd5 100644
 --- a/source/egg/math/Math.hh
 +++ b/source/egg/math/Math.hh
 @@ -30,16 +30,18 @@ namespace EGG::Mathf {
@@ -76,6 +76,80 @@ index f0c4cc4..8424fae 100644
  }
  
  // sin/cos struct
+@@ -713,7 +715,9 @@ static constexpr std::array<BaseAndDec32, 32> FRES_TABLE = {{
+ 
+ /// CREDIT: Hanachan
+ /// @addr{0x80085040}
+-[[nodiscard]] static inline constexpr f32 frsqrt(f32 x) {
++/// mkw-3ds: the fully general version, kept as the reference and as the fallback for inputs the
++/// fast path in frsqrt() does not cover.
++[[nodiscard]] [[gnu::noinline]] static constexpr f32 frsqrtGeneral(f32 x) {
+     // frsqrte instruction
+     f64 est = frsqrte(x);
+ 
+@@ -725,6 +729,62 @@ static constexpr std::array<BaseAndDec32, 32> FRES_TABLE = {{
+     return tmp1 * tmp2;
+ }
+ 
++/// mkw-3ds: RSQRTE_TABLE rescaled to units of 2^26. Every base and dec is a multiple of 2^26, so
++/// the estimate's mantissa can be interpolated with 32-bit arithmetic instead of 64-bit.
++static constexpr std::array<BaseAndDec32, 32> RSQRTE_TABLE_26 = [] {
++    std::array<BaseAndDec32, 32> out{};
++    for (size_t i = 0; i < out.size(); ++i) {
++        out[i].base = static_cast<u32>(RSQRTE_TABLE[i].base >> 26);
++        out[i].dec = static_cast<s32>(RSQRTE_TABLE[i].dec / (1LL << 26));
++    }
++    return out;
++}();
++
++// Fails the build if the rescaling above would lose bits, i.e. if any entry is not an exact
++// multiple of 2^26.
++static_assert([] {
++    for (size_t i = 0; i < RSQRTE_TABLE.size(); ++i) {
++        if ((RSQRTE_TABLE[i].base & 0x3ffffffULL) != 0 ||
++                (RSQRTE_TABLE[i].dec & 0x3ffffffLL) != 0 ||
++                static_cast<u64>(RSQRTE_TABLE_26[i].base) << 26 != RSQRTE_TABLE[i].base ||
++                static_cast<s64>(RSQRTE_TABLE_26[i].dec) * (1LL << 26) != RSQRTE_TABLE[i].dec) {
++            return false;
++        }
++    }
++    return true;
++}(), "RSQRTE_TABLE must be an exact multiple of 2^26");
++
++/// mkw-3ds: bit-identical to frsqrtGeneral for every f32 input (verified exhaustively over all
++/// 2^32 bit patterns). Positive normal inputs, which is nearly everything, take a path that builds
++/// the frsqrte estimate straight from the input's bits. Zero, negative, denormal, infinite and NaN
++/// inputs use frsqrtGeneral unchanged.
++///
++/// For a positive normal f32 with biased exponent e and 23-bit mantissa m:
++///   - the table index is (e & 1) << 4 | m >> 19, and the interpolation step is (m >> 8) & 0x7ff;
++///   - the estimate's biased exponent is (2172 - e) >> 1.
++[[nodiscard]] static inline constexpr f32 frsqrt(f32 x) {
++    const u32 xBits = std::bit_cast<u32>(x);
++    const u32 e = xBits >> 23;
++
++    // e - 1 wraps for e == 0 (zero/denormal), and sign set makes e >= 256: both fall through
++    if (e - 1u >= 254u) {
++        return frsqrtGeneral(x);
++    }
++
++    const u32 m = xBits & 0x7fffffU;
++    const auto &entry = RSQRTE_TABLE_26[((e & 1u) << 4) | (m >> 19)];
++    const u32 estMantissa = entry.base + static_cast<u32>(entry.dec * static_cast<s32>((m >> 8) & 0x7ffU));
++    const u64 estBits = (static_cast<u64>((2172u - e) >> 1) << 52) | (static_cast<u64>(estMantissa) << 26);
++    const f64 est = std::bit_cast<f64>(estBits);
++
++    // Newton-Raphson refinement, unchanged
++    f32 tmp0 = static_cast<f32>(est * force25Bit(est));
++    f32 tmp1 = static_cast<f32>(est * static_cast<f64>(0.5f));
++    f32 tmp2 =
++            static_cast<f32>(static_cast<f64>(3.0f) - static_cast<f64>(tmp0) * static_cast<f64>(x));
++    return tmp1 * tmp2;
++}
++
+ /// @addr{0x8022F80C}
+ [[nodiscard]] static inline constexpr f32 sqrt(f32 x) {
+     return x > 0.0f ? x * frsqrt(x) : 0.0f;
 diff --git a/source/game/field/ObjectCollisionKart.hh b/source/game/field/ObjectCollisionKart.hh
 index f35456b..a66f16f 100644
 --- a/source/game/field/ObjectCollisionKart.hh

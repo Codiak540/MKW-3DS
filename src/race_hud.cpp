@@ -1,3 +1,4 @@
+#include <mkw/display_layout.hpp>
 #include <mkw/render_quality.hpp>
 #include <mkw/race_hud.hpp>
 #include <mkw/render_metrics.hpp>
@@ -483,9 +484,10 @@ void RaceHud::drawOverlay(Renderer& renderer,const RaceItems& items,unsigned sta
         auto anchor=[&](unsigned i){const auto& p=karts->object(i)->pos();return Vec3{p.x,p.y+120.f,p.z};};
         struct Seen{bool ok=false;float x=0,y=0,z=0;};
         std::array<Seen,12> seen{};
+        const float windowLeft=renderer.letterbox()?display::RaceBar:0.f,windowRight=display::Width-windowLeft;
         for(unsigned i=0;i<count;++i){
             auto& s=seen[i];
-            s.ok=renderer.projectTop(anchor(i),s.x,s.y,s.z)&&s.z<=0&&s.z>=-7500.f&&s.x>=0&&s.x<=400;
+            s.ok=renderer.projectTop(anchor(i),s.x,s.y,s.z)&&s.z<=0&&s.z>=-7500.f&&s.x>=windowLeft&&s.x<=windowRight;
         }
         if(stage<2){
             for(auto& b:bs)b.racer=-1;
@@ -611,7 +613,8 @@ void RaceHud::drawOverlay(Renderer& renderer,const RaceItems& items,unsigned sta
     if(speedometer)if(const auto* kart=Kinoko::Kart::KartObjectManager::Instance()->object(0)){
         const unsigned speed=std::min(999u,unsigned(std::lround(std::abs(kart->move()->speed()))));
         char text[4];const int n=std::snprintf(text,sizeof text,"%u",speed);
-        constexpr float Size=22,Advance=15,Right=392,Top=194;
+        // 8 px inside the right edge of the visible area: the 4:3 race window ends 40 px before the screen's.
+        constexpr float Size=22,Advance=15,Right=(display::RaceLetterbox?display::Width-display::RaceBar:display::Width)-8,Top=194;
         const float lift=exitLift(1.f);
         for(int i=0;i<n;++i){const unsigned d=unsigned(text[i]-'0');gold(impl_->digits[d],HudDigits[d],{Right-Size-float(n-1-i)*Advance,Top+lift,Size,Size});}
         renderer.drawScreenText("KM/H",Right-26,Top+Size+3+lift,1.f,0xffffffffu);

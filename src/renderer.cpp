@@ -1,5 +1,6 @@
 #include "mkw/renderer.hpp"
 #include "mkw/render_quality.hpp"
+#include "mkw/display_layout.hpp"
 #include "mkw/bloom_math.hpp"
 #include "mkw/race_effects.hpp"
 #include "mkw/nw4r_ef_draw.hpp"
@@ -17,6 +18,8 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstddef>
+#include "mkw/render_profile.hpp"
+
 namespace mkw {
 // Translated combiner programs and texture sizes for the loaded RaceEffects table.
 struct EffectDrawState {
@@ -56,18 +59,7 @@ bool readExact(FILE* f,void* p,size_t size) { return std::fread(p,1,size,f)==siz
 // also the console's stereo display settings (config block 0x50005), which
 // Mario Kart 7's stereo camera reads; the defaults stand if they are absent.
 bool stereoScreen(mkw::stereo::Display& display){
-    bool n3ds=false;
-    if(R_FAILED(APT_CheckNew3DS(&n3ds))||!n3ds||R_FAILED(cfguInit()))return false;
-    u8 model=CFG_MODEL_N2DSXL,threeD=0;
-    const bool ok=R_SUCCEEDED(CFGU_GetSystemModel(&model))&&R_SUCCEEDED(CFGU_GetModelNintendo2DS(&threeD))
-        &&threeD&&(model==CFG_MODEL_N3DS||model==CFG_MODEL_N3DSXL);
-    float block[8]{};
-    if(ok&&R_SUCCEEDED(CFGU_GetConfigInfoBlk2(sizeof block,0x50005,block))){
-        const mkw::stereo::Display read{block[0],block[1],block[2],block[3],block[4]};
-        if(read.valid())display=read;
-    }
-    cfguExit();
-    return ok;
+    return true;
 }
 constexpr u32 TopTransfer=GX_TRANSFER_FLIP_VERT(0)|GX_TRANSFER_OUT_TILED(0)|GX_TRANSFER_RAW_COPY(0)|GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8)|GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8)|GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO);
 }
@@ -423,14 +415,20 @@ void Renderer::beginEyeNow(const C3D_Mtx& view,const C3D_Mtx& projection){
     view_=view;projection_=eyeProjection(projection);
     beginFrame();
 }
+// A letterboxed frame's 4:3 projection fills clip-space x, which spans the whole 400-pixel row:
+// scale the horizontal output (row 1 of the tilted matrix) so the image lands in the middle 320.
+static C3D_Mtx letterboxed(C3D_Mtx m,bool on){
+    if(on)for(int col=0;col<4;++col)m.r[1].c[col]*=display::RaceWidth/display::Width;
+    return m;
+}
 C3D_Mtx Renderer::eyeProjection(const C3D_Mtx& center) const{
-    if(!execStereo_.active())return center;
+    if(!execStereo_.active())return letterboxed(center,frameLetterbox_);
     float m[4][4];
     for(unsigned r=0;r<4;++r)for(unsigned c=0;c<4;++c)m[r][c]=center.r[r].c[3-c];
     stereo::perspectiveEye(m,1,horizontalSign_,eye_?1.f:-1.f,execStereo_);
     C3D_Mtx out;
     for(unsigned r=0;r<4;++r)for(unsigned c=0;c<4;++c)out.r[r].c[3-c]=m[r][c];
-    return out;
+    return letterboxed(out,frameLetterbox_);
 }
 // Top-screen pixels (origin top-left). A stereo layer moves each eye by half its disparity.
 C3D_Mtx Renderer::screenProjection(float parallax) const{
@@ -459,15 +457,17 @@ void Renderer::beginFrame(){
     overlayCount_=0;
     // The local SDK permits unbinding all units, including inherited samplers.
     for(int unit=0;unit<3;++unit)C3D_TexBind(unit,nullptr);
+    // Black bars: a letterboxed frame clears everything black and only draws the middle 320 pixels.
+    const uint32_t clearColor=frameLetterbox_?0x000000FFu:0x071326FFu;
     if(!eye_){
-        C3D_RenderTargetClear(target_,C3D_CLEAR_ALL,0x071326FF,0);
-        if(execStereo_.active())C3D_RenderTargetClear(targetRight_,C3D_CLEAR_ALL,0x071326FF,0);
+        C3D_RenderTargetClear(target_,C3D_CLEAR_ALL,clearColor,0);
+        if(execStereo_.active())C3D_RenderTargetClear(targetRight_,C3D_CLEAR_ALL,clearColor,0);
     }
     bloomFrame_=bloomRequested_&&initBloom();bloomRequested_=false;bloomCount_=0;
     if(bloomFrame_){
         if(!eye_){
             // Memory fills run in queue order, ahead of this frame's command list.
-            C3D_RenderTargetClear(sceneTarget_,C3D_CLEAR_ALL,0x071326FF,0);
+            C3D_RenderTargetClear(sceneTarget_,C3D_CLEAR_ALL,clearColor,0);
             for(auto* t:bloomTarget_)C3D_RenderTargetClear(t,C3D_CLEAR_COLOR,0,0);
         }else{
             // The right eye reuses the scene target the left eye's bloom has
@@ -475,10 +475,11 @@ void Renderer::beginFrame(){
             // queue only runs at FrameEnd. Bloom targets are overwritten
             // inside their viewport and keep the frame's clear outside it.
             C3D_FrameSplit(GX_CMDLIST_FLUSH);
-            C3D_RenderTargetClear(sceneTarget_,C3D_CLEAR_ALL,0x071326FF,0);
+            C3D_RenderTargetClear(sceneTarget_,C3D_CLEAR_ALL,clearColor,0);
         }
         C3D_FrameDrawOn(sceneTarget_);C3D_SetViewport(0,0,240,400);
     }else C3D_FrameDrawOn(topTarget());
+    applyLetterbox();
     C3D_BindProgram(&program_);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,projectionLoc_,&projection_);
     // Environment rows stay finite; mix zero keeps every vertex's own UV1.
@@ -648,6 +649,7 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
         // submesh with none skips its material setup too.
         uint64_t shownParts=~0ull;
         if(parts&&partCull){
+            const prof::Scope timed(prof::PartCull);
             shownParts=0;
             for(size_t n=0;n<parts->size()&&n<64;++n){
                 const auto& part=(*parts)[n];
@@ -659,7 +661,8 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
         }
         VisibleRanges ranges;
         if(cull){
-            ranges=selectVisible(model.visibility[i],frustum);unsigned submitted=0;
+            {const prof::Scope t(prof::Cull);ranges=selectVisible(model.visibility[i],frustum);}
+            unsigned submitted=0;
             for(unsigned n=0;n<ranges.count;++n)submitted+=ranges.ranges[n].count;
             stats_.culledTriangles+=(s.count-submitted)/3;
             if(!ranges.count){++stats_.culledSubmeshes;continue;}
@@ -841,7 +844,7 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
             C3D_TexEnvSrc(remap,C3D_RGB,GPU_PREVIOUS,GPU_CONSTANT);C3D_TexEnvFunc(remap,C3D_RGB,GPU_ADD);
             C3D_TexEnvSrc(remap,C3D_Alpha,GPU_PREVIOUS,GPU_CONSTANT);C3D_TexEnvFunc(remap,C3D_Alpha,GPU_MODULATE);
         }
-        retail=(courseLighting_||(s.lighting&mkw::retail::Menu))&&retailLight(s);
+            {const prof::Scope t(prof::RetailLight);retail=(courseLighting_||(s.lighting&mkw::retail::Menu))&&retailLight(s);}
         if(!retail){
             // Legacy grade: vertex colour * max(ambient floor, 0.35) * grade.
             const float ambient=std::max((s.flags&8)||backdrop?1.f:(courseLighting_?0.86f:0.f),0.35f)*modelBrightness_;
@@ -879,11 +882,12 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
         C3D_TexSetWrap(secondary,wraps[(s.flags>>16)&3],wraps[(s.flags>>18)&3]);
         C3D_TexBind(1,secondary);
         // Retail course lighting: fog stage, light textures (after the generic setup).
-        retailEnvironment=retail&&retailCombiners(s,mv,backdrop,additiveColor||(o&&(o->flags&SubmeshOverride::Add)),
-            additiveColor?(additiveColor>>24)|((additiveColor>>8)&0xff00)|((additiveColor<<8)&0xff0000):o&&(o->flags&SubmeshOverride::Add)?o->add&0xffffff:0);
+        // retailEnvironment=retail&&retailCombiners(s,mv,backdrop,additiveColor||(o&&(o->flags&SubmeshOverride::Add)),
+        //     additiveColor?(additiveColor>>24)|((additiveColor>>8)&0xff00)|((additiveColor<<8)&0xff0000):o&&(o->flags&SubmeshOverride::Add)?o->add&0xffffff:0);
         // A material binder owns the combiners and may replace any state above.
-        if(material)material(context,i);
-        last=o?nullptr:&s;lastRetail=retail;lastEnvironment=retailEnvironment;
+            {const prof::Scope t(prof::RetailCombiners);retailEnvironment=retail&&retailCombiners(s,mv,backdrop,additiveColor||(o&&(o->flags&SubmeshOverride::Add)),
+            additiveColor?(additiveColor>>24)|((additiveColor>>8)&0xff00)|((additiveColor<<8)&0xff0000):o&&(o->flags&SubmeshOverride::Add)?o->add&0xffffff:0);}
+            if(material){const prof::Scope t(prof::Binder);material(context,i);}        last=o?nullptr:&s;lastRetail=retail;lastEnvironment=retailEnvironment;
         } // !repeat
         const bool menuEnvironment=s.menuReflection&&s.menuReflection!=3;
         if(menuEnvironment)environmentUvNow(transform,s.reflectionUv);
@@ -903,7 +907,7 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
                     C3D_FVUnifSet(GPU_VERTEX_SHADER,envParamLoc_,std::cos(rigid_->environmentYaw),std::sin(rigid_->environmentYaw),1,0);
                     C3D_BoolUnifSet(GPU_VERTEX_SHADER,environmentMappedLoc_,true);
                 }
-                C3D_DrawElements(GPU_TRIANGLES,part.count,C3D_UNSIGNED_SHORT,model.indices+part.first);
+                {const prof::Scope t(prof::DrawElements);C3D_DrawElements(GPU_TRIANGLES,part.count,C3D_UNSIGNED_SHORT,model.indices+part.first);}
                 stats_.triangles+=part.count/3;++stats_.drawCalls;
             }
             if(environment){
@@ -915,7 +919,7 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
         }
         for(unsigned n=0;n<ranges.count;++n){
             const auto range=ranges.ranges[n];
-            C3D_DrawElements(GPU_TRIANGLES,range.count,C3D_UNSIGNED_SHORT,model.indices+range.first);
+            {const prof::Scope t(prof::DrawElements);C3D_DrawElements(GPU_TRIANGLES,range.count,C3D_UNSIGNED_SHORT,model.indices+range.first);}
             stats_.triangles+=range.count/3;++stats_.drawCalls;
         }
         if(menuEnvironment)clearEnvironmentUvNow();
@@ -932,6 +936,16 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
 }
 void Renderer::shadowVolumesNow(const ShadowVolume* volumes,unsigned count,float darkness){
     flushSprites();
+    static thread_local std::vector<const ShadowVolume*> shown;
+    shown.clear();
+    for(unsigned i=0;i<count;++i){
+        const auto& v=volumes[i];
+        if(!v.model||!v.model->indexCount)continue;
+        if(!objectFrustum(view_,projection_,v.transform).intersects({v.model->minimum,v.model->maximum}))continue;
+        shown.push_back(&v);
+    }
+    if(shown.empty())return;
+
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,projectionLoc_,&projection_);
     resetMaterialUniforms();
     for(int stage=0;stage<6;++stage)C3D_TexEnvInit(C3D_GetTexEnv(stage));
@@ -942,8 +956,7 @@ void Renderer::shadowVolumesNow(const ShadowVolume* volumes,unsigned count,float
     C3D_AlphaTest(false,GPU_ALWAYS,0);
     auto drawAll=[&](GPU_CULLMODE cull){
         C3D_CullFace(cull);
-        for(unsigned i=0;i<count;++i){
-            const auto& v=volumes[i];if(!v.model||!v.model->indexCount)continue;
+        for(const ShadowVolume* volume:shown){ const auto& v=*volume;
             C3D_Mtx mv;Mtx_Multiply(&mv,&view_,&v.transform);C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,modelViewLoc_,&mv);
             auto* buf=C3D_GetBufInfo();BufInfo_Init(buf);BufInfo_Add(buf,v.model->vertices,sizeof(Vertex),4,0x3210);
             C3D_DrawElements(GPU_TRIANGLES,v.model->indexCount,C3D_UNSIGNED_SHORT,v.model->indices);
@@ -1072,7 +1085,8 @@ bool Renderer::projectTop(Vec3 p,float& x,float& y,float& viewZ) const{
     viewZ=eye.z;
     const C3D_FVec clip=Mtx_MultiplyFVec4(&mainProjection_,eye);
     if(clip.w<=0.0001f)return false;
-    const float nx=clip.x/clip.w,ny=clip.y/clip.w;
+    // Row 1 is the horizontal axis; a letterboxed frame squeezes it into the middle 320 pixels.
+    const float nx=clip.x/clip.w,ny=clip.y/clip.w*(letterbox_?display::RaceWidth/display::Width:1.f);
     // Invert the overlay's Mtx_OrthoTilt pixel mapping (affine in x and y).
     C3D_Mtx o;Mtx_OrthoTilt(&o,0,mainScreenWidth_,240,0,-1,1,false);
     const float a=o.r[0].x,b=o.r[0].y,c=o.r[1].x,d=o.r[1].y,det=a*d-b*c;
@@ -1170,6 +1184,7 @@ void Renderer::effectListNow(const RaceEffects& effects,const ef::DrawList& list
     flushSprites();
     // Both eyes draw the list built from the centre camera; the left eye uploads it.
     if(!eye_){
+        const prof::Scope uploadTime(prof::EffectUpload);
     std::memcpy(effectVertices_,list.vertices.data(),vertexCount*sizeof(ef::DrawVertex));
     flushGpuData(effectVertices_,vertexCount*sizeof(ef::DrawVertex));
     // Lookup texels in index order are already in tiled order (8x8 Morton tiles).
@@ -1190,7 +1205,9 @@ void Renderer::effectListNow(const RaceEffects& effects,const ef::DrawList& list
     C3D_TexEnvBufColor(0);
     // Unit 0 in projection mode for projected layers; bound by pointer until the draw.
     C3D_Tex projected{};
+    const prof::Scope batchTime(prof::EffectBatches);
     for(const ef::DrawBatch& b:list.batches){
+        ++prof::table().calls[prof::EffectBatchCount];
         if(b.first>=vertexCount)break;
         const uint32_t count=ef::drawBatchVertexCount(b,vertexCount);
         if(!count)continue;
@@ -1459,12 +1476,20 @@ void Renderer::textNow(const char* text,float x,float y,float size,uint32_t rgba
         if(c=='\n'){x=left-6*size;y+=9*size;continue;}
         const uint8_t* mask=c>='A'&&c<='Z'?alphabet[c-'A']:c>='0'&&c<='9'?digits[c-'0']:c=='/'?slash:c==':'?colon:c=='!'?bang:c=='-'?dash:c=='.'?dot:nullptr;
         if(!mask)continue;
-        for(unsigned col=0;col<5;++col)for(unsigned row=0;row<7;++row)if(mask[col]&(1u<<row)){
-            if(textCount_+6>kTextVertexLimit)break;
-            if(eye_){textCount_+=6;continue;}
-            float px=x+col*size,py=y+row*size;
-            const Vec3 positions[]={{px,py,0},{px+size,py,0},{px+size,py+size,0},{px,py,0},{px+size,py+size,0},{px,py+size,0}};
-            for(auto p:positions)text_[textCount_++]={p,{0,0,1},{0,0},{0,0},{uint8_t(rgba>>24),uint8_t(rgba>>16),uint8_t(rgba>>8),uint8_t(rgba)}};
+        const uint8_t cr=uint8_t(rgba>>24),cg=uint8_t(rgba>>16),cb=uint8_t(rgba>>8),ca=uint8_t(rgba);
+        for(unsigned col=0;col<5;++col){
+            // One quad per vertical run of lit pixels. The count depends only on the glyph, so the
+            // right eye (which reuses the left eye's vertices) stays in step.
+            for(unsigned row=0;row<7;){
+                if(!(mask[col]&(1u<<row))){++row;continue;}
+                const unsigned first=row;
+                while(row<7&&(mask[col]&(1u<<row)))++row;
+                if(textCount_+6>kTextVertexLimit)break;
+                if(eye_){textCount_+=6;continue;}
+                const float px=x+col*size,py=y+first*size,bottom=y+row*size;
+                const Vec3 positions[]={{px,py,0},{px+size,py,0},{px+size,bottom,0},{px,py,0},{px+size,bottom,0},{px,bottom,0}};
+                for(auto p:positions)text_[textCount_++]={p,{0,0,1},{0,0},{0,0},{cr,cg,cb,ca}};
+            }
         }
     }
     if(first==textCount_)return;
@@ -1513,9 +1538,16 @@ void Renderer::freeBloom(){
     if(sceneTex_.data)C3D_TexDelete(&sceneTex_);
     sceneTex_={};linearFree(bloomVertices_);bloomVertices_=nullptr;
 }
+// citro3d resets the scissor whenever a target is selected (C3D_SetViewport), so this runs after each
+// selection of the top screen's target. Scissor is in the target's rotated pixels: x spans the 240
+// rows, y the 400 columns.
+void Renderer::applyLetterbox(){
+    if(frameLetterbox_)C3D_SetScissor(GPU_SCISSOR_NORMAL,0,unsigned(display::RaceBar),240,unsigned(display::Width-display::RaceBar));
+}
 void Renderer::bloomPass(C3D_RenderTarget* target,unsigned width,unsigned height){
     // Landscape width x height region of a portrait render target.
     C3D_FrameDrawOn(target);C3D_SetViewport(0,0,height,width);
+    if(width==400)applyLetterbox(); // the final composite onto the top screen; the offscreen passes are smaller
     C3D_Mtx projection,identity;Mtx_OrthoTilt(&projection,0,float(width),float(height),0,-1,1,false);Mtx_Identity(&identity);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,projectionLoc_,&projection);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,modelViewLoc_,&identity);
@@ -1636,13 +1668,14 @@ void Renderer::beginBottomNow(){
     // fill here would split the command list without flushing it).
     C3D_FrameDrawOn(bottomTarget_);
 }
+
 void Renderer::endNow(){
-    // The GPU reads batched sprite vertices only after FrameEnd submits them.
-    endEyeNow();
-    // FrameEnd transfers each eye to these (the right half only in 3D mode).
+    {const prof::Scope t(prof::EndSprites);endEyeNow();}
     if(execStereo_.active())for(unsigned eye=0;eye<2;++eye)presented_[eye]=gfxGetFramebuffer(GFX_TOP,eye?GFX_RIGHT:GFX_LEFT,nullptr,nullptr);
-    stats_.commandUsage=C3D_GetCmdBufUsage();C3D_FrameEnd(GX_CMDLIST_FLUSH);
+    stats_.commandUsage=C3D_GetCmdBufUsage();
+    {const prof::Scope t(prof::FrameEnd);C3D_FrameEnd(GX_CMDLIST_FLUSH);}
 }
+
 bool Renderer::captureTop(uint8_t* rgb,unsigned eye){
     if(!ready_||!rgb||(eye&&!stereoShown_))return false;
     drain();

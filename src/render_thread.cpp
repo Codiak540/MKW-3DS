@@ -19,6 +19,7 @@
 // record the same way and are drawn on their own thread at end().
 #include "mkw/renderer.hpp"
 #include "mkw/render_quality.hpp"
+#include "mkw/display_layout.hpp"
 #include "mkw/menu_ui.hpp"
 #include "mkw/race_effects.hpp"
 #include "mkw/nw4r_ef_draw.hpp"
@@ -27,6 +28,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include "mkw/render_profile.hpp"
 
 namespace mkw {
 namespace {
@@ -60,7 +62,7 @@ enum : uint16_t {
     CmdMaterialQuads,CmdText,CmdScreenDepth,
 };
 // begun: C3D_FrameBegin already ran on the recording thread (stereo immediate frames).
-struct BeginCommand {static constexpr uint16_t Type=CmdBegin;C3D_Mtx view,projection;bool sync,begun;};
+struct BeginCommand {static constexpr uint16_t Type=CmdBegin;C3D_Mtx view,projection;bool sync,begun,letterbox;};
 struct EndCommand {static constexpr uint16_t Type=CmdEnd;};
 struct ProjectionCommand {static constexpr uint16_t Type=CmdProjection;C3D_Mtx projection;};
 struct CourseLightingCommand {static constexpr uint16_t Type=CmdCourseLighting;bool enabled;};
@@ -269,14 +271,19 @@ void Renderer::execute(FrameList& list){
     while(p<end){
         const auto& h=*reinterpret_cast<const Header*>(p);const void* body=&h+1;p+=h.size;
         if(bottom&&eye+1<eyes&&h.type!=CmdEnd)continue;
+        const prof::Scope commandTime(h.type&31);
         switch(h.type){
         case CmdBegin:{
             const auto& c=*static_cast<const BeginCommand*>(body);
+            frameLetterbox_=c.letterbox;
             if(eye){beginEyeNow(c.view,c.projection);break;}
             beginNow(c.view,c.projection,c.sync,c.begun);
             // The GPU has finished every earlier frame.
             gpuDone_.store(list.frame,std::memory_order_release);
-            runWrites(list);began=true;break;
+            {const prof::Scope t(prof::WritesRun);runWrites(list);}
+            began=true;
+            break;
+
         }
         case CmdEnd:if(eye+1<eyes)endEyeNow();else endNow();break;
         case CmdProjection:projection_=eyeProjection(static_cast<const ProjectionCommand*>(body)->projection);break;
@@ -339,6 +346,7 @@ void Renderer::execute(FrameList& list){
     // Recorded copies end with the list.
     rigid_=nullptr;skinPalette_=nullptr;overrides_=nullptr;overrideCount_=0;
     stats_.renderMs=float((svcGetSystemTick()-start)*1000.0/SYSCLOCK_ARM11)-stats_.beginWaitMs;
+    prof::publish();
     if(began)publish();
 }
 void Renderer::retireShared(std::shared_ptr<void> object){
@@ -351,9 +359,18 @@ void Renderer::releaseRetired(){
 }
 
 // Recording side of the public calls (renderer.cpp holds the drawing side).
-void Renderer::setFov(float degrees){
-    fov_=std::clamp(degrees,1.f,170.f);Mtx_PerspTilt(&mainProjection_,C3D_AngleFromDegrees(fov_),C3D_AspectRatioTop,10.f,400000.f,false);
+// The recording side's projection: 4:3 for a letterboxed race frame. The drawing side squeezes it
+// into the middle 320 pixels (eyeProjection); culling keeps this narrower 4:3 frustum.
+void Renderer::rebuildProjection(){
+    Mtx_PerspTilt(&mainProjection_,C3D_AngleFromDegrees(fov_),letterbox_?display::RaceAspect:C3D_AspectRatioTop,10.f,400000.f,false);
     cullProjection_=mainProjection_;
+}
+void Renderer::setLetterbox(bool on){
+    if(on==letterbox_)return;
+    letterbox_=on;rebuildProjection();
+}
+void Renderer::setFov(float degrees){
+    fov_=std::clamp(degrees,1.f,170.f);rebuildProjection();
     if(recording())command<ProjectionCommand>().projection=mainProjection_;
     else projection_=mainProjection_;
 }
@@ -416,13 +433,13 @@ void Renderer::beginRecorded(){
         if(!localList_)localList_=std::make_unique<FrameList>();
         localList_->reset();localList_->stereo=frameStereo_;
         recording_=localList_.get();localRecording_=true;
-        auto& c=command<BeginCommand>();c.view=mainView_;c.projection=mainProjection_;c.sync=frameSync;c.begun=true;
+        auto& c=command<BeginCommand>();c.view=mainView_;c.projection=mainProjection_;c.sync=frameSync;c.begun=true;c.letterbox=letterbox_;
         return;
     }
-    if(!recording()){beginNow(mainView_,mainProjection_,frameSync);retired_.clear();return;}
+    if(!recording()){frameLetterbox_=letterbox_;beginNow(mainView_,mainProjection_,frameSync);retired_.clear();return;}
     renderMetrics={};
     releaseRetired();
-    auto& c=command<BeginCommand>();c.view=mainView_;c.projection=mainProjection_;c.sync=frameSync;c.begun=false;
+    auto& c=command<BeginCommand>();c.view=mainView_;c.projection=mainProjection_;c.sync=frameSync;c.begun=false;c.letterbox=letterbox_;
     recording_->stereo=frameStereo_;
     writeTarget_.store(recording_,std::memory_order_release);
 }
@@ -447,6 +464,8 @@ void Renderer::beginSourceCamera(const float* view,const float* projection){
     beginRecorded();
 }
 void Renderer::end(){
+    // A letterboxed frame ends with its frame: the next screen asks again if it wants one.
+    struct ClearLetterbox{Renderer* r;~ClearLetterbox(){if(r->letterbox_){r->letterbox_=false;r->rebuildProjection();}}}clearLetterbox{this};
     if(localRecording_){endLocal();return;}
     if(!recording()){
         endNow();gpuIdle_=false;

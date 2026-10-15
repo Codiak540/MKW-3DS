@@ -182,6 +182,10 @@ public:
     // Outside a frame, drain submitted GPU work before retiring its resources.
     void waitForGpu();
     void setFov(float degrees);
+    // Opt-in for one frame: a 4:3 race view in the middle of the top screen (display::RaceLetterbox).
+    // Call before setFov each race frame; end() clears it, so other screens stay full width.
+    void setLetterbox(bool on);
+    bool letterbox() const { return letterbox_; }
     void setCourseLighting(bool enabled);
     // Retail course lighting (src/renderer_retail.cpp): EGG lights, light
     // textures and fog for course draws whose submeshes carry GMDL v4 state.
@@ -393,6 +397,11 @@ private:
     // This thread's camera (queries) and the drawing camera, equal in
     // immediate frames.
     C3D_Mtx mainView_{},mainProjection_{},cullProjection_{};
+    // Recording side: this frame is a letterboxed race frame. frameLetterbox_ is the drawing side's
+    // copy, carried by the frame's begin command.
+    bool letterbox_=false,frameLetterbox_=false;
+    void rebuildProjection();
+    void applyLetterbox();
     float mainScreenWidth_=400.f;
     // Stereo: the console's display settings (read once on a 3D screen) and
     // the recording side's frame, slider and next subject.

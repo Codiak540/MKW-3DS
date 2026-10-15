@@ -245,24 +245,21 @@ static void readContent(const char* root,char (&found)[80]){
     found[strcspn(found,"\r\n")]=0;
 }
 static bool contentMatches(const char* root){
-    char found[80];readContent(root,found);char common[64];snprintf(common,sizeof common,"%sRace/Common.szs",root);
-    return (!strcmp(found,MKW_CONTENT)||!strcmp(found,MKW_CONTENT_WINDOWS_LEGACY))&&exists(common);
+    return true;
 }
 static bool sdContentReady(){
     char found[80];readContent("sdmc:/3ds/mkw-3ds/",found);
-    if(contentMatches("sdmc:/3ds/mkw-3ds/"))return true;
-    report(found[0]?"content: SD files from another builder version":"content: SD files missing");
+    if(found[0]) return true;
     consoleInit(GFX_TOP,nullptr);
     printf("\n  Mario Kart Wii 3DS\n\n");
     if(!found[0]){
-        printf("  This is a code update, not the whole game.\n  It needs a game built with v0.5.0 or newer.\n\n");
-        printf("  You build the game yourself, on your\n  computer, from your own Mario Kart Wii\n  disc. It can't be downloaded.\n\n");
-        printf("  Builder and instructions:\n  %s\n\n",ProjectUrl);
-        printf("  Built with v0.5.0 or newer? Copy\n  build/release/sd-card/3ds to the root\n  of your SD card, or install your full CIA.\n");
+        printf("You are missing critical game files!\n");
+        printf("If you are seeing this message, it means\n");
+        printf("That you failed to copy the files from\n");
+        printf("\"build/release/sd-card/\" to your SD Card!\n");
+        printf("Please copy over these files and try again!");
     }else{
-        printf("  Your game files are from an older (or a\n  different) builder than this update needs.\n  Quick updates need v0.5.0 or newer.\n\n");
-        printf("  Download the latest builder and build the\n  game again, then copy build/release/\n  sd-card/3ds to your SD card.\n\n");
-        printf("  Help: %s\n",ProjectUrl);
+        printf("...\nI have no idea how you messed up the build\nThis bad to the point where an\nUnknown error has occured.\nIdk make sure the files from build/release/sd-card\nGot copied over ig, or DM/ping me.");
     }
     printf("\n  Press any button to exit.");
     while(aptMainLoop()){hidScanInput();if(hidKeysDown())break;gspWaitForVBlank();}
@@ -1808,7 +1805,7 @@ int main() {
                      // The clip manager (0x80783344) after the camera: each racer's sphere on
                      // the presented camera, full vertical fovy, the top screen's aspect.
                      if(fullRace){
-                         const auto clipCamera=mkw::EffectClipCamera::lookAt(eye,target,intro.active()?intro.fov():cameraDirector->view().fov,mkw::display::Aspect);
+                         const auto clipCamera=mkw::EffectClipCamera::lookAt(eye,target,intro.active()?intro.fov():cameraDirector->view().fov,mkw::display::RaceLetterbox?mkw::display::RaceAspect:mkw::display::Aspect);
                          const unsigned racers=std::min<unsigned>(raceGrid.count(),mkw::KartFxSlots::MaxRacers);
                          for(unsigned i=0;i<racers;++i)kartFxLod.clip[i]=clipCamera.clip(vec(K::Kart::KartObjectManager::Instance()->object(i)->pos()));
                      }}
@@ -1829,6 +1826,7 @@ int main() {
             auto* camera=K::Render::KartCamera::Instance();auto* cameraKart=K::Kart::KartObjectManager::Instance()->object(0);
             renderer.animationFrame=physicsSteps;
             const auto raceView=cameraDirector->view();
+            renderer.setLetterbox(mkw::display::RaceLetterbox);
             renderer.setFov(intro.active()?intro.fov():fullRace?raceView.fov:cameraKart->param()->camera().fov+boostFov);
             if(fullRace){
                 auto* race=K::System::RaceManager::Instance();auto& timer=race->timerManager().currentTimer();

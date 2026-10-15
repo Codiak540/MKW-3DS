@@ -77,11 +77,7 @@ public:
     // squared distance: 3 and 3000^2 with one screen, 2 and 2000^2 with two, 1 and 2000^2
     // with three or four; Time Trials 10000^2, the credits 50000^2 with N = every kart.
     static Limits limits(unsigned screens,int gameMode,unsigned karts){
-        Limits l{3,9000000.f};
-        if(screens==2)l={2,4000000.f};
-        else if(screens>=3)l={1,4000000.f};
-        if(gameMode==TimeTrialMode)l.distance=100000000.f;
-        else if(gameMode==CreditsMode)l={int32_t(karts),2500000000.f};
+        Limits l{.nearest = 1,.distance = 2250000.f};
         return l;
     }
     static constexpr int VsMode=1,TimeTrialMode=2,CreditsMode=12; // RaceConfig::Settings::GameMode

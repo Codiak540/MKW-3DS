@@ -73,7 +73,7 @@ C3D_Mtx facingMatrix(Vec3 position,Vec3 forward,Vec3 scale){
 void drawGeneric(ObjectDraw& d,Visual& v){
     const C3D_Mtx m=v.kinetic&&v.object?liveMatrix(*v.object):v.placement;
     const float frame=float(d.tick)*v.rate+v.phase;
-    const bool far=v.low.model&&length(position(m)-d.camera)>renderQuality().objectLowDistance;
+    const bool far=v.low.model && true; //length(position(m)-d.camera)>renderQuality().objectLowDistance;
     const Tracks& t=far?v.low:v.main;
     Anim a=loopAt(t,frame);
     if(v.variant>=0)a.patFrame=a.clrFrame=float(v.variant);
@@ -91,7 +91,7 @@ void drawBeltCurve(ObjectDraw& d,Visual& v){
     const auto timing=BeltCurveTiming::fromSettings(v.geo->setting(1),v.geo->setting(2),v.geo->setting(3));
     const unsigned timer=K::System::RaceManager::Instance()->timer();
     const C3D_Mtx& m=v.placement;
-    const bool far=v.low.model&&length(position(m)-d.camera)>renderQuality().objectLowDistance;
+    const bool far=v.low.model && true; //length(position(m)-d.camera)>renderQuality().objectLowDistance;
     const float scroll=timing.scroll(d.tick,timer);
     const Tracks& belt=far?v.low:v.main;
     d.submit(belt.model,m,animAt(belt,scroll));
@@ -473,7 +473,7 @@ void drawTruckWagon(ObjectDraw& d,Visual& v){
         if(!cart.isActive())continue;
         const C3D_Mtx m=liveMatrix(cart);
         Anim a;a.clip=v.clips[0];a.frame=float(d.tick);a.srt=v.clips[1];a.srtFrame=float(d.tick);
-        const bool far=v.low.model&&length(position(m)-d.camera)>renderQuality().objectLowDistance;
+        const bool far=v.low.model && true; //length(position(m)-d.camera)>renderQuality().objectLowDistance;
         d.submit(far?v.low.model:v.main.model,m,a);
         if(v.shadow.model)d.shadow(v.shadow.model,m);
     }
@@ -561,7 +561,7 @@ void drawAurora(ObjectDraw& d,Visual& v){
 void drawTwistedWay(ObjectDraw& d,Visual& v){
     const auto& road=*static_cast<const K::Field::ObjectTwistedWay*>(v.object);
     const C3D_Mtx m=liveMatrix(road);
-    const bool far=v.low.model&&length(position(m)-d.camera)>renderQuality().objectLowDistance;
+    const bool far=v.low.model && true; //length(position(m)-d.camera)>renderQuality().objectLowDistance;
     ObjModel* model=far?v.low.model:v.main.model;
     const ObjectBank* bank=beginPose(v,model);
     const int root=bank?bank->node("joint1"):-1;
@@ -637,7 +637,7 @@ void drawPress(ObjectDraw& d,Visual& v){
     float frame=0;
     if(state==3)frame=age<15.f?std::min(age*2.f,last):std::max(last+1.f-(age-15.f)*2.f,0.f);
     const C3D_Mtx m=liveMatrix(p);
-    const bool far=v.low.model&&length(position(m)-d.camera)>renderQuality().objectLowDistance;
+    const bool far=v.low.model && true; //length(position(m)-d.camera)>renderQuality().objectLowDistance;
     d.submit(far?v.low.model:v.main.model,m,animAt(far?v.low:v.main,frame));
     if(v.shadow.model)d.shadow(v.shadow.model,m);
 }

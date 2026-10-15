@@ -18,7 +18,7 @@ struct RenderQuality {
     // ratio (about 4 px of the 240 px screen at the race FOV) are not drawn.
     float minScreenRatio=0;
     // Course objects switch to their authored -low LOD beyond this distance.
-    float objectLowDistance=7000.f;
+    float objectLowDistance=1500.f;
     // Retail stencil shadow volumes; bloom blur rounds (horizontal + vertical).
     bool shadowVolumes=true;
     // Full-screen bloom: an offscreen scene pass, blur passes and a composite
@@ -44,8 +44,8 @@ struct RenderQuality {
     void setReduced(bool on){
         *this=RenderQuality{};
         if(!on)return;
-        reduced=true;minScreenRatio=.015f;objectLowDistance=500.f;
-        shadowVolumes=false;bloom=false;bloomBlurRounds=0;boxSparkleRatio=.04f;particleBudget=48;kartEffectScreens=3;animationStep=4;vramCourseTextures=true;
+        reduced=true;minScreenRatio=.015f;objectLowDistance=150.f;
+        shadowVolumes=false;bloom=false;bloomBlurRounds=0;boxSparkleRatio=.02f;particleBudget=16;kartEffectScreens=2;animationStep=5;vramCourseTextures=true;
     }
 #ifdef MKW_RENDER_QUALITY_C3D
     // True when bounds b placed by transform t are too small to draw from camera.
