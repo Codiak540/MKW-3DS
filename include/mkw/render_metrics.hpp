@@ -1,5 +1,7 @@
 #pragma once
 #include <cstdint>
+
+#include "render_profile.hpp"
 #ifdef __3DS__
 #include <3ds.h>
 #endif
@@ -16,6 +18,7 @@ inline thread_local RenderMetrics renderMetrics;
 // Call only with CPU-written GPU-visible data. Static geometry and textures
 // flush when loaded; dynamic ranges flush before their first submitted draw.
 inline void flushGpuData(void* data,uint32_t bytes){
+    const prof::Scope t(prof::FlushData);
  if(!bytes)return;
  ++renderMetrics.flushCalls;renderMetrics.flushBytes+=bytes;
  GSPGPU_FlushDataCache(data,bytes);

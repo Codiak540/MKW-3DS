@@ -20,6 +20,7 @@ inline constexpr Column Columns[]={
  {prof::Cull,"cull"},{prof::PartCull,"part_cull"},{prof::WritesRun,"writes_run"},
 {prof::DrawElements,"draw_elements"},{prof::EndSprites,"end_sprites"},{prof::FrameEnd,"frame_end"},
 {prof::EffectUpload,"effect_upload"},{prof::EffectBatches,"effect_batches"},{prof::EffectBatchCount,"effect_batch_count"},
+{prof::WriteDriver,"write_driver"},{prof::WriteEscalator,"write_escalator"},{prof::WriteSkin,"write_skin"},{prof::FlushData,"flush_data"},
 };
 inline constexpr unsigned Count=unsigned(std::size(Columns));
 }

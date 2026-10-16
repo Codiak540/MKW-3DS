@@ -5,7 +5,7 @@
 namespace mkw::prof {
     // Slots 0-31 are render command types; the rest are drawNow internals.
     enum Slot : unsigned {Binder=32,RetailLight,RetailCombiners,Cull,PartCull,WritesRun,
-        DrawElements,EndSprites,FrameEnd,EffectUpload,EffectBatches,EffectBatchCount,SlotCount};    struct Table {std::array<uint64_t,SlotCount> ticks{};std::array<uint32_t,SlotCount> calls{};};
+        DrawElements,EndSprites,FrameEnd,EffectUpload,EffectBatches,EffectBatchCount,WriteDriver,WriteEscalator,WriteSkin,FlushData,SlotCount};    struct Table {std::array<uint64_t,SlotCount> ticks{};std::array<uint32_t,SlotCount> calls{};};
     struct Latest {std::array<float,SlotCount> ms{};std::array<uint32_t,SlotCount> calls{};};
     inline Table& table(){static Table t;return t;}
     inline Latest& latest(){static Latest l;return l;} // read racily for the CSV; fine for diagnostics

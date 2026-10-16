@@ -51,6 +51,9 @@ inline constexpr CourseBloom CourseBlooms[]={
 {"Race/Course/water_course.szs",0.343505859f,0xffffffffu,0xffffffffu,11,{0.75390625f,1.33789062f},{0.112548828f,0.0485839844f},{0.495361328f,0.127685547f}},
 };
 inline const CourseBloom* courseBloom(const char* archive){
- for(const auto& b:CourseBlooms)if(!std::strcmp(b.archive,archive))return &b;return nullptr;
+ for(const auto& b:CourseBlooms)
+  if(!std::strcmp(b.archive,archive))
+   return &b;
+ return nullptr;
 }
 }

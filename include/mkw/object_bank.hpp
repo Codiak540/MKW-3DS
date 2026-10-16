@@ -46,6 +46,7 @@ public:
     void markRegisterAlpha(const Model& model);
     // Rigid GPU skinning: rewrite the shared model to matrix-local vertices.
     bool makeRigid(Model& model);
+    bool gpuSkinLit(Model& model) const;
     // GPU skinning: rewrite the shared model to bone-local positions with
     // 3 * bone index in normal.x (Renderer::setSkinPalette draws it). Only for
     // unlit models (their normals never reach a pixel) with few bones.

@@ -17,6 +17,8 @@
 #include <cstring>
 #include <unordered_map>
 
+#include "mkw/render_profile.hpp"
+
 namespace mkw {
 namespace K=Kinoko;
 C3D_Mtx objectMatrix(const K::EGG::Matrix34f& source,const K::EGG::Vector3f& scale){
@@ -55,19 +57,35 @@ std::unique_ptr<Model> cloneModel(const Model& source){
 }
 bool endsWith(const std::string& s,const char* suffix){const size_t n=std::strlen(suffix);return s.size()>=n&&!s.compare(s.size()-n,n,suffix);}
 // Coconut Mall escalator treads at their Kinoko step phase.
-struct EscalatorWrite {Model* mesh;const Vertex* base;float phase;};
-void writeEscalator(void* payload){
-    const auto& w=*static_cast<const EscalatorWrite*>(payload);auto& mesh=*w.mesh;
-    // Only Y and Z ever change: every other field keeps its loaded (base) value.
-    for(unsigned i=0;i<mesh.vertexCount;++i){
-        const auto p=escalatorLanding(w.base[i].position.y,w.base[i].position.z,w.phase);
-        mesh.vertices[i].position.y=p.y;mesh.vertices[i].position.z=p.z;
+    struct EscalatorWrite {Model* mesh;const Vertex* base;float phase;};
+    struct EscalatorBatch {unsigned count;EscalatorWrite items[6];};
+    void writeEscalators(void* payload){
+    const prof::Scope t(prof::WriteEscalator);
+        const auto& batch=*static_cast<const EscalatorBatch*>(payload);
+        const uint8_t* lo=nullptr;const uint8_t* hi=nullptr;std::size_t total=0;
+        for(unsigned n=0;n<batch.count;++n){
+            const auto& w=batch.items[n];auto& mesh=*w.mesh;
+            // Only Y and Z ever change: every other field keeps its loaded (base) value.
+            for(unsigned i=0;i<mesh.vertexCount;++i){
+                const auto p=escalatorLanding(w.base[i].position.y,w.base[i].position.z,w.phase);
+                mesh.vertices[i].position.y=p.y;mesh.vertices[i].position.z=p.z;
+            }
+            const auto* start=reinterpret_cast<const uint8_t*>(mesh.vertices);
+            const std::size_t bytes=mesh.vertexCount*sizeof(Vertex);
+            if(!lo||start<lo)lo=start;
+            if(!hi||start+bytes>hi)hi=start+bytes;
+            total+=bytes;
+        }
+        if(!lo)return;
+        // Each flush call carries ~0.75 ms of fixed cost: one call when the meshes sit close together.
+        if(std::size_t(hi-lo)<=total*3)flushGpuData(const_cast<uint8_t*>(lo),std::size_t(hi-lo));
+        else for(unsigned n=0;n<batch.count;++n){auto& m=*batch.items[n].mesh;flushGpuData(m.vertices,m.vertexCount*sizeof(Vertex));}
     }
-    flushGpuData(mesh.vertices,mesh.vertexCount*sizeof(Vertex));
-}
+
 // One CPU-skinned instance copy (its palette follows the record).
 struct SkinWrite {const ObjectBank* bank;Model* model;bool normals;};
 void writeSkin(void* payload){
+    const prof::Scope t(prof::WriteSkin);
     const auto& w=*static_cast<const SkinWrite*>(payload);
     w.bank->skin(reinterpret_cast<const float*>(&w+1),*w.model,w.normals);
 }
@@ -125,7 +143,7 @@ bool ObjectAssets::load(int course){
                         m->litNormals|=(s.lighting&retail::Retail)&&((s.lighting&retail::ChannelMask)>>retail::ChannelShift)!=0;
                     // Unlit objects never read skinned normals: skin on the GPU
                     // (one shared mesh, any pose per instance), else positions only.
-                    if(!m->litNormals&&m->bank->gpuSkin(*m->model)){m->gpuSkin=true;m->cpuSkin=false;}
+                    if(m->litNormals?m->bank->gpuSkinLit(*m->model):m->bank->gpuSkin(*m->model)){m->gpuSkin=true;m->cpuSkin=false;}
                     else if(!m->litNormals)m->bank->shareSkinnedPositions();
                     else m->bank->shareSkinnedVertices();
                 }
@@ -300,21 +318,26 @@ void CourseObjects::Impl::recordObjects(){
     // after its 60 Hz step, including stops/reversals and the looping tread offset.
     // Query each frame so restart/map changes cannot leave stale scene pointers.
     if(escalators[0]){
+        EscalatorBatch batch{};
         unsigned index=0;
         for(const auto* obj:K::Field::ObjectDrivableDirector::Instance()->objects()){
             if(obj->id()!=K::Field::ObjectId::Escalator)continue;
             if(index>=escalators.size())break;
             const unsigned slot=index;auto& mesh=*escalators[index++];
-            const EscalatorWrite write{&mesh,escalatorBase.data(),static_cast<const K::Field::ObjectEscalator*>(obj)->stepFactor()};
-            // Reduced quality: each tread mesh re-poses on alternate frames
-            // (half of them each frame); its transform still moves every frame.
+            const C3D_Mtx transform=objectMatrix(obj->transform(),obj->scale());
+            // Off-screen escalators are neither re-posed nor drawn. The treads move inside the mesh, so the bounds get a margin.
+            const Vec3 pad=(mesh.maximum-mesh.minimum)*.25f;
+            if(!view.model(transform).intersects({mesh.minimum-pad,mesh.maximum+pad})){escalatorWritten[slot]=false;continue;}
+            // Reduced quality: each tread mesh re-poses on alternate frames; its transform still moves every frame.
             const bool skip=renderQuality().animationStep&&escalatorWritten[slot]&&((tick/2+slot)&1);
             escalatorWritten[slot]=true;
-            if(skip){}
-            else if(auto* deferred=deferredWrites()){
-                auto* w=static_cast<EscalatorWrite*>(deferred->allocate(sizeof write));*w=write;deferred->queue(writeEscalator,w);
-            }else writeEscalator(const_cast<EscalatorWrite*>(&write));
-            objects.records.push_back({ObjectDrawRecord::Plain,false,0,&mesh,nullptr,0,0,0,0,0,objectMatrix(obj->transform(),obj->scale())});
+            if(!skip)batch.items[batch.count++]={&mesh,escalatorBase.data(),static_cast<const K::Field::ObjectEscalator*>(obj)->stepFactor()};
+            objects.records.push_back({ObjectDrawRecord::Plain,false,0,&mesh,nullptr,0,0,0,0,0,transform});
+        }
+        if(batch.count){
+            if(auto* deferred=deferredWrites()){
+                auto* w=static_cast<EscalatorBatch*>(deferred->allocate(sizeof batch));*w=batch;deferred->queue(writeEscalators,w);
+            }else writeEscalators(&batch);
         }
     }
     shadows.clear();
@@ -405,7 +428,7 @@ void ObjectDraw::submit(ObjModel* m,const C3D_Mtx& transform,const Anim& source)
     // Reduced quality: crowds step their clip (one frame per tick) every
     // animationStep frames, so a skinned pose repeats instead of being skinned again.
     Anim anim=source;const float step=float(renderQuality().animationStep);
-    if(m->crowd&&step>0&&anim.clip>=0&&!anim.palette)anim.frame=std::floor(anim.frame/step)*step;
+    if(m->crowd&&!m->gpuSkin&&step>0&&anim.clip>=0&&!anim.palette)anim.frame=std::floor(anim.frame/step)*step;
     if(!view.model(transform).intersects(anim.bounds?*anim.bounds:m->bounds))return;
     if(renderQuality().tooSmall(anim.bounds?*anim.bounds:m->bounds,transform,camera))return;
     const ObjectBank* bank=m->bank.get();

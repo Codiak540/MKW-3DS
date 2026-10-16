@@ -8,6 +8,9 @@
 #include <cstdlib>
 #include <algorithm>
 #include <cmath>
+
+#include "mkw/render_profile.hpp"
+
 namespace mkw {
 // Banks are CPU-only, but a race keeps twelve racers' banks (about 11 MiB)
 // resident. On an Old 3DS the ordinary heap also holds Kinoko's 16 MiB arena
@@ -284,6 +287,7 @@ bool DriverAnimation::apply(Model& model,int clip,float frame,unsigned tick,int 
     return true;
 }
 void DriverAnimation::write(Model& model,const uint32_t* shown,const int32_t* textures,const float* uv,const float* palette){
+    const prof::Scope t(prof::WriteDriver);
     if(gpu_){
         // The GPU applies palette_. Hidden shapes collapse to one point (no
         // fragments, as the CPU path's zeroed positions); writes only on change.

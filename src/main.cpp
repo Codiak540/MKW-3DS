@@ -81,6 +81,7 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <mkw/gamestate.hpp>
 
 // Heap split sized for the smallest launch mode, Old 3DS (64 MB application
 // region): LINEAR 32 MiB leaves about 29 MiB of ordinary heap there. Kinoko's
@@ -485,7 +486,18 @@ int main() {
             renderer.setRetailLighting(raceResident?mkw::courseLighting(Courses[courseChoice].archive):nullptr);
             renderer.waitForGpu();return action;
         };
+
         while(aptMainLoop()){
+            u64 currentTime = osGetTime();
+            u64 cycleTime = currentTime - gameState.lastFrameTime; // Calculate actual time passed
+
+            if (cycleTime >= 1000) {
+                gameState.fps = (float)gameState.frameCount / (cycleTime / 1000.0f);
+                gameState.frameCount = 0;
+                gameState.lastFrameTime = currentTime;
+            }
+
+
             // The logical page becomes Race while the pause exit still animates.
             // Keep the resident course for ResumeRace; only release when leaving
             // the race section for an unrelated menu or a different race.

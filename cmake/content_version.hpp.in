@@ -1,0 +1,12 @@
+#pragma once
+// Converted game files this code expects (mkw-build computes the stamp).
+#define MKW_CONTENT "@MKW_CONTENT@"
+// Written by Windows builders of 0.5.0 and 0.5.1 (npm.cmd in the recipe): also accepted.
+#define MKW_CONTENT_WINDOWS_LEGACY "@MKW_CONTENT_WINDOWS_LEGACY@"
+// Shown on the lower screen at start-up, so a console shows which update it runs.
+#define MKW_VERSION "@MKW_VERSION@"
+// Shown once on the lower screen after an update (tools/release/WHATS_NEW.txt):
+// at most 16 lines of 38 characters, the lower screen's 8x8 text grid.
+#define MKW_WHATS_NEW "@MKW_WHATS_NEW_C@"
+// The GitHub update build (MKW_QUICK_UPDATE=1).
+#define MKW_QUICK_UPDATE @MKW_QUICK_UPDATE@

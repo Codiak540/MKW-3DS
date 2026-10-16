@@ -13,6 +13,10 @@
 #include <cmath>
 #include <cstdio>
 #include <new>
+#include <mkw/gamestate.hpp>
+
+#include "../include/mkw/gamestate.hpp"
+
 namespace mkw {
 namespace {
 constexpr float ScreenW=320.f,ScreenH=240.f;
@@ -341,7 +345,32 @@ void RaceBottomScreen::draw(Renderer& renderer,const BottomView& view){
             for(unsigned k=0;k<4;++k)q.color[k]=TimerGold[k];
         }
     }
+    if (atlas && view.timerVisible && m.count < QuadCapacity) {
+        // Safe-cast FPS to a standard integer capped at 60 or 99
+        unsigned baseFps = std::clamp(unsigned(std::lround(gameState.fps)), 0u, 99u);
+        unsigned fpsTens = baseFps / 10;
+        unsigned fpsOnes = baseFps % 10;
+
+        // Anchor it near X=120, Y=4 to keep it perfectly balanced
+        // with the timer's layout bounds and scaling context
+        float fpsX = 120.f;
+        float fpsY = TimerTop + 6.f;
+        float fpsSizeW = RaceMapDigits[0].w * TimerScale;
+        float fpsSizeH = RaceMapDigits[0].h * TimerScale;
+
+        // Draw Tens Digit
+        m.add(RaceMapDigits[fpsTens], fpsX, fpsY, fpsX + fpsSizeW, fpsY + fpsSizeH);
+        for(unsigned k=0; k<4; ++k) m.base[m.count-1].color[k] = 0x00ff00ffu; // Bright Green
+
+        // Draw Ones Digit
+        fpsX += fpsSizeW - 2.f; // Apply layout kerning adjustment spacing
+        m.add(RaceMapDigits[fpsOnes], fpsX, fpsY, fpsX + fpsSizeW, fpsY + fpsSizeH);
+        for(unsigned k=0; k<4; ++k) m.base[m.count-1].color[k] = 0x00ff00ffu; // Bright Green
+    }
+    // ========================================================
+
     if(view.fade>0)m.add(RaceMapWhite,0,0,ScreenW,ScreenH,uint32_t(std::lround(view.fade*255.f)));
+
     const unsigned topCount=m.count-topFirst;
     // NW4R default material: lerp(C0 = transparent black, C1 = white, texture) x vertex colour.
     if(atlas&&fills)renderer.drawScreenMaterialQuadsInPlace(&m.atlas,m.base,fills,0x00000000u,0xffffffffu);

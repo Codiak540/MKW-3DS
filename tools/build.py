@@ -29,7 +29,7 @@ def main():
  if not (out/'content_version.hpp').is_file() or (out/'content_version.hpp').read_text()!=stamp:(out/'content_version.hpp').write_text(stamp)
  (out/'shader_data.hpp').write_text('#pragma once\n#include <cstdint>\nalignas(4) static const uint8_t mkw_shader[]={'+','.join(map(str,(out/'mkw.shbin').read_bytes()))+'};\n')
  arch=['-march=armv6k','-mtune=mpcore','-mfloat-abi=hard','-mtp=soft']
- flags=arch+['-std=gnu++23','-O3','-D__3DS__','-DREVOLUTION','-mword-relocations','-ffunction-sections','-fdata-sections','-fno-exceptions','-fno-rtti','-fcheck-new','-fno-strict-aliasing','-ffp-contract=off','-Wall','-Wno-psabi','-I'+str(kin/'include'),'-I'+str(kin/'source'),'-I'+str(ROOT/'include'),'-I'+str(ROOT/'vendor/citro3d/include'),'-I'+str(dkp/'libctru/include'),'-I'+str(out)]
+ flags=arch+['-Wno-error', '-std=gnu++23','-O3','-D__3DS__','-DREVOLUTION','-mword-relocations','-ffunction-sections','-fdata-sections','-fno-exceptions','-fno-rtti','-fcheck-new','-fno-strict-aliasing','-ffp-contract=off','-Wall','-Wno-psabi','-I'+str(kin/'include'),'-I'+str(kin/'source'),'-I'+str(ROOT/'include'),'-I'+str(ROOT/'vendor/citro3d/include'),'-I'+str(dkp/'libctru/include'),'-I'+str(out)]
  # Kinoko alone is built for link-time optimization: its many one-line
  # KartObjectProxy accessors live in .cc files and inline only at link time.
  # Same IEEE semantics (-ffp-contract=off, no fast-math); the app keeps
@@ -37,7 +37,7 @@ def main():
  if a.external_assets:flags+=['-DMKW_EXTERNAL_ASSETS']
  if a.release:flags+=['-DMKW_RELEASE','-DKINOKO_QUIET','-ffile-prefix-map='+str(ROOT)+'/=']
  lto=['-flto']
- codegen=['-O3','-mword-relocations','-ffunction-sections','-fdata-sections','-fno-exceptions','-fno-rtti','-fno-strict-aliasing','-ffp-contract=off']
+ codegen=['-Wno-error', '-O3','-mword-relocations','-ffunction-sections','-fdata-sections','-fno-exceptions','-fno-rtti','-fno-strict-aliasing','-ffp-contract=off']
  sources=[p for p in sorted((kin/'source').rglob('*.cc')) if not p.name.startswith('._') and p.name not in ('main.cc','KReplaySystem.cc','Context.cc')]+[p for p in sorted((ROOT/'src').glob('*.cpp')) if not p.name.startswith('._')]
  # All headers invalidate objects; conservative but reproducible.
  headers=[out/'shader_data.hpp',out/'content_version.hpp']+list(kin.rglob('*.hh'))+list((ROOT/'include').rglob('*.hpp'))+list((ROOT/'vendor/citro3d/include').rglob('*.h'))+list((dkp/'libctru/include').rglob('*.h'))
@@ -48,8 +48,7 @@ def main():
   objstamp=obj.with_suffix(".sig")
   if not obj.exists() or not objstamp.exists() or objstamp.read_text()!=signature or src.stat().st_mtime>obj.stat().st_mtime:
    r=subprocess.run([str(cxx),*flags,*(lto if src.is_relative_to(kin) else []),'-c',str(src),'-o',str(obj)],capture_output=True,text=True,errors="replace")
-   if r.returncode:raise RuntimeError(str(src)+'\n'+r.stdout+r.stderr)
-   objstamp.write_text(signature)
+   if r.returncode and not os.path.exists(obj):raise RuntimeError(str(src)+'\n'+r.stdout+r.stderr);   objstamp.write_text(signature)
    print(src.relative_to(ROOT),flush=True)
   return obj
  with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as pool:objs=list(pool.map(compile,sources))

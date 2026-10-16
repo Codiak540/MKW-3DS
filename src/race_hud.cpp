@@ -23,6 +23,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <mkw/gamestate.hpp>
+
 namespace mkw {
 namespace {
 // Retail itembox / itemBoxNise materials (layout generated from the BRRES).
@@ -610,8 +612,11 @@ void RaceHud::drawOverlay(Renderer& renderer,const RaceItems& items,unsigned sta
     // Speedometer (not in the original): the player's speed in the game's own
     // units, which Wii speedometer mods label km/h. Bottom right, the one free
     // corner, in the lap counter's gold digits; leaves downward with the HUD.
+    // Speedometer (not in the original): the player's speed in the game's own
+    // units, which Wii speedometer mods label km/h. Bottom right, the one free
+    // corner, in the lap counter's gold digits; leaves downward with the HUD.
     if(speedometer)if(const auto* kart=Kinoko::Kart::KartObjectManager::Instance()->object(0)){
-        const unsigned speed=std::min(999u,unsigned(std::lround(std::abs(kart->move()->speed()))));
+        const unsigned speed = std::min(999u,unsigned(std::lround(std::abs(kart->move()->speed()))));
         char text[4];const int n=std::snprintf(text,sizeof text,"%u",speed);
         // 8 px inside the right edge of the visible area: the 4:3 race window ends 40 px before the screen's.
         constexpr float Size=22,Advance=15,Right=(display::RaceLetterbox?display::Width-display::RaceBar:display::Width)-8,Top=194;
