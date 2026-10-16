@@ -400,6 +400,8 @@ void Renderer::beginNow(const C3D_Mtx& view,const C3D_Mtx& projection,bool sync,
         stats_.previousGpuMs=C3D_GetDrawingTime();
         renderMetrics={};
     }
+    flushBatch().begin();
+
     // The previous frame has been presented. The display mode follows this
     // frame's eyes before its FrameEnd transfers the right eye (gfxGetFramebuffer
     // addresses the right half only in 3D mode).
@@ -474,6 +476,7 @@ void Renderer::beginFrame(){
             // read: queue the left eye's commands first, then the clear. The
             // queue only runs at FrameEnd. Bloom targets are overwritten
             // inside their viewport and keep the frame's clear outside it.
+            flushBatch().commit();
             C3D_FrameSplit(GX_CMDLIST_FLUSH);
             C3D_RenderTargetClear(sceneTarget_,C3D_CLEAR_ALL,clearColor,0);
         }
@@ -1183,17 +1186,17 @@ void Renderer::effectListNow(const RaceEffects& effects,const ef::DrawList& list
     if(!vertexCount)return;
     flushSprites();
     // Both eyes draw the list built from the centre camera; the left eye uploads it.
-    if(!eye_){
+    if(!eye_) {
         const prof::Scope uploadTime(prof::EffectUpload);
-    std::memcpy(effectVertices_,list.vertices.data(),vertexCount*sizeof(ef::DrawVertex));
-    flushGpuData(effectVertices_,vertexCount*sizeof(ef::DrawVertex));
-    // Lookup texels in index order are already in tiled order (8x8 Morton tiles).
-    uint8_t* texels=static_cast<uint8_t*>(effectLookup_.data);
-    for(size_t i=0;i<list.lookup.size();++i){
-        const uint32_t c=list.lookup[i];
-        texels[i*4+0]=uint8_t(c>>24);texels[i*4+1]=uint8_t(c>>16);texels[i*4+2]=uint8_t(c>>8);texels[i*4+3]=uint8_t(c);
-    }
-    C3D_TexFlush(&effectLookup_);
+        std::memcpy(effectVertices_,list.vertices.data(),vertexCount*sizeof(ef::DrawVertex));
+        flushGpuData(effectVertices_,vertexCount*sizeof(ef::DrawVertex));
+        // Lookup texels in index order are already in tiled order (8x8 Morton tiles).
+        uint8_t* texels=static_cast<uint8_t*>(effectLookup_.data);
+        for(size_t i=0;i<list.lookup.size();++i){
+            const uint32_t c=list.lookup[i];
+            texels[i*4+0]=uint8_t(c>>24);texels[i*4+1]=uint8_t(c>>16);texels[i*4+2]=uint8_t(c>>8);texels[i*4+3]=uint8_t(c);
+        }
+        flushGpuData(effectLookup_.data,list.lookup.size()*4);
     }
     C3D_BindProgram(&effectProgram_);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,effectProjectionLoc_,&projection_);
@@ -1673,6 +1676,7 @@ void Renderer::endNow(){
     {const prof::Scope t(prof::EndSprites);endEyeNow();}
     if(execStereo_.active())for(unsigned eye=0;eye<2;++eye)presented_[eye]=gfxGetFramebuffer(GFX_TOP,eye?GFX_RIGHT:GFX_LEFT,nullptr,nullptr);
     stats_.commandUsage=C3D_GetCmdBufUsage();
+    flushBatch().end();
     {const prof::Scope t(prof::FrameEnd);C3D_FrameEnd(GX_CMDLIST_FLUSH);}
 }
 

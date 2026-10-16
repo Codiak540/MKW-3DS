@@ -340,7 +340,9 @@ void Renderer::execute(FrameList& list){
     if(!began&&!list.storage.writes.empty()){
         // Writes recorded outside a frame wait for the GPU like a frame's.
         if(!C3D_FrameBegin(0))std::abort();
+        flushBatch().begin();
         runWrites(list);
+        flushBatch().end();        // one merged flush before the GPU can read
         C3D_FrameEnd(GX_CMDLIST_FLUSH);
     }
     // Recorded copies end with the list.
