@@ -4,6 +4,7 @@
 #include "mkw/animation.hpp"
 #include "mkw/object_bank.hpp"
 #include "mkw/renderer.hpp"
+#include "mkw/world_cull.hpp"
 #include <egg/math/Matrix.hh>
 #include <game/system/map/MapdataGeoObj.hh>
 #include <array>
@@ -93,6 +94,12 @@ struct Visual {
     // Procedurally posed joints (deforming roads, nets and bridges).
     std::vector<float> palette;
     Bounds posed{};
+    // Their bank's joint nodes, looked up by name once (jointBank's), and a
+    // model-space bound of every pose they can take (envelopeModel's).
+    std::vector<int> joints;
+    const ObjectBank* jointBank=nullptr;
+    Bounds envelope{};
+    const ObjModel* envelopeModel=nullptr;
     // Presentation-only route followers (src/course_object_movers.cpp) for
     // placements Kinoko does not move, their heading and simulated frames.
     std::vector<std::shared_ptr<Kinoko::Field::RailInterpolator>> rails;
@@ -142,6 +149,15 @@ struct ObjectDraw {
     ObjectDrawList& list;
     // Sky pass: no depth test, write or culling (Renderer::draw backdrop).
     bool backdrop=false;
+    // Old 3DS object visibility (object_pvs.hpp): the camera column's set, or
+    // nullptr to keep everything the frustum keeps.
+    const uint8_t* pvs=nullptr;
+    // This frame's early frustum reject (world_cull.hpp), or nullptr.
+    const WorldCull* world=nullptr;
+    // True when model-space bounds b under transform t cannot be drawn this
+    // frame: clearly outside the view, or inside a region the camera's column
+    // cannot see. Presenters skip work for such parts; submit() checks too.
+    bool culled(const Bounds& b,const C3D_Mtx& t) const;
     void submit(ObjModel* model,const C3D_Mtx& transform,const Anim& anim);
     // -shadow meshes are stencil shadow volumes, resolved after all objects.
     void shadow(ObjModel* model,const C3D_Mtx& transform);

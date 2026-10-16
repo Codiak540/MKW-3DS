@@ -30,7 +30,12 @@ COURSE_OVERLAY_IDS=['1','5','7','8','10','15','19','27','29','31']
 # Intermediates no later step reads, deleted (fresh trees only) once the
 # named step succeeds: several GB the player's disk never needs at once.
 PRUNE_AFTER={'course material overlay':['build/course-exports','build/object-exports'],
-             'full roster':['assets/garage-parts']}
+             'full roster':['assets/garage-parts'],
+             'race racer lighting':['build/racer-lighting-exports'],
+             'vehicle shadows':['build/vehicle-shadow-work'],
+             'award ceremony':['build/course-exports','build/object-exports'],
+             'menu models':['build/menu-models'],
+             'Old 3DS overlay':['build/o3ds-overlay']}
 
 COOK_STEPS=[
  ('Node packages',['npm.cmd' if os.name=='nt' else 'npm','ci','--no-audit','--no-fund'],['node_modules/.package-lock.json']),
@@ -83,7 +88,15 @@ COOK_STEPS=[
  # The SD build's archives index the finished package, so they come last.
  ('menu archive',['{py}','tools/pack_menu_assets.py'],[SD+'/menu.pak']),
  ('race archive',['{py}','tools/pack_race_assets.py'],[SD+'/race.pak']),
+ # Old 3DS reduced models, opponent models, mip chains and visibility, from
+ # the finished assets (docs/o3ds-lowpoly.md); package_sd.py ships them.
+ ('Old 3DS overlay',['{py}','tools/cook_o3ds_overlay.py','--jobs','{jobs}'],['build/o3ds-lowpoly-package/o3ds-lowpoly-receipt.json']),
 ]
+# The archive steps pack package_sd.py's list, which includes an Old 3DS
+# overlay left by an earlier run; packed sidecars would win over the loose
+# ones the overlay step writes next (src/renderer.cpp). It is cooked again
+# after them in any case, so it goes first.
+PRUNE_BEFORE={'menu archive':['build/o3ds-lowpoly-package'],'race archive':['build/o3ds-lowpoly-package']}
 
 def log(*a):print('[build_cia]',*a,flush=True)
 
@@ -197,6 +210,10 @@ def step_fingerprint(cmd,windows_npm=False):
         if f.suffix!='.py':continue
         text=f.read_text(encoding='utf-8',errors='replace')
         exporters|='.mjs' in text
+        # A script that runs other tools as programs names them in a
+        # COOK_SOURCES table (tools/cook_o3ds_overlay.py): they count too.
+        table=re.search(r'^COOK_SOURCES\s*=\s*\{(.*?)^\}',text,re.M|re.S)
+        if table:queue+=[ROOT/p for p in re.findall(r"'([\w./-]+\.\w+)'",table.group(1)) if (ROOT/p).is_file()]
         # Exporters kept in tools/ceremony/ (bundled by tools/ceremony/bundle.mjs).
         if 'tools/ceremony/' in text:files|={p for p in (ROOT/'tools/ceremony').glob('*') if p.is_file()}
         for a,b in _IMPORT.findall(text):
@@ -301,6 +318,7 @@ def stage_cook(disc,jobs,force,check=False):
         commands=cmd if cmd and isinstance(cmd[0],list) else [cmd]
         if any('{disc}' in c for c in commands) and not disc:raise SystemExit(f"Cook step '{name}' needs the disc image path")
         start=time.monotonic()
+        for path in PRUNE_BEFORE.get(name,()):shutil.rmtree(ROOT/path,ignore_errors=True)
         log(f'step {[n for n,*_ in COOK_STEPS].index(name)+1}/{len(COOK_STEPS)}: {name}')
         for c in commands:
             scrub_appledouble();add_case_aliases();run([str(a).replace('{py}',sys.executable).replace('{disc}',str(disc)).replace('{jobs}',str(step_jobs(name,jobs))) for a in c])

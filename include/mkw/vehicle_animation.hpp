@@ -22,7 +22,7 @@ public:
     float maxScale() const {return std::max({kartScale_.x,kartScale_.y,kartScale_.z});}
     const C3D_Mtx& handle() const {evaluate();return handle_;}
     const C3D_Mtx& handleBase() const {evaluate();return handleBase_;}
-    const C3D_Mtx& wheel(unsigned i) const {evaluate();return wheels_[i<4?i:0];}
+    const C3D_Mtx& wheel(unsigned i) const {evaluateParts();return wheels_[i<4?i:0];}
     unsigned wheelCount() const {return count_;}
     unsigned modelIndex(unsigned i) const {return bike_?i%2:i;}
     float roll(unsigned i) const {return roll_[i<4?i:0];}
@@ -38,7 +38,9 @@ public:
     static float advanceRoll(float phase,float signedDistance,float radius);
 private:
     void readParameters(unsigned vehicle);
+    // evaluate(): body, handle and drive frame; evaluateParts(): wheels and accessories.
     void evaluate() const;
+    void evaluateParts() const;
     void updateAccessories() const;
     // Per-tick snapshot of the kart (step) and the derived matrices (evaluate).
     C3D_Mtx base_{},handleSource_{};
@@ -48,7 +50,7 @@ private:
     Vec3 kartScale_{1,1,1};
     float steering_=0;
     WheelMotion wheelMotion_{};
-    mutable bool dirty_=false;
+    mutable bool dirty_=false,partsDirty_=false;
     mutable C3D_Mtx body_{},handle_{},handleBase_{};
     mutable std::array<C3D_Mtx,4> wheels_{},wheelFrames_{};
     mutable std::array<C3D_Mtx,9*4> accessories_{};
@@ -56,6 +58,8 @@ private:
     mutable std::array<Vec3,4> wheelLocal_{};
     std::array<float,4> roll_{},travel_{},radii_{};
     std::array<float,84> display_{};
+    // sin/cos of the kart arms' constant angles: front X, front Y, rear X.
+    std::array<float,6> armTrig_{0,1,0,1,0,1};
     unsigned count_=0,vehicle_=~0u;
     bool bike_=false;
     mutable float driveFrame_=15;

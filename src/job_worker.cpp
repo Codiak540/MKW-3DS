@@ -50,7 +50,10 @@ void JobWorker::finishAll(){
     if(auto* worker=static_cast<RenderMetrics*>(metrics_)){
         renderMetrics.flushCalls+=worker->flushCalls;renderMetrics.flushBytes+=worker->flushBytes;
         renderMetrics.poseEvaluations+=worker->poseEvaluations;renderMetrics.poseReuses+=worker->poseReuses;
-        renderMetrics.skinnedVertices+=worker->skinnedVertices;renderMetrics.workerMs+=worker->workerMs;*worker={};
+        renderMetrics.skinnedVertices+=worker->skinnedVertices;
+        renderMetrics.cpuSkinnedVertices+=worker->cpuSkinnedVertices;
+        renderMetrics.gpuSkinVertexReferences+=worker->gpuSkinVertexReferences;
+        renderMetrics.workerMs+=worker->workerMs;*worker={};
     }
 }
 void JobWorker::loop(){

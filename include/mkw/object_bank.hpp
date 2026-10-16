@@ -12,7 +12,7 @@ class ObjectBank {
 public:
     struct Node { char name[32]; int32_t parent,slot,envelope; float local[12],world[12]; };
     ~ObjectBank(){reset();}
-    bool load(const char* path);
+    bool load(const char* path,const Model* model=nullptr);
     void reset();
     bool ready() const {return data_!=nullptr;}
     unsigned matrixCount() const {return matrices_;}
@@ -46,11 +46,10 @@ public:
     void markRegisterAlpha(const Model& model);
     // Rigid GPU skinning: rewrite the shared model to matrix-local vertices.
     bool makeRigid(Model& model);
-    bool gpuSkinLit(Model& model) const;
-    // GPU skinning: rewrite the shared model to bone-local positions with
-    // 3 * bone index in normal.x (Renderer::setSkinPalette draws it). Only for
-    // unlit models (their normals never reach a pixel) with few bones.
-    bool gpuSkin(Model& model) const;
+    // GPU skinning: unlit meshes store 3 * bone index in normal.x. Lit meshes
+    // use a separate index attribute and retain DOBJ's direct normal transform.
+    // Allocation/palette failure leaves the existing CPU path available.
+    bool gpuSkin(Model& model,bool litNormals=false) const;
     const std::vector<std::vector<RigidPart>>& rigidParts() const {return rigidParts_;}
     bool rigid() const {return !rigidParts_.empty();}
     // CPU skinning into a per-instance copy of the model's vertex buffer.

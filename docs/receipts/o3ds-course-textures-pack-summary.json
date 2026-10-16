@@ -1,0 +1,233 @@
+{
+ "byStatus": {
+  "etc1a4->etc1": {
+   "bytesAfter": 11776,
+   "bytesBefore": 23552,
+   "textures": 23
+  },
+  "kept: already mipmapped": {
+   "bytesAfter": 0,
+   "bytesBefore": 0,
+   "textures": 3
+  },
+  "kept: secondary map in some model": {
+   "bytesAfter": 0,
+   "bytesBefore": 0,
+   "textures": 52
+  },
+  "kept: too small for mips": {
+   "bytesAfter": 0,
+   "bytesBefore": 0,
+   "textures": 84
+  },
+  "kept: uses alpha": {
+   "bytesAfter": 0,
+   "bytesBefore": 0,
+   "textures": 31
+  },
+  "mips": {
+   "bytesAfter": 11425536,
+   "bytesBefore": 8579072,
+   "textures": 635
+  },
+  "mips (alpha-blend)": {
+   "bytesAfter": 3854528,
+   "bytesBefore": 2895104,
+   "textures": 202
+  },
+  "mips (alpha-box)": {
+   "bytesAfter": 1009280,
+   "bytesBefore": 757760,
+   "textures": 43
+  },
+  "mips (alpha-test)": {
+   "bytesAfter": 7508544,
+   "bytesBefore": 5639936,
+   "textures": 256
+  }
+ },
+ "input": "user-converted Mario Kart Wii data (sd-card/3ds/mkw-3ds: menu.pak, race.pak)",
+ "perCourseCourseTextureBytes": {
+  "Bowser's Castle": {
+   "final": 749920,
+   "mipsEtc1Only": 669344,
+   "original": 573248
+  },
+  "Coconut Mall": {
+   "final": 1014528,
+   "mipsEtc1Only": 895552,
+   "original": 771808
+  },
+  "DK Summit": {
+   "final": 1045952,
+   "mipsEtc1Only": 925824,
+   "original": 794336
+  },
+  "DS Delfino Square": {
+   "final": 874912,
+   "mipsEtc1Only": 745568,
+   "original": 665984
+  },
+  "DS Desert Hills": {
+   "final": 511776,
+   "mipsEtc1Only": 461216,
+   "original": 392576
+  },
+  "DS Peach Gardens": {
+   "final": 1018432,
+   "mipsEtc1Only": 850688,
+   "original": 764672
+  },
+  "DS Yoshi Falls": {
+   "final": 553344,
+   "mipsEtc1Only": 486400,
+   "original": 424320
+  },
+  "Daisy Circuit": {
+   "final": 815968,
+   "mipsEtc1Only": 731552,
+   "original": 622048
+  },
+  "Dry Dry Ruins": {
+   "final": 751424,
+   "mipsEtc1Only": 708736,
+   "original": 573056
+  },
+  "GBA Bowser Castle 3": {
+   "final": 460288,
+   "mipsEtc1Only": 434112,
+   "original": 357760
+  },
+  "GBA Shy Guy Beach": {
+   "final": 648192,
+   "mipsEtc1Only": 560896,
+   "original": 494848
+  },
+  "GCN DK Mountain": {
+   "final": 638048,
+   "mipsEtc1Only": 524896,
+   "original": 479232
+  },
+  "GCN Mario Circuit": {
+   "final": 647616,
+   "mipsEtc1Only": 584000,
+   "original": 552704
+  },
+  "GCN Peach Beach": {
+   "final": 575072,
+   "mipsEtc1Only": 521504,
+   "original": 461952
+  },
+  "GCN Waluigi Stadium": {
+   "final": 474016,
+   "mipsEtc1Only": 413920,
+   "original": 361152
+  },
+  "Grumble Volcano": {
+   "final": 1453888,
+   "mipsEtc1Only": 1311296,
+   "original": 1105408
+  },
+  "Koopa Cape": {
+   "final": 1213344,
+   "mipsEtc1Only": 1067104,
+   "original": 963456
+  },
+  "Luigi Circuit": {
+   "final": 722848,
+   "mipsEtc1Only": 649568,
+   "original": 552416
+  },
+  "Maple Treeway": {
+   "final": 826688,
+   "mipsEtc1Only": 723840,
+   "original": 639872
+  },
+  "Mario Circuit": {
+   "final": 832768,
+   "mipsEtc1Only": 746112,
+   "original": 635264
+  },
+  "Moo Moo Meadows": {
+   "final": 990944,
+   "mipsEtc1Only": 848032,
+   "original": 753024
+  },
+  "Moonview Highway": {
+   "final": 1000480,
+   "mipsEtc1Only": 866784,
+   "original": 776928
+  },
+  "Mushroom Gorge": {
+   "final": 1129376,
+   "mipsEtc1Only": 943968,
+   "original": 860672
+  },
+  "N64 Bowser's Castle": {
+   "final": 791072,
+   "mipsEtc1Only": 741024,
+   "original": 603552
+  },
+  "N64 DK's Jungle Parkway": {
+   "final": 961888,
+   "mipsEtc1Only": 798304,
+   "original": 730368
+  },
+  "N64 Mario Raceway": {
+   "final": 732032,
+   "mipsEtc1Only": 680192,
+   "original": 558336
+  },
+  "N64 Sherbet Land": {
+   "final": 547264,
+   "mipsEtc1Only": 499328,
+   "original": 419712
+  },
+  "Rainbow Road": {
+   "final": 898912,
+   "mipsEtc1Only": 732320,
+   "original": 695424
+  },
+  "SNES Ghost Valley 2": {
+   "final": 195040,
+   "mipsEtc1Only": 182560,
+   "original": 154880
+  },
+  "SNES Mario Circuit 3": {
+   "final": 268448,
+   "mipsEtc1Only": 251232,
+   "original": 210176
+  },
+  "Toad's Factory": {
+   "final": 1443072,
+   "mipsEtc1Only": 1257408,
+   "original": 1092288
+  },
+  "Wario's Gold Mine": {
+   "final": 744032,
+   "mipsEtc1Only": 638752,
+   "original": 575872
+  }
+ },
+ "tool": "tools/cook_o3ds_course_textures.py --mode pack (Lanczos-2 colour chains, alpha-aware ETC1A4 chains)",
+ "totals": {
+  "archiveBytes": 5995904,
+  "archiveSha256": "795b4288acfdd510fc2faacc9362ef445a2fc2cd5af34d4e8635b953beb62525",
+  "bytesAfter": 23809664,
+  "bytesBefore": 17895424,
+  "courseTextures": 1329,
+  "entries": 1159,
+  "status": {
+   "etc1a4->etc1": 23,
+   "kept: already mipmapped": 3,
+   "kept: secondary map in some model": 52,
+   "kept: too small for mips": 84,
+   "kept: uses alpha": 31,
+   "mips": 635,
+   "mips (alpha-blend)": 202,
+   "mips (alpha-box)": 43,
+   "mips (alpha-test)": 256
+  }
+ },
+ "validation": "build/validate_texture_mips: Validated 1159 mip variants (23 ETC1A4->ETC1, 3979 levels); rejected 0. GPU bytes 17895424 -> 23809664."
+}

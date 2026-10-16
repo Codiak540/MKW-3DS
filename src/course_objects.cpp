@@ -4,7 +4,11 @@
 #include "mkw/escalator_landing.hpp"
 #include "mkw/retail_lighting.hpp"
 #include <mkw/render_metrics.hpp>
+#include <mkw/object_gpu_skin.hpp>
+#include <mkw/object_pvs.hpp>
+#include <mkw/world_cull.hpp>
 #include <mkw/job_worker.hpp>
+#include <mkw/render_profile.hpp>
 #include <game/field/ObjectDirector.hh>
 #include <game/field/ObjectDrivableDirector.hh>
 #include <game/field/obj/ObjectEscalator.hh>
@@ -51,36 +55,49 @@ std::unique_ptr<Model> cloneModel(const Model& source){
     std::memcpy(copy->vertices,source.vertices,source.vertexCount*sizeof(Vertex));
     std::memcpy(copy->indices,source.indices,source.indexCount*sizeof(uint16_t));
     copy->submeshes=source.submeshes;copy->textures=source.textures;
+    copy->reducedGeometry=source.reducedGeometry;copy->authoredSubmeshFirst=source.authoredSubmeshFirst;
+    copy->authoredVertexCount=source.authoredVertexCount;copy->sourceVertexRemap=source.sourceVertexRemap;copy->sourceVertexRepeats=source.sourceVertexRepeats;copy->sourceSkinPositions=source.sourceSkinPositions;
+    copy->skinNormalsDirect=source.skinNormalsDirect;
     copy->minimum=source.minimum;copy->maximum=source.maximum;
     flushGpuData(copy->indices,copy->indexCount*sizeof(uint16_t));
     return copy;
 }
+void modelRows(const C3D_Mtx& t,float* rows){for(unsigned r=0;r<3;++r)for(unsigned c=0;c<4;++c)rows[r*4+c]=t.r[r].c[3-c];}
+// Old 3DS object visibility: model bounds b placed by transform t lie inside
+// a region the camera's column cannot see (object_pvs.hpp).
+bool pvsHidden(const uint8_t* set,const Bounds& b,const C3D_Mtx& t){
+    if(!set)return false;
+    float rows[12];modelRows(t,rows);
+    return objectPvs().hiddenCounted(set,transformBoundsPadded(b,rows),false);
+}
 bool endsWith(const std::string& s,const char* suffix){const size_t n=std::strlen(suffix);return s.size()>=n&&!s.compare(s.size()-n,n,suffix);}
 // Coconut Mall escalator treads at their Kinoko step phase.
-    struct EscalatorWrite {Model* mesh;const Vertex* base;float phase;};
-    struct EscalatorBatch {unsigned count;EscalatorWrite items[6];};
-    void writeEscalators(void* payload){
+struct EscalatorWrite {Model* mesh;const Vertex* base;float phase;};
+struct EscalatorBatch {unsigned count;EscalatorWrite items[6];};
+void writeEscalators(void* payload){
     const prof::Scope t(prof::WriteEscalator);
-        const auto& batch=*static_cast<const EscalatorBatch*>(payload);
-        const uint8_t* lo=nullptr;const uint8_t* hi=nullptr;std::size_t total=0;
-        for(unsigned n=0;n<batch.count;++n){
-            const auto& w=batch.items[n];auto& mesh=*w.mesh;
-            // Only Y and Z ever change: every other field keeps its loaded (base) value.
-            for(unsigned i=0;i<mesh.vertexCount;++i){
-                const auto p=escalatorLanding(w.base[i].position.y,w.base[i].position.z,w.phase);
-                mesh.vertices[i].position.y=p.y;mesh.vertices[i].position.z=p.z;
-            }
-            const auto* start=reinterpret_cast<const uint8_t*>(mesh.vertices);
-            const std::size_t bytes=mesh.vertexCount*sizeof(Vertex);
-            if(!lo||start<lo)lo=start;
-            if(!hi||start+bytes>hi)hi=start+bytes;
-            total+=bytes;
+    const auto& batch=*static_cast<const EscalatorBatch*>(payload);
+    const uint8_t* lo=nullptr;const uint8_t* hi=nullptr;std::size_t total=0;
+    for(unsigned n=0;n<batch.count;++n){
+        const auto& w=batch.items[n];auto& mesh=*w.mesh;
+        // Only Y and Z ever change: every other field keeps its loaded (base) value.
+        // Pipelined frames write the mesh's other buffer (Model::beginWrite).
+        mesh.beginWrite();
+        for(unsigned i=0;i<mesh.vertexCount;++i){
+            const auto p=escalatorLanding(w.base[i].position.y,w.base[i].position.z,w.phase);
+            mesh.vertices[i].position.y=p.y;mesh.vertices[i].position.z=p.z;
         }
-        if(!lo)return;
-        // Each flush call carries ~0.75 ms of fixed cost: one call when the meshes sit close together.
-        if(std::size_t(hi-lo)<=total*3)flushGpuData(const_cast<uint8_t*>(lo),std::size_t(hi-lo));
-        else for(unsigned n=0;n<batch.count;++n){auto& m=*batch.items[n].mesh;flushGpuData(m.vertices,m.vertexCount*sizeof(Vertex));}
+        const auto* start=reinterpret_cast<const uint8_t*>(mesh.vertices);
+        const std::size_t bytes=mesh.vertexCount*sizeof(Vertex);
+        if(!lo||start<lo)lo=start;
+        if(!hi||start+bytes>hi)hi=start+bytes;
+        total+=bytes;
     }
+    if(!lo)return;
+    // Each flush call carries ~0.75 ms of fixed cost: one call when the meshes sit close together.
+    if(std::size_t(hi-lo)<=total*3)flushGpuData(const_cast<uint8_t*>(lo),std::size_t(hi-lo));
+    else for(unsigned n=0;n<batch.count;++n){auto& m=*batch.items[n].mesh;flushGpuData(m.vertices,m.vertexCount*sizeof(Vertex));}
+}
 
 // One CPU-skinned instance copy (its palette follows the record).
 struct SkinWrite {const ObjectBank* bank;Model* model;bool normals;};
@@ -130,7 +147,7 @@ bool ObjectAssets::load(int course){
         m->bounds={m->model->minimum,m->model->maximum};
         if(std::strcmp(bankName,"-")){
             m->bank=std::make_unique<ObjectBank>();std::snprintf(file,sizeof file,"models/%s.dobj",bankName);
-            if(!m->bank->load(file)){ok=false;break;}
+            if(!m->bank->load(file,m->model.get())){ok=false;break;}
             m->bank->markRegisterAlpha(*m->model);
             Bounds animated;if(m->bank->animatedBounds(animated)){m->bounds.include(animated.minimum);m->bounds.include(animated.maximum);}
             if(m->bank->skinned()){
@@ -141,11 +158,17 @@ bool ObjectAssets::load(int course){
                     m->crowd=!std::strncmp(resource,"group_",6)||!std::strncmp(resource,"monte_",6);
                     for(const auto& s:m->model->submeshes)
                         m->litNormals|=(s.lighting&retail::Retail)&&((s.lighting&retail::ChannelMask)>>retail::ChannelShift)!=0;
-                    // Unlit objects never read skinned normals: skin on the GPU
-                    // (one shared mesh, any pose per instance), else positions only.
-                    if(m->litNormals?m->bank->gpuSkinLit(*m->model):m->bank->gpuSkin(*m->model)){m->gpuSkin=true;m->cpuSkin=false;}
-                    else if(!m->litNormals)m->bank->shareSkinnedPositions();
-                    else m->bank->shareSkinnedVertices();
+                    // Skin on the GPU when the palette fits: one shared mesh, any
+                    // pose per instance. Lit meshes keep DOBJ's direct normal
+                    // transform; a failure leaves the mesh for the CPU path.
+                    if(m->bank->gpuSkin(*m->model,m->litNormals)){
+                        m->gpuSkin=true;m->cpuSkin=false;
+                        if(m->litNormals)objectGpuSkin().loaded.fetch_add(1,std::memory_order_relaxed);
+                    }else{
+                        if(m->litNormals)objectGpuSkin().fallbacks.fetch_add(1,std::memory_order_relaxed);
+                        if(!m->litNormals)m->bank->shareSkinnedPositions();
+                        else m->bank->shareSkinnedVertices();
+                    }
                 }
             }
             if(m->bank->shapeCount()==m->model->submeshes.size())m->overrides.resize(m->model->submeshes.size());
@@ -183,14 +206,17 @@ struct CourseObjects::Impl {
     // One frame's recorded sky pass and object pass (record), replayed in order.
     ObjectDrawList sky,objects,water;
     ViewFrustum view{};
+    WorldCull world;
     unsigned tick=0;
     Vec3 camera{};
+    const uint8_t* pvs=nullptr; // objectPvs().set(camera), this frame
     bool linkedReady=false,recorded=false,queued=false;
     // The sky pass and the object pass are separate jobs, run in that order:
     // drawSky waits only for the sky, and the objects record during the track.
     Job skyJob,objectJob;
     void recordSky();
     void recordObjects();
+    bool culledPalm(const C3D_Mtx& m) const {float rows[12];modelRows(m,rows);return world.outside({palm->minimum,palm->maximum},rows);}
     void begin(const Renderer& renderer,unsigned frameTick,Vec3 frameCamera);
     void replay(Renderer& renderer,const ObjectDrawList& list);
 };
@@ -302,6 +328,10 @@ void CourseObjects::Impl::link(){
 void CourseObjects::Impl::begin(const Renderer& renderer,unsigned frameTick,Vec3 frameCamera){
     // Linking reads and rebuilds visuals: always on this thread, before recording.
     view=renderer.viewFrustum();tick=frameTick;camera=frameCamera;linkedReady=ready();recorded=true;
+    pvs=objectPvs().set(frameCamera);
+    {C3D_Mtx clip;Mtx_Multiply(&clip,&view.projection,&view.view);float rows[16];
+     for(unsigned r=0;r<4;++r)for(unsigned c=0;c<4;++c)rows[r*4+c]=clip.r[r].c[3-c];
+     world.reset(rows);}
 }
 // The sky pass precedes the object pass, which restarts the per-model
 // CPU-skin copies, exactly as drawSky then draw ran them.
@@ -309,11 +339,14 @@ void CourseObjects::Impl::recordSky(){
     sky.clear();skyShadows.clear();
     if(!linkedReady)return;
     ObjectDraw context{view,assets,tick,camera,course,scratch,skyShadows,sky,true};
+    if(worldCullEnabled())context.world=&world;
     for(auto& v:visuals)if(skyObject(v))drawObject(context,v);
 }
 void CourseObjects::Impl::recordObjects(){
     objects.clear();water.clear();
-    if(palm)for(const auto& matrix:palms)if(!renderQuality().tooSmall({palm->minimum,palm->maximum},matrix,camera))objects.records.push_back({ObjectDrawRecord::Plain,false,0,palm.get(),nullptr,0,0,0,0,0,matrix});
+    // Palms draw with the renderer's own culling; the early reject skips only
+    // palms that culling would drop whole.
+    if(palm)for(const auto& matrix:palms)if(!(worldCullEnabled()&&culledPalm(matrix))&&!renderQuality().tooSmall({palm->minimum,palm->maximum},matrix,camera)&&!pvsHidden(pvs,{palm->minimum,palm->maximum},matrix))objects.records.push_back({ObjectDrawRecord::Plain,false,0,palm.get(),nullptr,0,0,0,0,0,matrix});
     // Includes the children of paired escalators. Kinoko updates these transforms
     // after its 60 Hz step, including stops/reversals and the looping tread offset.
     // Query each frame so restart/map changes cannot leave stale scene pointers.
@@ -345,6 +378,8 @@ void CourseObjects::Impl::recordObjects(){
     assets.beginFrame();
     ObjectDraw context{view,assets,tick,camera,course,scratch,shadows,objects};
     ObjectDraw waterContext{view,assets,tick,camera,course,scratch,shadows,water};
+    context.pvs=waterContext.pvs=pvs;
+    if(worldCullEnabled())context.world=waterContext.world=&world;
     for(auto& v:visuals)if(!skyObject(v))drawObject(waterObject(v)?waterContext:context,v);
 }
 void CourseObjects::Impl::replay(Renderer& renderer,const ObjectDrawList& list){
@@ -372,7 +407,7 @@ void CourseObjects::prepare(const Renderer& renderer,unsigned tick,Vec3 camera){
     auto& worker=jobWorker();
     d.queued=worker.running();
     if(d.queued){worker.submit(d.skyJob);worker.submit(d.objectJob);}
-    else{d.recordSky();d.recordObjects();}
+    else{const prof::Scope timed(prof::ObjectRecord);d.recordSky();d.recordObjects();}
 }
 void CourseObjects::draw(Renderer& renderer,unsigned tick,Vec3 camera){
     auto& d=*impl_;
@@ -407,6 +442,11 @@ void CourseObjects::drawSky(Renderer& renderer,unsigned tick,Vec3 camera){
     else if(d.queued)jobWorker().finish(d.skyJob);
     d.replay(renderer,d.sky);
 }
+bool ObjectDraw::culled(const Bounds& b,const C3D_Mtx& t) const {
+    float rows[12];modelRows(t,rows);
+    if(world&&world->outside(b,rows))return true;
+    return pvs&&objectPvs().hiddenCounted(pvs,transformBoundsPadded(b,rows),false);
+}
 void ObjectDraw::shadow(ObjModel* m,const C3D_Mtx& transform){
     if(!renderQuality().shadowVolumes)return;
     if(!m||!m->model||!view.model(transform).intersects(m->bounds))return;
@@ -429,8 +469,13 @@ void ObjectDraw::submit(ObjModel* m,const C3D_Mtx& transform,const Anim& source)
     // animationStep frames, so a skinned pose repeats instead of being skinned again.
     Anim anim=source;const float step=float(renderQuality().animationStep);
     if(m->crowd&&!m->gpuSkin&&step>0&&anim.clip>=0&&!anim.palette)anim.frame=std::floor(anim.frame/step)*step;
-    if(!view.model(transform).intersects(anim.bounds?*anim.bounds:m->bounds))return;
-    if(renderQuality().tooSmall(anim.bounds?*anim.bounds:m->bounds,transform,camera))return;
+    const Bounds& bounds=anim.bounds?*anim.bounds:m->bounds;
+    float rows[12];modelRows(transform,rows);
+    // The early reject only skips what the exact test below would.
+    if(world&&world->outside(bounds,rows))return;
+    if(!view.model(transform).intersects(bounds))return;
+    if(renderQuality().tooSmall(bounds,transform,camera))return;
+    if(pvs&&objectPvs().hiddenCounted(pvs,transformBoundsPadded(bounds,rows),false))return;
     const ObjectBank* bank=m->bank.get();
     // GPU-skinned meshes hold bone-local positions: unanimated, they draw the bind pose.
     const bool posed=bank&&(anim.palette||anim.clip>=0||m->rigid||m->gpuSkin);

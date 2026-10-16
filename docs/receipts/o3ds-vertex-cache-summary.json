@@ -1,0 +1,2123 @@
+{
+ "tool": "tools/optimize_o3ds_vertex_cache.mjs",
+ "select": "robust",
+ "fifoSizes": [
+  4,
+  8,
+  16,
+  32
+ ],
+ "totals": {
+  "models": 3522,
+  "triangles": 1257571,
+  "acmrBefore": [
+   1.8155,
+   1.7403,
+   1.6746,
+   1.5987
+  ],
+  "acmrAfter": [
+   1.7622,
+   1.6462,
+   1.5925,
+   1.5428
+  ],
+  "transformsSavedPct": [
+   2.9,
+   5.4,
+   4.9,
+   3.5
+  ],
+  "acmrLowerBound": 1.2941
+ },
+ "kept": {
+  "no-gain": 214121,
+  "blended": 58156,
+  "runtime-material": 188356,
+  "sky-backdrop": 179
+ },
+ "changedModels": 2347,
+ "conflictPairs": 126451,
+ "byCategory": {
+  "rival": {
+   "models": 312,
+   "triangles": 133760,
+   "acmrBefore": [
+    1.9686,
+    1.8938,
+    1.8342,
+    1.7392
+   ],
+   "acmrAfter": [
+    1.9413,
+    1.8558,
+    1.7989,
+    1.7219
+   ],
+   "transformsSavedPct": [
+    1.4,
+    2.0,
+    1.9,
+    1.0
+   ],
+   "acmrLowerBound": 1.2225
+  },
+  "track": {
+   "models": 43,
+   "triangles": 482619,
+   "acmrBefore": [
+    1.707,
+    1.6484,
+    1.5981,
+    1.5541
+   ],
+   "acmrAfter": [
+    1.654,
+    1.5633,
+    1.533,
+    1.5135
+   ],
+   "transformsSavedPct": [
+    3.1,
+    5.2,
+    4.1,
+    2.6
+   ],
+   "acmrLowerBound": 1.4863
+  },
+  "course-object": {
+   "models": 565,
+   "triangles": 96123,
+   "acmrBefore": [
+    1.7562,
+    1.6868,
+    1.6157,
+    1.5265
+   ],
+   "acmrAfter": [
+    1.7115,
+    1.6015,
+    1.5322,
+    1.4619
+   ],
+   "transformsSavedPct": [
+    2.5,
+    5.1,
+    5.2,
+    4.2
+   ],
+   "acmrLowerBound": 1.1574
+  },
+  "menu-ui": {
+   "models": 360,
+   "triangles": 182023,
+   "acmrBefore": [
+    1.89,
+    1.8017,
+    1.7322,
+    1.6458
+   ],
+   "acmrAfter": [
+    1.8882,
+    1.7989,
+    1.7292,
+    1.6441
+   ],
+   "transformsSavedPct": [
+    0.1,
+    0.2,
+    0.2,
+    0.1
+   ],
+   "acmrLowerBound": 1.165
+  },
+  "racer-kart-item": {
+   "models": 2242,
+   "triangles": 363046,
+   "acmrBefore": [
+    1.8818,
+    1.7891,
+    1.7042,
+    1.6016
+   ],
+   "acmrAfter": [
+    1.7905,
+    1.6146,
+    1.5429,
+    1.4866
+   ],
+   "transformsSavedPct": [
+    4.9,
+    9.8,
+    9.5,
+    7.2
+   ],
+   "acmrLowerBound": 1.1658
+  }
+ },
+ "byCourse": {
+  "Luigi Circuit": {
+   "track": {
+    "models": 1,
+    "triangles": 13266,
+    "acmrBefore": [
+     1.7952,
+     1.7647,
+     1.7384,
+     1.713
+    ],
+    "acmrAfter": [
+     1.7503,
+     1.6948,
+     1.6801,
+     1.6664
+    ],
+    "transformsSavedPct": [
+     2.5,
+     4.0,
+     3.4,
+     2.7
+    ],
+    "acmrLowerBound": 1.6435
+   },
+   "objects": {
+    "models": 16,
+    "triangles": 2045,
+    "acmrBefore": [
+     1.8083,
+     1.6675,
+     1.6078,
+     1.5403
+    ],
+    "acmrAfter": [
+     1.6562,
+     1.4034,
+     1.3041,
+     1.2362
+    ],
+    "transformsSavedPct": [
+     8.4,
+     15.8,
+     18.9,
+     19.7
+    ],
+    "acmrLowerBound": 1.1941
+   }
+  },
+  "Moo Moo Meadows": {
+   "track": {
+    "models": 1,
+    "triangles": 14141,
+    "acmrBefore": [
+     1.6177,
+     1.5708,
+     1.5382,
+     1.5092
+    ],
+    "acmrAfter": [
+     1.5791,
+     1.5165,
+     1.4929,
+     1.4778
+    ],
+    "transformsSavedPct": [
+     2.4,
+     3.5,
+     2.9,
+     2.1
+    ],
+    "acmrLowerBound": 1.4438
+   },
+   "objects": {
+    "models": 13,
+    "triangles": 1352,
+    "acmrBefore": [
+     1.8388,
+     1.7766,
+     1.6871,
+     1.5865
+    ],
+    "acmrAfter": [
+     1.821,
+     1.7382,
+     1.6635,
+     1.5695
+    ],
+    "transformsSavedPct": [
+     1.0,
+     2.2,
+     1.4,
+     1.1
+    ],
+    "acmrLowerBound": 1.1642
+   }
+  },
+  "Mushroom Gorge": {
+   "track": {
+    "models": 1,
+    "triangles": 9738,
+    "acmrBefore": [
+     1.7199,
+     1.6598,
+     1.6226,
+     1.5808
+    ],
+    "acmrAfter": [
+     1.6675,
+     1.6007,
+     1.5722,
+     1.544
+    ],
+    "transformsSavedPct": [
+     3.0,
+     3.6,
+     3.1,
+     2.3
+    ],
+    "acmrLowerBound": 1.5127
+   },
+   "objects": {
+    "models": 9,
+    "triangles": 692,
+    "acmrBefore": [
+     1.6748,
+     1.6156,
+     1.4769,
+     1.2515
+    ],
+    "acmrAfter": [
+     1.6618,
+     1.5188,
+     1.3916,
+     1.1864
+    ],
+    "transformsSavedPct": [
+     0.8,
+     6.0,
+     5.8,
+     5.2
+    ],
+    "acmrLowerBound": 1.0275
+   }
+  },
+  "Toad's Factory": {
+   "track": {
+    "models": 1,
+    "triangles": 16380,
+    "acmrBefore": [
+     1.7382,
+     1.6754,
+     1.6195,
+     1.5829
+    ],
+    "acmrAfter": [
+     1.6897,
+     1.6042,
+     1.5737,
+     1.5594
+    ],
+    "transformsSavedPct": [
+     2.8,
+     4.2,
+     2.8,
+     1.5
+    ],
+    "acmrLowerBound": 1.5374
+   },
+   "objects": {
+    "models": 27,
+    "triangles": 3202,
+    "acmrBefore": [
+     1.747,
+     1.683,
+     1.6221,
+     1.5512
+    ],
+    "acmrAfter": [
+     1.718,
+     1.6227,
+     1.5746,
+     1.5275
+    ],
+    "transformsSavedPct": [
+     1.7,
+     3.6,
+     2.9,
+     1.5
+    ],
+    "acmrLowerBound": 1.2751
+   }
+  },
+  "Mario Circuit": {
+   "track": {
+    "models": 1,
+    "triangles": 12769,
+    "acmrBefore": [
+     1.747,
+     1.7116,
+     1.6756,
+     1.6628
+    ],
+    "acmrAfter": [
+     1.7124,
+     1.6658,
+     1.6436,
+     1.6403
+    ],
+    "transformsSavedPct": [
+     2.0,
+     2.7,
+     1.9,
+     1.4
+    ],
+    "acmrLowerBound": 1.6294
+   },
+   "objects": {
+    "models": 18,
+    "triangles": 2151,
+    "acmrBefore": [
+     1.7703,
+     1.6978,
+     1.5816,
+     1.4863
+    ],
+    "acmrAfter": [
+     1.7308,
+     1.6392,
+     1.5342,
+     1.4617
+    ],
+    "transformsSavedPct": [
+     2.2,
+     3.5,
+     3.0,
+     1.7
+    ],
+    "acmrLowerBound": 1.1413
+   }
+  },
+  "Coconut Mall": {
+   "track": {
+    "models": 1,
+    "triangles": 18143,
+    "acmrBefore": [
+     1.8447,
+     1.7693,
+     1.7311,
+     1.7047
+    ],
+    "acmrAfter": [
+     1.7882,
+     1.698,
+     1.6803,
+     1.6758
+    ],
+    "transformsSavedPct": [
+     3.1,
+     4.0,
+     2.9,
+     1.7
+    ],
+    "acmrLowerBound": 1.6669
+   },
+   "objects": {
+    "models": 25,
+    "triangles": 4031,
+    "acmrBefore": [
+     1.6998,
+     1.6559,
+     1.6048,
+     1.547
+    ],
+    "acmrAfter": [
+     1.6822,
+     1.6185,
+     1.5676,
+     1.5212
+    ],
+    "transformsSavedPct": [
+     1.0,
+     2.3,
+     2.3,
+     1.7
+    ],
+    "acmrLowerBound": 1.1625
+   }
+  },
+  "DK Summit": {
+   "track": {
+    "models": 1,
+    "triangles": 13256,
+    "acmrBefore": [
+     1.8575,
+     1.805,
+     1.76,
+     1.7098
+    ],
+    "acmrAfter": [
+     1.8026,
+     1.7194,
+     1.6936,
+     1.6786
+    ],
+    "transformsSavedPct": [
+     3.0,
+     4.7,
+     3.8,
+     1.8
+    ],
+    "acmrLowerBound": 1.6629
+   },
+   "objects": {
+    "models": 18,
+    "triangles": 2907,
+    "acmrBefore": [
+     1.8435,
+     1.7589,
+     1.6687,
+     1.581
+    ],
+    "acmrAfter": [
+     1.7117,
+     1.5483,
+     1.4778,
+     1.4352
+    ],
+    "transformsSavedPct": [
+     7.1,
+     12.0,
+     11.4,
+     9.2
+    ],
+    "acmrLowerBound": 1.2993
+   }
+  },
+  "Wario's Gold Mine": {
+   "track": {
+    "models": 1,
+    "triangles": 16574,
+    "acmrBefore": [
+     1.7347,
+     1.6931,
+     1.6527,
+     1.6088
+    ],
+    "acmrAfter": [
+     1.6789,
+     1.6034,
+     1.5773,
+     1.5677
+    ],
+    "transformsSavedPct": [
+     3.2,
+     5.3,
+     4.6,
+     2.6
+    ],
+    "acmrLowerBound": 1.5596
+   },
+   "objects": {
+    "models": 14,
+    "triangles": 1634,
+    "acmrBefore": [
+     1.9296,
+     1.8464,
+     1.7625,
+     1.6836
+    ],
+    "acmrAfter": [
+     1.8825,
+     1.7919,
+     1.7258,
+     1.6573
+    ],
+    "transformsSavedPct": [
+     2.4,
+     3.0,
+     2.1,
+     1.6
+    ],
+    "acmrLowerBound": 1.6071
+   }
+  },
+  "Daisy Circuit": {
+   "track": {
+    "models": 1,
+    "triangles": 17484,
+    "acmrBefore": [
+     1.8451,
+     1.7312,
+     1.6809,
+     1.6418
+    ],
+    "acmrAfter": [
+     1.7897,
+     1.656,
+     1.6238,
+     1.6115
+    ],
+    "transformsSavedPct": [
+     3.0,
+     4.3,
+     3.4,
+     1.8
+    ],
+    "acmrLowerBound": 1.6038
+   },
+   "objects": {
+    "models": 19,
+    "triangles": 9361,
+    "acmrBefore": [
+     1.7794,
+     1.7016,
+     1.6558,
+     1.6133
+    ],
+    "acmrAfter": [
+     1.7166,
+     1.5859,
+     1.5311,
+     1.5006
+    ],
+    "transformsSavedPct": [
+     3.5,
+     6.8,
+     7.5,
+     7.0
+    ],
+    "acmrLowerBound": 1.08
+   }
+  },
+  "Koopa Cape": {
+   "track": {
+    "models": 1,
+    "triangles": 18587,
+    "acmrBefore": [
+     1.6058,
+     1.5419,
+     1.4842,
+     1.4354
+    ],
+    "acmrAfter": [
+     1.5531,
+     1.4562,
+     1.4096,
+     1.3834
+    ],
+    "transformsSavedPct": [
+     3.3,
+     5.6,
+     5.0,
+     3.6
+    ],
+    "acmrLowerBound": 1.3487
+   },
+   "objects": {
+    "models": 19,
+    "triangles": 1887,
+    "acmrBefore": [
+     1.6402,
+     1.5633,
+     1.4764,
+     1.3715
+    ],
+    "acmrAfter": [
+     1.6195,
+     1.4679,
+     1.3874,
+     1.2856
+    ],
+    "transformsSavedPct": [
+     1.3,
+     6.1,
+     6.0,
+     6.3
+    ],
+    "acmrLowerBound": 1.0419
+   }
+  },
+  "Maple Treeway": {
+   "track": {
+    "models": 1,
+    "triangles": 17186,
+    "acmrBefore": [
+     1.7094,
+     1.6302,
+     1.5697,
+     1.5127
+    ],
+    "acmrAfter": [
+     1.6455,
+     1.4935,
+     1.4578,
+     1.4326
+    ],
+    "transformsSavedPct": [
+     3.7,
+     8.4,
+     7.1,
+     5.3
+    ],
+    "acmrLowerBound": 1.3965
+   },
+   "objects": {
+    "models": 17,
+    "triangles": 2946,
+    "acmrBefore": [
+     1.6123,
+     1.5808,
+     1.5309,
+     1.4637
+    ],
+    "acmrAfter": [
+     1.5991,
+     1.5564,
+     1.5129,
+     1.4474
+    ],
+    "transformsSavedPct": [
+     0.8,
+     1.5,
+     1.2,
+     1.1
+    ],
+    "acmrLowerBound": 1.0081
+   }
+  },
+  "Grumble Volcano": {
+   "track": {
+    "models": 1,
+    "triangles": 13176,
+    "acmrBefore": [
+     1.631,
+     1.5839,
+     1.5584,
+     1.5358
+    ],
+    "acmrAfter": [
+     1.5939,
+     1.5398,
+     1.5206,
+     1.5079
+    ],
+    "transformsSavedPct": [
+     2.3,
+     2.8,
+     2.4,
+     1.8
+    ],
+    "acmrLowerBound": 1.4738
+   },
+   "objects": {
+    "models": 9,
+    "triangles": 534,
+    "acmrBefore": [
+     1.8783,
+     1.7228,
+     1.4663,
+     1.2659
+    ],
+    "acmrAfter": [
+     1.8352,
+     1.6311,
+     1.427,
+     1.2472
+    ],
+    "transformsSavedPct": [
+     2.3,
+     5.3,
+     2.7,
+     1.5
+    ],
+    "acmrLowerBound": 1.1798
+   }
+  },
+  "Dry Dry Ruins": {
+   "track": {
+    "models": 1,
+    "triangles": 14486,
+    "acmrBefore": [
+     1.6499,
+     1.5418,
+     1.4365,
+     1.3288
+    ],
+    "acmrAfter": [
+     1.5754,
+     1.3715,
+     1.3068,
+     1.2677
+    ],
+    "transformsSavedPct": [
+     4.5,
+     11.0,
+     9.0,
+     4.6
+    ],
+    "acmrLowerBound": 1.2125
+   },
+   "objects": {
+    "models": 14,
+    "triangles": 1800,
+    "acmrBefore": [
+     1.9011,
+     1.8478,
+     1.7883,
+     1.72
+    ],
+    "acmrAfter": [
+     1.8272,
+     1.6639,
+     1.6078,
+     1.5544
+    ],
+    "transformsSavedPct": [
+     3.9,
+     10.0,
+     10.1,
+     9.6
+    ],
+    "acmrLowerBound": 1.4267
+   }
+  },
+  "Moonview Highway": {
+   "track": {
+    "models": 1,
+    "triangles": 17475,
+    "acmrBefore": [
+     1.7623,
+     1.7281,
+     1.6858,
+     1.646
+    ],
+    "acmrAfter": [
+     1.7112,
+     1.625,
+     1.6004,
+     1.5901
+    ],
+    "transformsSavedPct": [
+     2.9,
+     6.0,
+     5.1,
+     3.4
+    ],
+    "acmrLowerBound": 1.5631
+   },
+   "objects": {
+    "models": 23,
+    "triangles": 2973,
+    "acmrBefore": [
+     1.7248,
+     1.6768,
+     1.6293,
+     1.5019
+    ],
+    "acmrAfter": [
+     1.7097,
+     1.5483,
+     1.4921,
+     1.3838
+    ],
+    "transformsSavedPct": [
+     0.9,
+     7.7,
+     8.4,
+     7.9
+    ],
+    "acmrLowerBound": 1.3051
+   }
+  },
+  "Bowser's Castle": {
+   "track": {
+    "models": 1,
+    "triangles": 22097,
+    "acmrBefore": [
+     1.7331,
+     1.7029,
+     1.6824,
+     1.6682
+    ],
+    "acmrAfter": [
+     1.7025,
+     1.6674,
+     1.6586,
+     1.6542
+    ],
+    "transformsSavedPct": [
+     1.8,
+     2.1,
+     1.4,
+     0.8
+    ],
+    "acmrLowerBound": 1.6468
+   },
+   "objects": {
+    "models": 15,
+    "triangles": 3200,
+    "acmrBefore": [
+     1.9247,
+     1.8441,
+     1.7431,
+     1.6456
+    ],
+    "acmrAfter": [
+     1.8597,
+     1.7737,
+     1.6841,
+     1.6147
+    ],
+    "transformsSavedPct": [
+     3.4,
+     3.8,
+     3.4,
+     1.9
+    ],
+    "acmrLowerBound": 1.495
+   }
+  },
+  "Rainbow Road": {
+   "track": {
+    "models": 1,
+    "triangles": 19270,
+    "acmrBefore": [
+     1.595,
+     1.5591,
+     1.4917,
+     1.4269
+    ],
+    "acmrAfter": [
+     1.5656,
+     1.4924,
+     1.4567,
+     1.404
+    ],
+    "transformsSavedPct": [
+     1.8,
+     4.3,
+     2.3,
+     1.6
+    ],
+    "acmrLowerBound": 1.3566
+   },
+   "objects": {
+    "models": 13,
+    "triangles": 3480,
+    "acmrBefore": [
+     1.8854,
+     1.7865,
+     1.6957,
+     1.4265
+    ],
+    "acmrAfter": [
+     1.7871,
+     1.5977,
+     1.4968,
+     1.4167
+    ],
+    "transformsSavedPct": [
+     5.2,
+     10.6,
+     11.7,
+     0.7
+    ],
+    "acmrLowerBound": 1.367
+   }
+  },
+  "GCN Peach Beach": {
+   "track": {
+    "models": 1,
+    "triangles": 10421,
+    "acmrBefore": [
+     1.531,
+     1.4746,
+     1.4118,
+     1.367
+    ],
+    "acmrAfter": [
+     1.466,
+     1.3791,
+     1.3503,
+     1.3362
+    ],
+    "transformsSavedPct": [
+     4.2,
+     6.5,
+     4.4,
+     2.3
+    ],
+    "acmrLowerBound": 1.3179
+   },
+   "objects": {
+    "models": 20,
+    "triangles": 6657,
+    "acmrBefore": [
+     1.6303,
+     1.5627,
+     1.5064,
+     1.4347
+    ],
+    "acmrAfter": [
+     1.6169,
+     1.5403,
+     1.485,
+     1.4218
+    ],
+    "transformsSavedPct": [
+     0.8,
+     1.4,
+     1.4,
+     0.9
+    ],
+    "acmrLowerBound": 0.9115
+   }
+  },
+  "DS Yoshi Falls": {
+   "track": {
+    "models": 1,
+    "triangles": 8963,
+    "acmrBefore": [
+     1.6753,
+     1.5775,
+     1.5562,
+     1.5247
+    ],
+    "acmrAfter": [
+     1.606,
+     1.5045,
+     1.4841,
+     1.4659
+    ],
+    "transformsSavedPct": [
+     4.1,
+     4.6,
+     4.6,
+     3.9
+    ],
+    "acmrLowerBound": 1.3118
+   },
+   "objects": {
+    "models": 5,
+    "triangles": 358,
+    "acmrBefore": [
+     1.8911,
+     1.8464,
+     1.7151,
+     1.4749
+    ],
+    "acmrAfter": [
+     1.8911,
+     1.8464,
+     1.7151,
+     1.4749
+    ],
+    "transformsSavedPct": [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "acmrLowerBound": 1.3659
+   }
+  },
+  "SNES Ghost Valley 2": {
+   "track": {
+    "models": 1,
+    "triangles": 2028,
+    "acmrBefore": [
+     1.8176,
+     1.7332,
+     1.7086,
+     1.682
+    ],
+    "acmrAfter": [
+     1.7199,
+     1.6657,
+     1.6568,
+     1.6489
+    ],
+    "transformsSavedPct": [
+     5.4,
+     3.9,
+     3.0,
+     2.0
+    ],
+    "acmrLowerBound": 1.6183
+   },
+   "objects": {
+    "models": 12,
+    "triangles": 314,
+    "acmrBefore": [
+     1.9809,
+     1.9363,
+     1.7866,
+     1.5159
+    ],
+    "acmrAfter": [
+     1.9809,
+     1.9363,
+     1.7866,
+     1.5159
+    ],
+    "transformsSavedPct": [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "acmrLowerBound": 1.4172
+   }
+  },
+  "N64 Mario Raceway": {
+   "track": {
+    "models": 1,
+    "triangles": 5953,
+    "acmrBefore": [
+     1.59,
+     1.5342,
+     1.4111,
+     1.2866
+    ],
+    "acmrAfter": [
+     1.4942,
+     1.3356,
+     1.2718,
+     1.2434
+    ],
+    "transformsSavedPct": [
+     6.0,
+     12.9,
+     9.9,
+     3.4
+    ],
+    "acmrLowerBound": 1.2236
+   },
+   "objects": {
+    "models": 7,
+    "triangles": 705,
+    "acmrBefore": [
+     1.739,
+     1.6979,
+     1.6085,
+     1.4638
+    ],
+    "acmrAfter": [
+     1.7376,
+     1.695,
+     1.6085,
+     1.4638
+    ],
+    "transformsSavedPct": [
+     0.1,
+     0.2,
+     0.0,
+     0.0
+    ],
+    "acmrLowerBound": 1.2525
+   }
+  },
+  "N64 Sherbet Land": {
+   "track": {
+    "models": 1,
+    "triangles": 5203,
+    "acmrBefore": [
+     1.5929,
+     1.543,
+     1.4978,
+     1.448
+    ],
+    "acmrAfter": [
+     1.5424,
+     1.4388,
+     1.4082,
+     1.3832
+    ],
+    "transformsSavedPct": [
+     3.2,
+     6.8,
+     6.0,
+     4.5
+    ],
+    "acmrLowerBound": 1.3298
+   },
+   "objects": {
+    "models": 11,
+    "triangles": 1200,
+    "acmrBefore": [
+     1.8375,
+     1.7925,
+     1.7083,
+     1.5775
+    ],
+    "acmrAfter": [
+     1.8358,
+     1.7917,
+     1.7083,
+     1.5775
+    ],
+    "transformsSavedPct": [
+     0.1,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "acmrLowerBound": 1.1842
+   }
+  },
+  "GBA Shy Guy Beach": {
+   "track": {
+    "models": 1,
+    "triangles": 4438,
+    "acmrBefore": [
+     1.4493,
+     1.4085,
+     1.3628,
+     1.3231
+    ],
+    "acmrAfter": [
+     1.4038,
+     1.3301,
+     1.3022,
+     1.2841
+    ],
+    "transformsSavedPct": [
+     3.1,
+     5.6,
+     4.4,
+     2.9
+    ],
+    "acmrLowerBound": 1.2375
+   },
+   "objects": {
+    "models": 12,
+    "triangles": 1346,
+    "acmrBefore": [
+     1.7051,
+     1.6307,
+     1.4673,
+     1.3581
+    ],
+    "acmrAfter": [
+     1.6181,
+     1.4926,
+     1.3685,
+     1.2898
+    ],
+    "transformsSavedPct": [
+     5.1,
+     8.5,
+     6.7,
+     5.0
+    ],
+    "acmrLowerBound": 1.1516
+   }
+  },
+  "DS Delfino Square": {
+   "track": {
+    "models": 1,
+    "triangles": 13218,
+    "acmrBefore": [
+     1.8817,
+     1.8435,
+     1.8122,
+     1.7935
+    ],
+    "acmrAfter": [
+     1.8174,
+     1.7568,
+     1.7446,
+     1.7389
+    ],
+    "transformsSavedPct": [
+     3.4,
+     4.7,
+     3.7,
+     3.0
+    ],
+    "acmrLowerBound": 1.7359
+   },
+   "objects": {
+    "models": 13,
+    "triangles": 2737,
+    "acmrBefore": [
+     1.6821,
+     1.6171,
+     1.5531,
+     1.4859
+    ],
+    "acmrAfter": [
+     1.6631,
+     1.5839,
+     1.5151,
+     1.4574
+    ],
+    "transformsSavedPct": [
+     1.1,
+     2.1,
+     2.4,
+     1.9
+    ],
+    "acmrLowerBound": 0.9715
+   }
+  },
+  "GCN Waluigi Stadium": {
+   "track": {
+    "models": 1,
+    "triangles": 11331,
+    "acmrBefore": [
+     1.5949,
+     1.5524,
+     1.5173,
+     1.4771
+    ],
+    "acmrAfter": [
+     1.5652,
+     1.4984,
+     1.4724,
+     1.4521
+    ],
+    "transformsSavedPct": [
+     1.9,
+     3.5,
+     3.0,
+     1.7
+    ],
+    "acmrLowerBound": 1.4243
+   },
+   "objects": {
+    "models": 7,
+    "triangles": 478,
+    "acmrBefore": [
+     1.7762,
+     1.7427,
+     1.5774,
+     1.3912
+    ],
+    "acmrAfter": [
+     1.7699,
+     1.7301,
+     1.5732,
+     1.3912
+    ],
+    "transformsSavedPct": [
+     0.4,
+     0.7,
+     0.3,
+     0.0
+    ],
+    "acmrLowerBound": 1.3222
+   }
+  },
+  "DS Desert Hills": {
+   "track": {
+    "models": 1,
+    "triangles": 7843,
+    "acmrBefore": [
+     1.6837,
+     1.6146,
+     1.5818,
+     1.5171
+    ],
+    "acmrAfter": [
+     1.6356,
+     1.5261,
+     1.4891,
+     1.46
+    ],
+    "transformsSavedPct": [
+     2.9,
+     5.5,
+     5.9,
+     3.8
+    ],
+    "acmrLowerBound": 1.3761
+   },
+   "objects": {
+    "models": 14,
+    "triangles": 1479,
+    "acmrBefore": [
+     1.8905,
+     1.8087,
+     1.7059,
+     1.6227
+    ],
+    "acmrAfter": [
+     1.8323,
+     1.6498,
+     1.57,
+     1.5003
+    ],
+    "transformsSavedPct": [
+     3.1,
+     8.8,
+     8.0,
+     7.5
+    ],
+    "acmrLowerBound": 1.3597
+   }
+  },
+  "GBA Bowser Castle 3": {
+   "track": {
+    "models": 1,
+    "triangles": 3930,
+    "acmrBefore": [
+     1.6552,
+     1.6048,
+     1.5298,
+     1.4687
+    ],
+    "acmrAfter": [
+     1.545,
+     1.4188,
+     1.3944,
+     1.3863
+    ],
+    "transformsSavedPct": [
+     6.7,
+     11.6,
+     8.9,
+     5.6
+    ],
+    "acmrLowerBound": 1.386
+   },
+   "objects": {
+    "models": 7,
+    "triangles": 686,
+    "acmrBefore": [
+     1.914,
+     1.8353,
+     1.7362,
+     1.5962
+    ],
+    "acmrAfter": [
+     1.8717,
+     1.7755,
+     1.6706,
+     1.5394
+    ],
+    "transformsSavedPct": [
+     2.2,
+     3.3,
+     3.8,
+     3.6
+    ],
+    "acmrLowerBound": 1.4504
+   }
+  },
+  "N64 DK's Jungle Parkway": {
+   "track": {
+    "models": 1,
+    "triangles": 10773,
+    "acmrBefore": [
+     1.5237,
+     1.4371,
+     1.4137,
+     1.3771
+    ],
+    "acmrAfter": [
+     1.4858,
+     1.3896,
+     1.3755,
+     1.3523
+    ],
+    "transformsSavedPct": [
+     2.5,
+     3.3,
+     2.7,
+     1.8
+    ],
+    "acmrLowerBound": 1.3277
+   },
+   "objects": {
+    "models": 9,
+    "triangles": 5074,
+    "acmrBefore": [
+     1.7083,
+     1.6504,
+     1.6116,
+     1.5641
+    ],
+    "acmrAfter": [
+     1.6819,
+     1.6117,
+     1.5794,
+     1.5373
+    ],
+    "transformsSavedPct": [
+     1.5,
+     2.3,
+     2.0,
+     1.7
+    ],
+    "acmrLowerBound": 1.1121
+   }
+  },
+  "GCN Mario Circuit": {
+   "track": {
+    "models": 1,
+    "triangles": 11306,
+    "acmrBefore": [
+     1.6236,
+     1.5758,
+     1.5412,
+     1.5196
+    ],
+    "acmrAfter": [
+     1.577,
+     1.488,
+     1.4598,
+     1.4503
+    ],
+    "transformsSavedPct": [
+     2.9,
+     5.6,
+     5.3,
+     4.6
+    ],
+    "acmrLowerBound": 1.4273
+   },
+   "objects": {
+    "models": 15,
+    "triangles": 1321,
+    "acmrBefore": [
+     1.7237,
+     1.6563,
+     1.5208,
+     1.3558
+    ],
+    "acmrAfter": [
+     1.673,
+     1.564,
+     1.4474,
+     1.3255
+    ],
+    "transformsSavedPct": [
+     2.9,
+     5.6,
+     4.8,
+     2.2
+    ],
+    "acmrLowerBound": 1.1559
+   }
+  },
+  "SNES Mario Circuit 3": {
+   "track": {
+    "models": 1,
+    "triangles": 3529,
+    "acmrBefore": [
+     1.5857,
+     1.5509,
+     1.5245,
+     1.499
+    ],
+    "acmrAfter": [
+     1.5191,
+     1.4565,
+     1.4494,
+     1.4452
+    ],
+    "transformsSavedPct": [
+     4.2,
+     6.1,
+     4.9,
+     3.6
+    ],
+    "acmrLowerBound": 1.4355
+   },
+   "objects": {
+    "models": 6,
+    "triangles": 330,
+    "acmrBefore": [
+     1.8697,
+     1.8121,
+     1.6576,
+     1.3939
+    ],
+    "acmrAfter": [
+     1.8697,
+     1.8121,
+     1.6576,
+     1.3939
+    ],
+    "transformsSavedPct": [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "acmrLowerBound": 1.3
+   }
+  },
+  "DS Peach Gardens": {
+   "track": {
+    "models": 1,
+    "triangles": 10962,
+    "acmrBefore": [
+     1.7489,
+     1.6456,
+     1.5936,
+     1.5348
+    ],
+    "acmrAfter": [
+     1.6571,
+     1.5396,
+     1.5084,
+     1.4831
+    ],
+    "transformsSavedPct": [
+     5.2,
+     6.4,
+     5.3,
+     3.4
+    ],
+    "acmrLowerBound": 1.4593
+   },
+   "objects": {
+    "models": 12,
+    "triangles": 1028,
+    "acmrBefore": [
+     1.9231,
+     1.859,
+     1.7364,
+     1.5846
+    ],
+    "acmrAfter": [
+     1.8609,
+     1.7734,
+     1.6722,
+     1.5564
+    ],
+    "transformsSavedPct": [
+     3.2,
+     4.6,
+     3.7,
+     1.8
+    ],
+    "acmrLowerBound": 1.2597
+   }
+  },
+  "GCN DK Mountain": {
+   "track": {
+    "models": 1,
+    "triangles": 10973,
+    "acmrBefore": [
+     1.5441,
+     1.4736,
+     1.3937,
+     1.3263
+    ],
+    "acmrAfter": [
+     1.4984,
+     1.3871,
+     1.3281,
+     1.2829
+    ],
+    "transformsSavedPct": [
+     3.0,
+     5.9,
+     4.7,
+     3.3
+    ],
+    "acmrLowerBound": 1.251
+   },
+   "objects": {
+    "models": 12,
+    "triangles": 1430,
+    "acmrBefore": [
+     1.6853,
+     1.558,
+     1.4923,
+     1.4056
+    ],
+    "acmrAfter": [
+     1.6678,
+     1.5315,
+     1.4769,
+     1.3937
+    ],
+    "transformsSavedPct": [
+     1.0,
+     1.7,
+     1.0,
+     0.8
+    ],
+    "acmrLowerBound": 1.3392
+   }
+  },
+  "N64 Bowser's Castle": {
+   "track": {
+    "models": 1,
+    "triangles": 9752,
+    "acmrBefore": [
+     1.7008,
+     1.637,
+     1.5884,
+     1.5357
+    ],
+    "acmrAfter": [
+     1.6207,
+     1.5287,
+     1.5044,
+     1.4892
+    ],
+    "transformsSavedPct": [
+     4.7,
+     6.6,
+     5.3,
+     3.0
+    ],
+    "acmrLowerBound": 1.4775
+   },
+   "objects": {
+    "models": 7,
+    "triangles": 999,
+    "acmrBefore": [
+     2.0601,
+     2.002,
+     1.9219,
+     1.8128
+    ],
+    "acmrAfter": [
+     2.019,
+     1.8709,
+     1.7768,
+     1.6717
+    ],
+    "transformsSavedPct": [
+     2.0,
+     6.5,
+     7.6,
+     7.8
+    ],
+    "acmrLowerBound": 1.5265
+   }
+  }
+ },
+ "topModels": {
+  "course_11_000.gmdl": {
+   "triangles": 17186,
+   "acmrBefore": [
+    1.7094,
+    1.6302,
+    1.5697,
+    1.5127
+   ],
+   "acmrAfter": [
+    1.6455,
+    1.4935,
+    1.4578,
+    1.4326
+   ],
+   "acmrBound": 1.3965,
+   "conflictPairs": 2303
+  },
+  "course_14_000.gmdl": {
+   "triangles": 14486,
+   "acmrBefore": [
+    1.6499,
+    1.5418,
+    1.4365,
+    1.3288
+   ],
+   "acmrAfter": [
+    1.5754,
+    1.3715,
+    1.3068,
+    1.2677
+   ],
+   "acmrBound": 1.2125,
+   "conflictPairs": 1917
+  },
+  "course_10_000.gmdl": {
+   "triangles": 17475,
+   "acmrBefore": [
+    1.7623,
+    1.7281,
+    1.6858,
+    1.646
+   ],
+   "acmrAfter": [
+    1.7112,
+    1.625,
+    1.6004,
+    1.5901
+   ],
+   "acmrBound": 1.5631,
+   "conflictPairs": 615
+  },
+  "course_15_000.gmdl": {
+   "triangles": 18587,
+   "acmrBefore": [
+    1.6058,
+    1.5419,
+    1.4842,
+    1.4354
+   ],
+   "acmrAfter": [
+    1.5531,
+    1.4562,
+    1.4096,
+    1.3834
+   ],
+   "acmrBound": 1.3487,
+   "conflictPairs": 1059
+  },
+  "trophy_konoha.gmdl": {
+   "triangles": 2081,
+   "acmrBefore": [
+    1.7655,
+    1.7189,
+    1.6386,
+    1.5589
+   ],
+   "acmrAfter": [
+    1.5944,
+    1.0995,
+    1.0024,
+    0.9443
+   ],
+   "acmrBound": 0.815,
+   "conflictPairs": 452
+  },
+  "course_35_000.gmdl": {
+   "triangles": 14809,
+   "acmrBefore": [
+    1.8147,
+    1.7826,
+    1.746,
+    1.689
+   ],
+   "acmrAfter": [
+    1.763,
+    1.6834,
+    1.6574,
+    1.6417
+   ],
+   "acmrBound": 1.6244,
+   "conflictPairs": 5105
+  },
+  "course_07_000.gmdl": {
+   "triangles": 16574,
+   "acmrBefore": [
+    1.7347,
+    1.6931,
+    1.6527,
+    1.6088
+   ],
+   "acmrAfter": [
+    1.6789,
+    1.6034,
+    1.5773,
+    1.5677
+   ],
+   "acmrBound": 1.5596,
+   "conflictPairs": 2687
+  },
+  "trophy_koura.gmdl": {
+   "triangles": 1855,
+   "acmrBefore": [
+    1.8836,
+    1.8135,
+    1.7423,
+    1.6744
+   ],
+   "acmrAfter": [
+    1.607,
+    1.1736,
+    1.0906,
+    1.055
+   ],
+   "acmrBound": 0.9973,
+   "conflictPairs": 752
+  },
+  "trophy_kinoko.gmdl": {
+   "triangles": 2086,
+   "acmrBefore": [
+    1.7119,
+    1.5671,
+    1.43,
+    1.2915
+   ],
+   "acmrAfter": [
+    1.5384,
+    1.0173,
+    0.86,
+    0.7872
+   ],
+   "acmrBound": 0.7526,
+   "conflictPairs": 888
+  },
+  "trophy_battle.gmdl": {
+   "triangles": 2026,
+   "acmrBefore": [
+    1.845,
+    1.7769,
+    1.6866,
+    1.5627
+   ],
+   "acmrAfter": [
+    1.6264,
+    1.2231,
+    1.1757,
+    1.1412
+   ],
+   "acmrBound": 1.1086,
+   "conflictPairs": 320
+  },
+  "course_09_000.gmdl": {
+   "triangles": 17484,
+   "acmrBefore": [
+    1.8451,
+    1.7312,
+    1.6809,
+    1.6418
+   ],
+   "acmrAfter": [
+    1.7897,
+    1.656,
+    1.6238,
+    1.6115
+   ],
+   "acmrBound": 1.6038,
+   "conflictPairs": 1439
+  },
+  "trophy_thunder.gmdl": {
+   "triangles": 1749,
+   "acmrBefore": [
+    1.7959,
+    1.6901,
+    1.578,
+    1.5129
+   ],
+   "acmrAfter": [
+    1.3848,
+    1.0961,
+    1.0109,
+    0.9628
+   ],
+   "acmrBound": 0.9405,
+   "conflictPairs": 240
+  },
+  "course_22_000.gmdl": {
+   "triangles": 10962,
+   "acmrBefore": [
+    1.7489,
+    1.6456,
+    1.5936,
+    1.5348
+   ],
+   "acmrAfter": [
+    1.6571,
+    1.5396,
+    1.5084,
+    1.4831
+   ],
+   "acmrBound": 1.4593,
+   "conflictPairs": 1234
+  },
+  "course_05_000.gmdl": {
+   "triangles": 18143,
+   "acmrBefore": [
+    1.8447,
+    1.7693,
+    1.7311,
+    1.7047
+   ],
+   "acmrAfter": [
+    1.7882,
+    1.698,
+    1.6803,
+    1.6758
+   ],
+   "acmrBound": 1.6669,
+   "conflictPairs": 4431
+  },
+  "course_17_000.gmdl": {
+   "triangles": 11306,
+   "acmrBefore": [
+    1.6236,
+    1.5758,
+    1.5412,
+    1.5196
+   ],
+   "acmrAfter": [
+    1.577,
+    1.488,
+    1.4598,
+    1.4503
+   ],
+   "acmrBound": 1.4273,
+   "conflictPairs": 272
+  },
+  "trophy_star.gmdl": {
+   "triangles": 2082,
+   "acmrBefore": [
+    1.963,
+    1.8401,
+    1.7839,
+    1.7012
+   ],
+   "acmrAfter": [
+    1.719,
+    1.439,
+    1.3463,
+    1.3127
+   ],
+   "acmrBound": 1.2426,
+   "conflictPairs": 349
+  },
+  "course_23_000.gmdl": {
+   "triangles": 13218,
+   "acmrBefore": [
+    1.8817,
+    1.8435,
+    1.8122,
+    1.7935
+   ],
+   "acmrAfter": [
+    1.8174,
+    1.7568,
+    1.7446,
+    1.7389
+   ],
+   "acmrBound": 1.7359,
+   "conflictPairs": 1920
+  },
+  "course_36_000.gmdl": {
+   "triangles": 16487,
+   "acmrBefore": [
+    1.678,
+    1.5408,
+    1.3574,
+    1.2651
+   ],
+   "acmrAfter": [
+    1.5822,
+    1.3859,
+    1.3038,
+    1.2377
+   ],
+   "acmrBound": 1.1907,
+   "conflictPairs": 3428
+  },
+  "course_06_000.gmdl": {
+   "triangles": 13256,
+   "acmrBefore": [
+    1.8575,
+    1.805,
+    1.76,
+    1.7098
+   ],
+   "acmrAfter": [
+    1.8026,
+    1.7194,
+    1.6936,
+    1.6786
+   ],
+   "acmrBound": 1.6629,
+   "conflictPairs": 2135
+  },
+  "course_58_000.gmdl": {
+   "triangles": 12023,
+   "acmrBefore": [
+    1.8531,
+    1.8233,
+    1.7962,
+    1.7713
+   ],
+   "acmrAfter": [
+    1.8032,
+    1.7369,
+    1.7255,
+    1.719
+   ],
+   "acmrBound": 1.7056,
+   "conflictPairs": 1590
+  },
+  "course_26_000.gmdl": {
+   "triangles": 5953,
+   "acmrBefore": [
+    1.59,
+    1.5342,
+    1.4111,
+    1.2866
+   ],
+   "acmrAfter": [
+    1.4942,
+    1.3356,
+    1.2718,
+    1.2434
+   ],
+   "acmrBound": 1.2236,
+   "conflictPairs": 306
+  },
+  "course_28_000.gmdl": {
+   "triangles": 9752,
+   "acmrBefore": [
+    1.7008,
+    1.637,
+    1.5884,
+    1.5357
+   ],
+   "acmrAfter": [
+    1.6207,
+    1.5287,
+    1.5044,
+    1.4892
+   ],
+   "acmrBound": 1.4775,
+   "conflictPairs": 747
+  },
+  "trophy_special.gmdl": {
+   "triangles": 1934,
+   "acmrBefore": [
+    1.8707,
+    1.7978,
+    1.7446,
+    1.6732
+   ],
+   "acmrAfter": [
+    1.6386,
+    1.4193,
+    1.3407,
+    1.3051
+   ],
+   "acmrBound": 1.288,
+   "conflictPairs": 225
+  },
+  "course_08_000.gmdl": {
+   "triangles": 13266,
+   "acmrBefore": [
+    1.7952,
+    1.7647,
+    1.7384,
+    1.713
+   ],
+   "acmrAfter": [
+    1.7503,
+    1.6948,
+    1.6801,
+    1.6664
+   ],
+   "acmrBound": 1.6435,
+   "conflictPairs": 1624
+  },
+  "trophy_banana.gmdl": {
+   "triangles": 2089,
+   "acmrBefore": [
+    1.5112,
+    1.4605,
+    1.3681,
+    1.2906
+   ],
+   "acmrAfter": [
+    1.4959,
+    1.0933,
+    0.9981,
+    0.9521
+   ],
+   "acmrBound": 0.8956,
+   "conflictPairs": 512
+  }
+ }
+}

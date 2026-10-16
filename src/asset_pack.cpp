@@ -16,10 +16,12 @@ struct Archive {
   return it!=entries.end()&&!std::strcmp(names.data()+it->name,key)?&*it:nullptr;
  }
 };
-// Menu assets first, then race assets. Both stay open for the session.
+// Menu assets first, then race assets, then the Old 3DS overlay (models/o3ds,
+// textures/o3ds; tools/o3ds_pak.py). All stay open for the session; a missing
+// archive is simply skipped.
 struct Archives {
  LightLock lock;bool tried=false;
- std::array<Archive,2> list{{{"menu.pak"},{"race.pak"}}};
+ std::array<Archive,3> list{{{"menu.pak"},{"race.pak"},{"o3ds.pak"}}};
  Archives(){LightLock_Init(&lock);}
 };
 Archives& archives(){static Archives value;return value;}

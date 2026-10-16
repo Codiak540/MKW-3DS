@@ -20,7 +20,11 @@ public:
     static constexpr unsigned Capacity=64;
     bool start();
     void stop();
-    bool running() const { return thread_!=nullptr; }
+    // False while jobs run inline: callers then run each job themselves, in order.
+    bool running() const { return thread_!=nullptr&&!inline_; }
+    // Old 3DS races: the system core's ~30% share made the main thread wait for
+    // jobs it needs within the same frame, so they run on the caller instead.
+    void setInline(bool on){finishAll();inline_=on;}
     // Queue jobs in the order they will be needed. Jobs stay valid until done.
     void submit(Job& job);
     // Run the job here if no core has claimed it, else wait until it is done.
@@ -39,6 +43,7 @@ private:
     std::atomic<unsigned> count_{0},next_{0};
     std::atomic<bool> quit_{false},busy_{false};
     uint32_t fpscr_=0;
+    bool inline_=false;
     void* metrics_=nullptr; // the worker thread's RenderMetrics
     LightEvent wake_{},done_{};
 };

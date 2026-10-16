@@ -12,7 +12,7 @@ public:
     bool load(const char* path,const Model& model);
     void reset();
     // Menu PlayAnmNoBlend replaces the active palette without a gameplay blend.
-    void clearPoseTransition(){lastClip_=-1;hasPreviousPose_=false;cachedSettled_=false;}
+    void clearPoseTransition(){lastClip_=-1;hasPreviousPose_=false;cachedSettled_=false;poseApplied_=false;}
     int find(const char* name) const;
     // Vehicle-part clips chosen every tick, resolved at load (-1 if absent).
     int handleDriveClip() const {return handleDrive_;}
@@ -25,6 +25,13 @@ public:
     bool loop(unsigned clip) const {return clip<count_&&clips_[clip].loop;}
     // A rejected current-pose bound skips only skinning/upload; palette transitions still advance.
     bool apply(Model& model,int clip,float frame,unsigned tick=0,int expression=-1,float expressionFrame=0,const ClipFrustum* frustum=nullptr);
+    // Old 3DS pose LOD (pose_lod.hpp): draw the pose apply() wrote at most
+    // KeepTicks simulation ticks before `tick` once more, without evaluating.
+    // False when there is none (never applied, rejected by the frustum, older,
+    // reset or transition cleared since); the caller then apply()s as usual.
+    // `visible` is apply()'s result for that pose and this frustum.
+    static constexpr unsigned KeepTicks=3;
+    bool keepPose(const ClipFrustum* frustum,unsigned tick,bool& visible);
     // Choose whether CPU fallback skins normals. Unlit course objects can
     // share each (position, matrix) pair instead (call after load).
     void skinNormals(bool on);
@@ -58,6 +65,7 @@ private:
     struct Clip { char name[32];unsigned duration,loop,count;const uint8_t* data; };
     struct SourceVertex {float p[3],n[3];uint32_t matrix;};
     struct Range {uint32_t first,count;};
+    std::array<Range,64> authoredRanges_{};
     struct HairNode {uint32_t matrix,parent;};
     struct HairClip {Clip clip;const float* inverseRest;};
     std::array<Clip,64> clips_{},faces_{},uvClips_{};
@@ -66,6 +74,11 @@ private:
     std::array<Bounds,128> sourceBounds_{};
     std::array<bool,128> usedMatrices_{};
     Bounds poseBounds_{};bool poseBoundsValid_=false;
+    // The last apply() wrote its pose (vertices or palette state) to the
+    // model; appliedTick_ is the tick it was last current.
+    bool poseApplied_=false;
+    unsigned appliedTick_=0;
+    bool poseVisible(const ClipFrustum* frustum);
     std::array<float,128*21> palette_{};
     std::array<float,128*21> previousPalette_{};
     bool hasPreviousPose_=false;

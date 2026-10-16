@@ -1,6 +1,8 @@
 #include "mkw/object_bank.hpp"
 #include <mkw/asset_pack.hpp>
 #include <mkw/render_metrics.hpp>
+#include <mkw/object_srt_layout.hpp>
+#include <mkw/model_variant.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -31,7 +33,7 @@ void ObjectBank::reset(){
     std::free(data_);data_=nullptr;vertices_=matrices_=shapes_=0;weighted_=false;
     source_=nullptr;ranges_=nullptr;bind_=nullptr;shared_={};sharedVertices_.reset();nodes_.clear();chr_.clear();pat_.clear();srt_.clear();clr_.clear();rigidParts_.clear();registerAlpha_.clear();
 }
-bool ObjectBank::load(const char* path){
+bool ObjectBank::load(const char* path,const Model* model){
     reset();
     size_t size=0;bool ok=false;
     if(const long packed=pack::size(path);packed>=0){
@@ -85,9 +87,10 @@ bool ObjectBank::load(const char* path){
     for(unsigned i=0;i<srtCount;++i){
         const uint8_t* p=take(48);if(!p){reset();return false;}
         Srt c{};std::memcpy(c.name,p,32);c.name[31]=0;c.frames=u32(p+32);c.loop=u32(p+36);c.step=u32(p+40);c.count=u32(p+44);
-        if(!c.frames||c.frames>20000||!c.step||c.step>64||c.count>shapes_){reset();return false;}
+        ObjectSrtLayout layout;
+        if(!objectSrtLayout(c.frames,c.step,c.count,shapes_,size-at,layout)){reset();return false;}
         c.shapes=reinterpret_cast<const uint32_t*>(take(size_t(c.count)*4));
-        c.data=reinterpret_cast<const float*>(take(size_t(samples(c.frames,c.step))*c.count*48));
+        c.data=reinterpret_cast<const float*>(take(layout.sampleBytes));
         if(!c.shapes||!c.data){reset();return false;}
         for(unsigned j=0;j<c.count;++j)if(c.shapes[j]>=shapes_){reset();return false;}
         srt_.push_back(c);
@@ -118,6 +121,14 @@ bool ObjectBank::load(const char* path){
         }
     }
     if(at!=size){reset();return false;}
+    if(model&&vertices_){
+        if(vertices_!=model->animationVertexCount()){reset();return false;}
+        if(!model->sourceVertexRemap.empty()){
+            if(!compactModelAnimation(const_cast<SourceVertex*>(source_),vertices_,const_cast<Range*>(ranges_),shapes_,model->sourceVertexRemap,model->sourceVertexRepeats)||
+               !applySkinPositions(const_cast<SourceVertex*>(source_),uint32_t(model->sourceVertexRemap.size()),model->sourceSkinPositions)){reset();return false;}
+            vertices_=model->vertexCount;
+        }
+    }
     return true;
 }
 namespace {
@@ -230,28 +241,22 @@ bool ObjectBank::makeRigid(Model& model){
     rigidParts_=std::move(parts);
     return true;
 }
-
-bool ObjectBank::gpuSkinLit(Model& model) const {
+bool ObjectBank::gpuSkin(Model& model,bool litNormals) const {
     if(!vertices_||vertices_!=model.vertexCount||matrices_>Renderer::MaxSkinBones)return false;
-    if(!model.skinBoneIndices)model.skinBoneIndices=static_cast<float*>(linearAlloc(vertices_*sizeof(float)));
-    if(!model.skinBoneIndices)return false;
+    // Allocate before mutating any model attributes: failure must leave a
+    // valid CPU-skinned mesh. Compact banks already follow the model's map.
+    if(litNormals&&!model.skinBoneIndices){
+        model.skinBoneIndices=static_cast<float*>(linearAlloc(vertices_*sizeof(float)));
+        if(!model.skinBoneIndices)return false;
+    }
     for(unsigned i=0;i<vertices_;++i){
         const auto& v=source_[i];
         model.vertices[i].position={v.p[0],v.p[1],v.p[2]};
-        model.vertices[i].normal={v.n[0],v.n[1],v.n[2]};
-        model.skinBoneIndices[i]=float(v.matrix*3);
+        if(litNormals){model.vertices[i].normal={v.n[0],v.n[1],v.n[2]};model.skinBoneIndices[i]=float(v.matrix*3);}
+        else model.vertices[i].normal={float(v.matrix*3),0,0};
     }
-    flushGpuData(model.skinBoneIndices,vertices_*sizeof(float));
-    flushGpuData(model.vertices,vertices_*sizeof(Vertex));
-    return true;
-}
-
-bool ObjectBank::gpuSkin(Model& model) const {
-    if(!vertices_||vertices_!=model.vertexCount||matrices_>Renderer::MaxSkinBones)return false;
-    for(unsigned i=0;i<vertices_;++i){
-        const auto& v=source_[i];
-        model.vertices[i].position={v.p[0],v.p[1],v.p[2]};model.vertices[i].normal={float(v.matrix*3),0,0};
-    }
+    model.skinNormalsDirect=litNormals;
+    if(litNormals)flushGpuData(model.skinBoneIndices,vertices_*sizeof(float));
     flushGpuData(model.vertices,vertices_*sizeof(Vertex));
     return true;
 }
@@ -261,7 +266,11 @@ bool ObjectBank::shareSkinnedVertices(){
 }
 void ObjectBank::skin(const float* palette,Model& model,bool normals) const {
     if(!vertices_||model.vertexCount!=vertices_)return;
+    // Every position (and lit normal) is rewritten; pipelined frames write the
+    // model's other buffer (Model::beginWrite).
+    model.beginWrite();
     if(!normals&&shared_.ready()){
+        renderMetrics.cpuSkinnedVertices+=unsigned(shared_.first.size());
         auto& unique=sharedPositionScratch();
         for(unsigned u=0;u<shared_.first.size();++u){
             const auto& v=source_[shared_.first[u]];const float* m=palette+v.matrix*12;
@@ -272,6 +281,7 @@ void ObjectBank::skin(const float* palette,Model& model,bool normals) const {
         return;
     }
     const uint16_t* representative=normals?sharedVertices_.get():nullptr;
+    unsigned transformed=0;
     for(unsigned i=0;i<vertices_;++i){
         if(representative&&representative[i]!=i){
             // The first matching source index is always earlier in this loop.
@@ -280,10 +290,12 @@ void ObjectBank::skin(const float* palette,Model& model,bool normals) const {
             model.vertices[i].position=first.position;model.vertices[i].normal=first.normal;
             continue;
         }
+        ++transformed;
         const auto& v=source_[i];const float* m=palette+v.matrix*12;
         model.vertices[i].position={m[0]*v.p[0]+m[1]*v.p[1]+m[2]*v.p[2]+m[3],m[4]*v.p[0]+m[5]*v.p[1]+m[6]*v.p[2]+m[7],m[8]*v.p[0]+m[9]*v.p[1]+m[10]*v.p[2]+m[11]};
         if(normals)model.vertices[i].normal=normalized(Vec3{m[0]*v.n[0]+m[1]*v.n[1]+m[2]*v.n[2],m[4]*v.n[0]+m[5]*v.n[1]+m[6]*v.n[2],m[8]*v.n[0]+m[9]*v.n[1]+m[10]*v.n[2]});
     }
+    renderMetrics.cpuSkinnedVertices+=transformed;
     flushGpuData(model.vertices,vertices_*sizeof(Vertex));
 }
 bool ObjectBank::slotBounds(std::vector<Bounds>& out,std::vector<bool>& used) const {

@@ -59,7 +59,7 @@ enum : uint16_t {
     CmdBegin=1,CmdEnd,CmdProjection,CmdCourseLighting,CmdRetailFog,CmdRequestBloom,CmdApplyBloom,CmdBottom,
     CmdDraw,CmdDrawAtScreen,CmdMenuIcon,CmdEnvironmentUv,CmdUv1,CmdUvOffset,CmdClearEnvironment,
     CmdRigid,CmdSkin,CmdOverrides,CmdShadows,CmdSparks,CmdEffects,CmdCinema,CmdFade,CmdSprite,CmdFontSprite,
-    CmdMaterialQuads,CmdText,CmdScreenDepth,
+    CmdMaterialQuads,CmdText,CmdScreenDepth,CmdBlockMask,
 };
 // begun: C3D_FrameBegin already ran on the recording thread (stereo immediate frames).
 struct BeginCommand {static constexpr uint16_t Type=CmdBegin;C3D_Mtx view,projection;bool sync,begun,letterbox;};
@@ -88,6 +88,7 @@ struct ClearEnvironmentCommand {static constexpr uint16_t Type=CmdClearEnvironme
 struct RigidCommand {static constexpr uint16_t Type=CmdRigid;const RigidPose* pose;};
 struct SkinCommand {static constexpr uint16_t Type=CmdSkin;const float* palette;unsigned bones,stride;};
 struct OverridesCommand {static constexpr uint16_t Type=CmdOverrides;const SubmeshOverride* overrides;unsigned count;};
+struct BlockMaskCommand {static constexpr uint16_t Type=CmdBlockMask;const uint8_t* mask;};
 struct ShadowsCommand {static constexpr uint16_t Type=CmdShadows;const Renderer::ShadowVolume* volumes;unsigned count;float darkness;};
 struct SparksCommand {static constexpr uint16_t Type=CmdSparks;const SparkSpec* specs;unsigned specCount;const Spark* sparks;unsigned count;const Texture* textures;};
 // The NW4R EF draw list is built while the frame records (FrameList::effects).
@@ -243,7 +244,12 @@ void Renderer::drain(){
 void Renderer::setDeferred(bool on){
     on=on&&thread_;
     if(on==deferred_)return;
+    // Deferred frames serialize their writes with FrameBegin: never pipelined.
+    if(on)setPipelined(false);
     drain();
+    // Work completed before this mode change belongs to its old session.
+    // Local/immediate rendering accounts directly in renderMetrics.
+    LightLock_Lock(&publishLock_);skinWorkReader_.discard(published_.skinWork);LightLock_Unlock(&publishLock_);
     deferred_=on;
 }
 void Renderer::runWrites(FrameList& list){
@@ -253,7 +259,12 @@ void Renderer::runWrites(FrameList& list){
 }
 void Renderer::publish(){
     LightLock_Lock(&publishLock_);
+    if(renderThread){
+        renderSkinWork_.cpuTransforms+=renderMetrics.cpuSkinnedVertices;
+        renderSkinWork_.gpuReferences+=renderMetrics.gpuSkinVertexReferences;
+    }
     published_=stats_;published_.metrics=renderMetrics;
+    published_.skinWork=renderSkinWork_;
     LightLock_Unlock(&publishLock_);
 }
 void Renderer::execute(FrameList& list){
@@ -264,7 +275,7 @@ void Renderer::execute(FrameList& list){
     const unsigned eyes=execStereo_.active()?2:1;
     for(unsigned eye=0;eye<eyes;++eye){
     // Each eye starts from the state the frame started with.
-    rigid_=nullptr;skinPalette_=nullptr;overrides_=nullptr;overrideCount_=0;eye_=eye;
+    rigid_=nullptr;skinPalette_=nullptr;overrides_=nullptr;overrideCount_=0;blockMask_=nullptr;eye_=eye;
     // The bottom screen (after CmdBottom) is drawn once, with the last eye.
     bool bottom=false;
     const uint8_t* p=list.commands.data();const uint8_t* end=p+list.commands.size();
@@ -314,6 +325,7 @@ void Renderer::execute(FrameList& list){
         case CmdRigid:rigid_=static_cast<const RigidCommand*>(body)->pose;break;
         case CmdSkin:{const auto& c=*static_cast<const SkinCommand*>(body);skinPalette_=c.palette;skinBones_=c.bones;skinStride_=c.stride;break;}
         case CmdOverrides:{const auto& c=*static_cast<const OverridesCommand*>(body);overrides_=c.overrides;overrideCount_=c.overrides?c.count:0;break;}
+        case CmdBlockMask:blockMask_=static_cast<const BlockMaskCommand*>(body)->mask;break;
         case CmdShadows:{const auto& c=*static_cast<const ShadowsCommand*>(body);drawShadowVolumes(c.volumes,c.count,c.darkness);break;}
         case CmdSparks:{const auto& c=*static_cast<const SparksCommand*>(body);drawSparksNow(c.specs,c.specCount,c.sparks,c.count,c.textures);break;}
         case CmdEffects:{const auto& c=*static_cast<const EffectsCommand*>(body);effectListNow(*c.effects,*c.list,c.textures);break;}
@@ -346,13 +358,14 @@ void Renderer::execute(FrameList& list){
         C3D_FrameEnd(GX_CMDLIST_FLUSH);
     }
     // Recorded copies end with the list.
-    rigid_=nullptr;skinPalette_=nullptr;overrides_=nullptr;overrideCount_=0;
+    rigid_=nullptr;skinPalette_=nullptr;overrides_=nullptr;overrideCount_=0;blockMask_=nullptr;
     stats_.renderMs=float((svcGetSystemTick()-start)*1000.0/SYSCLOCK_ARM11)-stats_.beginWaitMs;
     prof::publish();
     if(began)publish();
 }
 void Renderer::retireShared(std::shared_ptr<void> object){
-    retired_.push_back({submitted_.load(std::memory_order_relaxed),std::move(object)});
+    // Pipelined immediate frames: released two frames later (pipelineBeginFrame).
+    retired_.push_back({pipelined_?pipelineFrames_:submitted_.load(std::memory_order_relaxed),std::move(object)});
 }
 void Renderer::releaseRetired(){
     // Entry frame f: frames up to f may sample it; free once the GPU finished f.
@@ -431,14 +444,14 @@ void Renderer::beginRecorded(){
         if(!C3D_FrameBegin(frameSync?C3D_FRAME_SYNCDRAW:0))std::abort();
         stats_.beginWaitMs=float((svcGetSystemTick()-waitStart)*1000.0/SYSCLOCK_ARM11);
         stats_.previousGpuMs=C3D_GetDrawingTime();
-        renderMetrics={};retired_.clear();
+        renderMetrics={};pipelineBeginFrame();if(!pipelined_)retired_.clear();
         if(!localList_)localList_=std::make_unique<FrameList>();
         localList_->reset();localList_->stereo=frameStereo_;
         recording_=localList_.get();localRecording_=true;
         auto& c=command<BeginCommand>();c.view=mainView_;c.projection=mainProjection_;c.sync=frameSync;c.begun=true;c.letterbox=letterbox_;
         return;
     }
-    if(!recording()){frameLetterbox_=letterbox_;beginNow(mainView_,mainProjection_,frameSync);retired_.clear();return;}
+    if(!recording()){frameLetterbox_=letterbox_;beginNow(mainView_,mainProjection_,frameSync);if(!pipelined_)retired_.clear();return;}
     renderMetrics={};
     releaseRetired();
     auto& c=command<BeginCommand>();c.view=mainView_;c.projection=mainProjection_;c.sync=frameSync;c.begun=false;c.letterbox=letterbox_;
@@ -471,7 +484,13 @@ void Renderer::end(){
     if(localRecording_){endLocal();return;}
     if(!recording()){
         endNow();gpuIdle_=false;
+        // A model had to be written in place this frame (no memory for its
+        // second buffer): the frame may show it; later frames do not pipeline.
+        if(pipelined_&&pipelineWriteMissed.exchange(false)){++pipelineWriteMisses;pipelineReady_=false;setPipelined(false);}
+        // Immediate frames (Old 3DS races): the drawNow detail columns of this frame.
+        if(prof::enabled)prof::publish();
         triangles=stats_.triangles;drawCalls=stats_.drawCalls;culledTriangles=stats_.culledTriangles;culledSubmeshes=stats_.culledSubmeshes;
+        modelVariantTriangles=stats_.modelVariantTriangles;modelVariantDraws=stats_.modelVariantDraws;
         previousGpuMs=stats_.previousGpuMs;beginWaitMs=stats_.beginWaitMs;commandUsage=stats_.commandUsage;renderThreadMs=0;
         return;
     }
@@ -480,9 +499,13 @@ void Renderer::end(){
     // The last frame the render thread finished (one frame behind).
     LightLock_Lock(&publishLock_);const Stats s=published_;LightLock_Unlock(&publishLock_);
     triangles=s.triangles;drawCalls=s.drawCalls;culledTriangles=s.culledTriangles;culledSubmeshes=s.culledSubmeshes;
+    modelVariantTriangles=s.modelVariantTriangles;modelVariantDraws=s.modelVariantDraws;
     previousGpuMs=s.previousGpuMs;beginWaitMs=s.beginWaitMs;commandUsage=s.commandUsage;renderThreadMs=s.renderMs;
     renderMetrics.flushCalls+=s.metrics.flushCalls;renderMetrics.flushBytes+=s.metrics.flushBytes;
     renderMetrics.skinnedVertices+=s.metrics.skinnedVertices;
+    const auto skinWork=skinWorkReader_.consume(s.skinWork);
+    renderMetrics.cpuSkinnedVertices+=uint32_t(skinWork.cpuTransforms);
+    renderMetrics.gpuSkinVertexReferences+=uint32_t(skinWork.gpuReferences);
 }
 // Draws the recorded immediate stereo frame: both eyes, then FrameEnd.
 void Renderer::endLocal(){
@@ -491,6 +514,7 @@ void Renderer::endLocal(){
     execute(*localList_);
     localReplay_=false;gpuIdle_=false;
     triangles=stats_.triangles;drawCalls=stats_.drawCalls;culledTriangles=stats_.culledTriangles;culledSubmeshes=stats_.culledSubmeshes;
+    modelVariantTriangles=stats_.modelVariantTriangles;modelVariantDraws=stats_.modelVariantDraws;
     previousGpuMs=stats_.previousGpuMs;beginWaitMs=stats_.beginWaitMs;commandUsage=stats_.commandUsage;renderThreadMs=0;
 }
 void Renderer::beginBottom(){
@@ -576,6 +600,10 @@ void Renderer::setOverrides(const SubmeshOverride* overrides,unsigned count){
     if(!recording()){overrides_=overrides;overrideCount_=overrides?count:0;return;}
     const SubmeshOverride* copied=copy(overrides,count);
     auto& c=command<OverridesCommand>();c.overrides=copied;c.count=copied?count:0;
+}
+void Renderer::setBlockMask(const uint8_t* mask,unsigned bytes){
+    if(!recording()){blockMask_=mask;return;}
+    command<BlockMaskCommand>().mask=copy(mask,mask?bytes:0);
 }
 void Renderer::setEnvironmentUv(const C3D_Mtx& transform,const float (&uv)[6]){
     if(!recording()){environmentUvNow(transform,uv);return;}

@@ -10,11 +10,11 @@
 #include <game/system/RaceManager.hh>
 #include <3ds.h>
 #include <algorithm>
+#include <utility>
 #include <cmath>
 #include <cstdio>
 #include <new>
 #include <mkw/gamestate.hpp>
-
 namespace mkw {
 namespace {
 constexpr float ScreenW=320.f,ScreenH=240.f;
@@ -343,44 +343,25 @@ void RaceBottomScreen::draw(Renderer& renderer,const BottomView& view){
             for(unsigned k=0;k<4;++k)q.color[k]=TimerGold[k];
         }
     }
-    if (atlas && view.timerVisible && m.count < QuadCapacity) {
-        // Safe-cast FPS to a standard integer capped at 60 or 99
-        auto baseFps = static_cast<unsigned>(lround(GameState::fps));
-        unsigned fpsTens = baseFps / 10;
-        unsigned fpsOnes = baseFps % 10;
-
-        auto baseMs = static_cast<unsigned>(lround(GameState::frameMs));
-        unsigned msTens = baseMs / 10;
-        unsigned msOnes = baseMs % 10;
-
-        // Anchor it near X=120, Y=4 to keep it perfectly balanced
-        // with the timer's layout bounds and scaling context
-        float fpsX = 120.f;
-        float fpsY = TimerTop + 6.f;
-        float fpsSizeW = RaceMapDigits[0].w * TimerScale;
-        float fpsSizeH = RaceMapDigits[0].h * TimerScale;
-
-        // Draw Tens Digit
-        m.add(RaceMapDigits[fpsTens], fpsX, fpsY, fpsX + fpsSizeW, fpsY + fpsSizeH);
-        for(unsigned k=0; k<4; ++k) m.base[m.count-1].color[k] = 0x00ff00ffu; // Bright Green
-
-        // Draw Ones Digit
-        fpsX += fpsSizeW - 2.f; // Apply layout kerning adjustment spacing
-        m.add(RaceMapDigits[fpsOnes], fpsX, fpsY, fpsX + fpsSizeW, fpsY + fpsSizeH);
-        for(unsigned k=0; k<4; ++k) m.base[m.count-1].color[k] = 0x00ff00ffu; // Bright Green
-
-
-        fpsX += (fpsSizeW * 2);
-        m.add(RaceMapDigits[msTens], fpsX, fpsY, fpsX + fpsSizeW, fpsY + fpsSizeH);
-        for(unsigned k=0; k<4; ++k) m.base[m.count-1].color[k] = 0x00ff00ffu; // Bright Green
-
-        fpsX += fpsSizeW - 2.f; // Apply layout kerning adjustment spacing
-        m.add(RaceMapDigits[msOnes], fpsX, fpsY, fpsX + fpsSizeW, fpsY + fpsSizeH);
-        for(unsigned k=0; k<4; ++k) m.base[m.count-1].color[k] = 0x00ff00ffu; // Bright Green
-        fpsX += (fpsSizeW * 2);
+    if(atlas&&view.timerVisible){
+        // Performance readout (not in the original), over the last second
+        // (GameState::frameDone): frames per second in green, then mean ms per
+        // frame in light blue, timer digits on a dark backing (the standings
+        // column's colour) in the map's bottom-right corner, clear of the timer.
+        const unsigned fps=std::min(99u,unsigned(std::lround(GameState::fps)));
+        const unsigned ms=std::min(99u,unsigned(std::lround(GameState::frameMs)));
+        const float w=RaceMapDigits[0].w*TimerScale,h=RaceMapDigits[0].h*TimerScale,y=ScreenH-4.f-h;
+        const float number=2.f*w-2.f,gap=6.f;
+        float x=ScreenW-4.f-(2.f*number+gap);
+        m.add(RaceMapWhite,x-2.f,y-1.f,ScreenW-2.f,ScreenH-3.f,0x101626c0u);
+        for(const auto [value,color]:{std::pair{fps,0x00ff00ffu},std::pair{ms,0x60d8ffffu}}){
+            for(const unsigned d:{value/10,value%10}){
+                m.add(RaceMapDigits[d],x,y,x+w,y+h,color);
+                x+=w-2.f;
+            }
+            x+=2.f+gap;
+        }
     }
-    // ========================================================
-
     if(view.fade>0)m.add(RaceMapWhite,0,0,ScreenW,ScreenH,uint32_t(std::lround(view.fade*255.f)));
 
     const unsigned topCount=m.count-topFirst;

@@ -14,8 +14,10 @@
 #include "mkw/visibility.hpp"
 #include "mkw/job_worker.hpp"
 #include "mkw/render_metrics.hpp"
+#include "mkw/skin_metrics.hpp"
 #include "mkw/course_bloom.hpp"
 #include "mkw/stereo.hpp"
+#include "mkw/display_list.hpp"
 
 namespace mkw {
 struct UiQuad;
@@ -67,8 +69,35 @@ public:
     // Lit GPU skinning keeps the original normal/UV attributes intact.
     // One immutable float (3 * palette index) per vertex, allocated on load.
     float* skinBoneIndices=nullptr;
+    // DOBJ's authored CPU path uses normalize(B*n); DSKM uses inverse transpose.
+    // Immutable after GPU-skin setup, also safe when draw commands are deferred.
+    bool skinNormalsDirect=false;
     uint16_t* indices=nullptr;
     uint32_t vertexCount=0,indexCount=0;
+    // Frame pipelining (Renderer::setPipelined): the GPU may still read this
+    // buffer for the previous frame while this frame rewrites the model, so a
+    // per-frame writer calls beginWrite() first. It points `vertices` at the
+    // model's other buffer (allocated on first use as a copy, so attributes
+    // the writer never touches stay valid) and returns true: the content is
+    // then two writes old and the writer rewrites everything it owns. Later
+    // writes in the same frame, and frames that are not pipelined, keep the
+    // buffer (false). Any thread; the pipeline's frame clock is pipelineWriteFrame.
+    Vertex* shadowVertices=nullptr;
+    uint32_t writeFrame=0;
+    bool beginWrite();
+    bool reducedGeometry=false;
+    // Original animation banks are compacted through this sorted source map.
+    // Authored index offsets still identify facial texture/material shapes.
+    uint32_t authoredVertexCount=0;
+    std::vector<uint32_t> sourceVertexRemap;
+    // O3RM v2: a re-baked UV seam repeats its source vertex in the remap.
+    bool sourceVertexRepeats=false;
+    // O3RM v3: bone-local skin positions for the compact vertices (same bones),
+    // written over the compacted bank whenever an animation bank is loaded.
+    std::vector<std::array<float,3>> sourceSkinPositions;
+    uint32_t animationVertexCount()const{return sourceVertexRemap.empty()?vertexCount:authoredVertexCount;}
+    std::vector<uint32_t> authoredSubmeshFirst;
+    uint32_t animationShapeFirst(size_t submesh)const{return authoredSubmeshFirst.empty()?submeshes[submesh].first:authoredSubmeshFirst[submesh];}
     std::vector<Submesh> submeshes;
     std::vector<std::shared_ptr<Texture>> textures;
     Vec3 minimum{},maximum{};
@@ -76,9 +105,17 @@ public:
     std::vector<SubmeshVisibility> visibility;
     void enableStaticCulling();
     ~Model();
-    bool load(const char* path);
+    // rival: an opponent's driver, which on Old 3DS prefers the leaner
+    // models/o3ds/rival/ sidecar (DS-style rival models) over models/o3ds/.
+    bool load(const char* path,bool rival=false);
 };
 struct Instance { Model* model=nullptr; C3D_Mtx transform; };
+// Renderer::setPipelined's frame clock for Model::beginWrite: the pipelined
+// immediate frame being recorded (1, 2, ...), 0 while frames are not pipelined.
+inline std::atomic<uint32_t> pipelineWriteFrame{0};
+// A per-frame writer found no memory for a model's second buffer and wrote in
+// place: the renderer leaves pipelining at the end of the frame.
+inline std::atomic<bool> pipelineWriteMissed{false};
 // One run of a submesh's triangles that all follow palette matrix `matrix`.
 // bounds: the part's bone-local vertex bounds (drawNow culls parts by them).
 struct RigidPart { uint32_t first,count,matrix; Bounds bounds{}; };
@@ -148,6 +185,32 @@ public:
     bool deferred() const {return deferred_;}
     // Waits until the render thread has drawn every recorded frame.
     void drain();
+    // Frame pipelining (Old 3DS races, immediate frames): citro3d's two command
+    // buffers alternate, so this thread records frame N+1 while the GPU draws
+    // frame N and begin() waits for frame N-1 only. The per-frame vertex, text,
+    // particle and effect buffers, the light textures and the LCD framebuffers
+    // (three per screen) are double-buffered for it; models written per frame
+    // go through Model::beginWrite. Switching waits for the GPU; deferred
+    // frames never pipeline. QA marker o3ds-pipeline-off.txt keeps it off.
+    void setPipelined(bool on);
+    bool pipelined() const {return pipelined_;}
+    // False once a frame had to write a model in place (no memory for its
+    // second buffer): the renderer stays unpipelined from then on.
+    bool pipelineReady() const {return pipelineReady_;}
+    unsigned pipelineWriteMisses=0;
+    // Why the last setPipelined(true) did or did not take (QA log).
+    const char* pipelineStatus() const {return pipelineStatus_;}
+    // Course display lists (display_list.hpp): draws a static model through
+    // its recorded command list, recording it first when needed. Immediate
+    // frames only; deferred, stereo and unsupported cases draw as draw() does.
+    // QA marker o3ds-displaylists-off.txt keeps them off.
+    void setDisplayLists(bool on){displayLists_=on;}
+    // QA diagnostics (o3ds-displaylists-diag.txt): 1 replays without skipping
+    // the materials' state calls, 2 re-uploads every uniform after a replay.
+    void setDisplayListDiagnostic(int mode){listDiag_=mode;}
+    int displayListDiagnostic() const {return listDiag_;}
+    bool displayLists() const {return displayLists_;}
+    void drawStatic(DisplayList& list,const Model& model,const C3D_Mtx& transform,bool backdrop=false);
     // Race bottom screen (docs/BOTTOM_SCREEN.md): a 320x240 RGBA8 VRAM target
     // without depth, transferred to the lower LCD only in frames that draw it.
     // Create and release with the render thread idle, outside a frame:
@@ -171,11 +234,14 @@ public:
     // region: no temporary LINEAR or heap allocation. On failure the texture
     // is left empty. Main thread, render thread idle (it waits for the GPU).
     bool loadVramTexture(Texture& texture,const char* path,GPU_TEXTURE_WRAP_PARAM wrap=GPU_CLAMP_TO_EDGE);
-    // Moves a loaded single-level LINEAR texture into VRAM (a GPU copy, then
-    // its LINEAR block is freed), unless that would leave under `reserve`
-    // bytes of VRAM free. False leaves it untouched in LINEAR. Main thread;
-    // call waitForGpu() first: no recorded frame may still sample it.
+    // Moves a loaded LINEAR 2D texture, with its whole mip chain, into VRAM
+    // (a GPU copy, then its LINEAR block is freed), unless that would leave
+    // under `reserve` bytes of VRAM free. False leaves it untouched in LINEAR.
+    // Main thread; call waitForGpu() first: no recorded frame may still sample it.
     bool moveToVram(Texture& texture,std::size_t reserve);
+    // moveToVram outcomes since the caller last cleared them (QA log): kept
+    // counts a texture each time it did not fit.
+    struct VramMoves {unsigned moved=0,mipmapped=0,kept=0;std::size_t movedBytes=0,keptBytes=0;} vramMoves;
     // Index of the frame being recorded: storage a deferred frame references
     // in place alternates on its parity (two frames are in flight).
     uint32_t recordingFrame() const {return submitted_.load(std::memory_order_relaxed);}
@@ -260,6 +326,9 @@ public:
     void setSkinPalette(const float* palette,unsigned bones,unsigned stride);
     // While set, draw() applies these to submeshes [0,count).
     void setOverrides(const SubmeshOverride* overrides,unsigned count);
+    // While set, draw() skips static-culling blocks whose bit is clear (bit b:
+    // the model's block b in submesh order). Old 3DS course PVS (course_pvs.hpp).
+    void setBlockMask(const uint8_t* mask,unsigned bytes);
     // Course-object -shadow meshes are closed shadow volumes. z-pass stencil
     // counting marks the geometry drawn so far inside a volume, which is then
     // multiplied by darkness once. Call after everything that receives shadows.
@@ -338,6 +407,7 @@ public:
     template<class T> void retire(std::shared_ptr<T> object){if(object)retireShared(std::shared_ptr<void>(std::move(object)));}
     // The last drawn frame's counts (a deferred frame's arrive one frame later).
     uint32_t triangles=0,drawCalls=0;
+    uint32_t modelVariantTriangles=0,modelVariantDraws=0;
     uint32_t culledTriangles=0,culledSubmeshes=0;
     float previousGpuMs=0,beginWaitMs=0,commandUsage=0;
     // Render thread time for the last drawn frame (excluding its FrameBegin
@@ -352,7 +422,7 @@ public:
 private:
     // Recording (src/render_thread.cpp).
     struct FrameList;
-    struct Stats {uint32_t triangles=0,drawCalls=0,culledTriangles=0,culledSubmeshes=0;float previousGpuMs=0,beginWaitMs=0,commandUsage=0,renderMs=0;RenderMetrics metrics{};};
+    struct Stats {uint32_t triangles=0,drawCalls=0,culledTriangles=0,culledSubmeshes=0,modelVariantTriangles=0,modelVariantDraws=0;float previousGpuMs=0,beginWaitMs=0,commandUsage=0,renderMs=0;RenderMetrics metrics{};SkinWorkTotals skinWork{};};
     bool recording() const;
     // The 3D slider's position (0..1), or its QA override.
     float slider() const;
@@ -393,6 +463,8 @@ private:
     std::vector<Retired> retired_;
     // Frame stats published by the render thread (Stats of frame completed_-1).
     Stats published_{};
+    SkinWorkTotals renderSkinWork_{};
+    SkinWorkReader skinWorkReader_{};
     LightLock publishLock_{};
     // This thread's camera (queries) and the drawing camera, equal in
     // immediate frames.
@@ -484,12 +556,16 @@ private:
     // Retail course lighting (renderer_retail.cpp).
     const CourseLighting* retail_=nullptr;
     Vec3 retailLightView_[16]{};
-    C3D_Tex retailTexture_[2]{},retailFogRamp_{};
-    int retailTextureKeys_[2][12]{}; // last generated GX direction matrices
+    // One light-texture pair and fog ramp per frame slot (pipelined frames
+    // alternate; the GPU may still read the previous frame's).
+    C3D_Tex retailTexture_[2][2]{},retailFogRamp_[2]{};
+    int retailTextureKeys_[2][2][12]{}; // last generated GX direction matrices, per slot
     bool retailTextureDynamic_[2]{};
-    float retailFog_[8]{};      // type, enabled, start, end, r, g, b, ramp type
-    // Light textures generated; light uniforms, light-texture state or unit 2 to restore after a submesh.
-    bool retailTexturesValid_=false,retailLightDirty_=false,retailTextureDirty_=false,retailFogBound_=false;
+    float retailFog_[8]{};      // type, enabled, start, end, r, g, b, (unused)
+    float retailRampType_[2]={-1.f,-1.f}; // fog type each slot's ramp holds
+    // Light textures generated (per slot); light uniforms, light-texture state or unit 2 to restore after a submesh.
+    bool retailTexturesValid_[2]{};
+    bool retailLightDirty_=false,retailTextureDirty_=false,retailFogBound_=false;
     int lightDiffLoc_=-1,lightDirLoc_=-1,lightFnLoc_=-1,fogParamLoc_=-1,retailBoolLoc_=-1;
     int environmentMappedLoc_=-1,diffuseLightingLoc_=-1;
     bool retailUniformLocations();
@@ -500,15 +576,16 @@ private:
     bool retailLight(const Submesh& s);
     // Combiners/textures of a retail submesh after the generic setup; returns
     // true when it owns the environment rows (light textures).
-    bool retailCombiners(const Submesh& s,const C3D_Mtx& modelView,bool backdrop,bool additive,uint32_t additiveRgb);
+    bool retailCombiners(const Submesh& s,const C3D_Mtx& modelView,bool backdrop,bool additive,uint32_t additiveRgb,bool uniformsOnly=false);
     void retailEnvironment(const C3D_Mtx& modelView);
     void retailEndSubmesh();
     const RigidPose* rigid_=nullptr;
     const float* skinPalette_=nullptr;
     unsigned skinBones_=0,skinStride_=12;
-    int bonesLoc_=-1,skinnedLoc_=-1,skinnedNormalsLoc_=-1;
+    int bonesLoc_=-1,skinnedLoc_=-1,skinnedNormalsLoc_=-1,skinnedNormalsDirectLoc_=-1;
     const SubmeshOverride* overrides_=nullptr;
     unsigned overrideCount_=0;
+    const uint8_t* blockMask_=nullptr;
     bool initBloomTargets();
     bool initBloom();
     void freeBloom();
@@ -547,7 +624,7 @@ private:
     shaderProgram_s effectProgram_{};
     bool effectProgramReady_=false;
     int effectProjectionLoc_=-1;
-    C3D_Tex effectLookup_{};
+    C3D_Tex* effectLookup_=nullptr; // the frame slot's (FrameScratch)
     struct EffectDrawState* effectDraw_=nullptr; // owned; deleted in shutdown()
     int spriteCount_=0;
     // Consecutive screen sprites sharing texture and blend are one draw call.
@@ -566,6 +643,48 @@ private:
     static_assert(kStagingBytes<=kTextVertexLimit*sizeof(Vertex),"staging must not reach the bottom sprites");
     Vertex* text_=nullptr;
     unsigned textCount_=0;
+    // Frame pipelining (setPipelined).
+    bool pipelineReady_=false,pipelined_=false;
+    const char* pipelineStatus_="never requested";
+    uint32_t pipelineFrames_=0;      // pipelined frames begun (Model::beginWrite's clock)
+    unsigned frameSlot_=0;           // the scratch set this frame writes: alternates while pipelined
+    // The per-frame CPU-written GPU data, one set per slot. overlay_, sprites_,
+    // text_, particles_, effectVertices_, bloomVertices_ and effectLookup_
+    // point into the frame's set.
+    struct FrameScratch {Vertex* overlay=nullptr;Vertex* sprites=nullptr;Vertex* text=nullptr;Vertex* particles=nullptr;Vertex* bloom=nullptr;void* effectVertices=nullptr;C3D_Tex effectLookup{};};
+    FrameScratch scratch_[2];
+    bool allocScratch(FrameScratch& s);
+    void freeScratch(FrameScratch& s);
+    void useScratch(unsigned slot);
+    // After C3D_FrameBegin of an immediate frame: this frame's slot.
+    void pipelineBeginFrame();
+    // LCD framebuffers while pipelined: gfx's two plus one of ours per screen,
+    // rotated per frame that transfers to that screen (the previous frame's
+    // transfer may still be queued), presented from the GX completion thread.
+    // single: libctru's console owns the screen (double buffering off), so it
+    // keeps gfx's own buffer and presentation.
+    struct Lcd {uint8_t* buffers[3]{};uint32_t size=0;unsigned next=1,shown=0,swap=0;bool stereo=false,single=false;};
+    Lcd lcd_[2];                     // top, bottom
+    struct LcdFrame {uint32_t frame=0;uint8_t index[2]{};bool used[2]{};bool stereo3D=false;};
+    LcdFrame lcdFrame_[2];           // by frame parity: at most two frames in flight
+    bool lcdInit();
+    void lcdRestore();
+    static u32* lcdFramebufferHook(void* self,u32 frame,gfxScreen_t screen,gfx3dSide_t side);
+    static void lcdPresentHook(void* self,u32 frame,bool top,bool topStereo,bool bottom);
+    // Display lists (drawStatic): the copy drawNow records into or replays.
+    bool displayLists_=false;
+    int listDiag_=0;
+    DisplayList::Copy* list_=nullptr;
+    bool listRecording_=false;        // else replaying
+    bool listOk_=true;                // replay: every upload matched the recording; record: it fit
+    bool listViewDependent_=false;    // record: a material's TEV constants depend on the camera
+    VisibleRanges listRanges_;        // the current submesh's merged visible ranges (drawNow's)
+    unsigned listBlocks_=0;           // its block count (one draw each in the list)
+    std::vector<DisplayList::Upload> listRuns_;
+    bool recordList(DisplayList& list,DisplayList::Copy& c,const Model& model,const C3D_Mtx& transform,bool backdrop);
+    bool replayList(DisplayList& list,DisplayList::Copy& c,const Model& model,const C3D_Mtx& transform,bool backdrop);
+    void listBlocks(const Model& model,size_t submesh,bool cull,const ClipFrustum& frustum,const uint8_t* blockMask,uint32_t firstBlock);
+    void listDraws(const Model& model,size_t submesh,bool cull);
     bool ready_=false;
     bool deviceReady_=false;
     bool programReady_=false;

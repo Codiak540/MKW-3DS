@@ -1,5 +1,9 @@
 #include "mkw/renderer.hpp"
 #include "mkw/render_quality.hpp"
+#include "mkw/model_detail.hpp"
+#include "mkw/model_variant.hpp"
+#include "mkw/texture_detail.hpp"
+#include "mkw/texture_mips.hpp"
 #include "mkw/display_layout.hpp"
 #include "mkw/bloom_math.hpp"
 #include "mkw/race_effects.hpp"
@@ -8,6 +12,7 @@
 #include <array>
 #include <mkw/menu_ui.hpp>
 #include <mkw/render_metrics.hpp>
+#include <mkw/object_gpu_skin.hpp>
 #include <mkw/asset_pack.hpp>
 #include "shader_data.hpp"
 #include <tex3ds.h>
@@ -45,11 +50,11 @@ TextureCache& textureCache() {
 }
 // One FS request per file. Buffered stdio would issue a request per 1 KiB,
 // each with the SD card's fixed command latency.
-bool readFile(const char* path,std::vector<uint8_t>& out) {
+bool readFile(const char* path,std::vector<uint8_t>& out,size_t maximum=SIZE_MAX) {
     FILE* f=std::fopen(path,"rb"); if(!f) return false;
     std::setvbuf(f,nullptr,_IONBF,0);
     bool ok=std::fseek(f,0,SEEK_END)==0;const long size=ok?std::ftell(f):-1;
-    ok=ok&&size>=0&&std::fseek(f,0,SEEK_SET)==0;
+    ok=ok&&size>=0&&size_t(size)<=maximum&&std::fseek(f,0,SEEK_SET)==0;
     if(ok){out.resize(size_t(size));ok=std::fread(out.data(),1,out.size(),f)==out.size();}
     std::fclose(f);return ok;
 }
@@ -70,7 +75,26 @@ void Texture::reset() {
 }
 bool Texture::load(const char* path) {
     std::vector<uint8_t> file;
-    return (pack::read(path,file)||readFile(path,file))&&loadMemory(file.data(),file.size());
+    if(!(pack::read(path,file)||readFile(path,file)))return false;
+#ifndef MKW_RELEASE
+    if(textureDetail().enabled){
+        const auto candidatePath=TextureDetail::variantPath(path);
+        std::vector<uint8_t> candidate;
+        if(!candidatePath.empty()&&readFile(candidatePath.c_str(),candidate,2u<<20)){
+            ModelTextureLayout source,reduced;
+            if(readTextureVariant(file,candidate,source,reduced)&&loadMemory(candidate.data()+24,candidate.size()-24)){
+                textureDetail().loaded.fetch_add(1,std::memory_order_relaxed);
+                textureDetail().sourceBytes.fetch_add(source.bytes,std::memory_order_relaxed);
+                textureDetail().candidateBytes.fetch_add(reduced.bytes,std::memory_order_relaxed);
+                return true;
+            }
+            textureDetail().fallbacks.fetch_add(1,std::memory_order_relaxed);
+        }
+    }
+#endif
+    // Old 3DS course textures: the original level 0 plus validated mip levels.
+    if(textureMips().enabled&&loadTextureMips(path,file,*this))return true;
+    return loadMemory(file.data(),file.size());
 }
 bool Texture::loadVram(const char* path) {
     std::vector<uint8_t> file;
@@ -100,8 +124,23 @@ void Model::enableStaticCulling(){
     visibility.clear();visibility.reserve(submeshes.size());
     for(const auto& s:submeshes)visibility.push_back(buildVisibility(vertices,indices,s.first,s.count));
 }
-Model::~Model() { if(vertices)linearFree(vertices);if(indices)linearFree(indices);if(skinBoneIndices)linearFree(skinBoneIndices); }
-bool Model::load(const char* path) {
+Model::~Model() { if(vertices)linearFree(vertices);if(shadowVertices)linearFree(shadowVertices);if(indices)linearFree(indices);if(skinBoneIndices)linearFree(skinBoneIndices); }
+bool Model::beginWrite(){
+    const uint32_t frame=pipelineWriteFrame.load(std::memory_order_acquire);
+    if(!frame||writeFrame==frame||!vertices||!vertexCount)return false;
+    writeFrame=frame;
+    if(!shadowVertices){
+        shadowVertices=static_cast<Vertex*>(linearAlloc(vertexCount*sizeof(Vertex)));
+        if(!shadowVertices){pipelineWriteMissed.store(true,std::memory_order_relaxed);return false;}
+        // Attributes a per-frame writer never touches (colour, UV1, static
+        // positions) come from this copy and are already flushed.
+        std::memcpy(shadowVertices,vertices,vertexCount*sizeof(Vertex));
+        flushGpuData(shadowVertices,vertexCount*sizeof(Vertex));
+    }
+    std::swap(vertices,shadowVertices);
+    return true;
+}
+bool Model::load(const char* path,bool rival) {
     // Menu models come from the open menu.pak (one seek+read). Others stream
     // large payloads straight into LINEAR memory; a 32 KiB stdio buffer
     // coalesces the header/submesh/name reads into few FS requests.
@@ -120,6 +159,14 @@ bool Model::load(const char* path) {
             std::memcpy(p,packed.data()+offset,size);offset+=size;return true;
         }
         bool atEnd(){return f?std::fgetc(f)==EOF:offset==packed.size();}
+        bool matches(const void* expected,size_t bytes){
+            const auto* source=static_cast<const uint8_t*>(expected);
+            std::array<uint8_t,4096> chunk;
+            while(bytes){const size_t count=std::min(bytes,chunk.size());
+                if(!read(chunk.data(),count)||std::memcmp(chunk.data(),source,count))return false;
+                source+=count;bytes-=count;}
+            return true;
+        }
     };
     auto file=std::make_unique<File>(path);auto& f=*file;
     if(!f.open()){
@@ -139,8 +186,11 @@ return false;}
         if(s.menuReflection&&s.menuReflection!=3&&s.secondary<0)return false;
         for(float x:s.reflectionUv)if(!std::isfinite(x))return false;
     }
+    std::vector<std::array<char,64>> textureNames;
+    if(modelDetail().candidate)textureNames.reserve(h[5]);
     for(uint32_t i=0;i<h[5];++i){
         char name[64]; if(!f.read(name,sizeof name)||!std::memchr(name,0,sizeof name)||std::strchr(name,'/')||std::strchr(name,'\\')||std::strstr(name,".."))return false;
+        if(modelDetail().candidate){textureNames.emplace_back();std::memcpy(textureNames.back().data(),name,sizeof name);}
         std::string texPath="textures/";texPath+=name;texPath+=".t3x";
         // Partitioned model parts share one GPU texture allocation. Weak cache
         // ownership lets each scene release its textures when its models die.
@@ -177,6 +227,68 @@ return false;}
     for(uint32_t i=0;i<vertexCount;++i){auto p=vertices[i].position;if(!std::isfinite(p.x)||!std::isfinite(p.y)||!std::isfinite(p.z))return false;
         minimum={std::min(minimum.x,p.x),std::min(minimum.y,p.y),std::min(minimum.z,p.z)};
         maximum={std::max(maximum.x,p.x),std::max(maximum.y,p.y),std::max(maximum.z,p.z)};}
+    // Old 3DS only (ModelDetail): low-poly sidecars, in QA and release builds.
+    if(modelDetail().candidate){
+        std::string candidatePath=ModelDetail::variantPath(path,rival);
+        if(rival&&!candidatePath.empty()){
+            const bool present=pack::size(candidatePath.c_str())>=0||[&]{FILE* f=std::fopen(candidatePath.c_str(),"rb");if(f)std::fclose(f);return f!=nullptr;}();
+            if(!present)candidatePath=ModelDetail::variantPath(path);
+        }
+        // The original remains resident until every candidate byte is checked.
+        // Retained vertices must exactly match the original bytes. A compact
+        // sidecar additionally supplies a validated map into its animation bank.
+        auto applyCandidate=[&](){
+            if(candidatePath.empty())return false;
+            auto candidate=std::make_unique<File>(candidatePath.c_str());
+            if(!candidate->open())return false;
+            struct Allocation {
+                uint16_t* data=nullptr;
+                Vertex* vertexData=nullptr;
+                ~Allocation(){if(data)linearFree(data);if(vertexData)linearFree(vertexData);}
+                bool allocate(uint32_t count){data=static_cast<uint16_t*>(linearAlloc(size_t(count)*sizeof(uint16_t)));return data;}
+                bool allocateVertices(uint32_t count){vertexData=static_cast<Vertex*>(linearAlloc(size_t(count)*sizeof(Vertex)));return vertexData;}
+            } replacement;
+            std::vector<Submesh> spans;std::vector<uint32_t> remap;uint32_t count=0,format=0;
+            std::vector<std::array<char,64>> rebaked;std::vector<std::array<float,3>> skinPositions;
+            if(!readModelVariant(*candidate,h,record,submeshes,textureNames,vertices,indices,replacement,spans,count,remap,&rebaked,&format,&skinPositions))return false;
+            // O3RM v2 re-baked textures load before anything is committed.
+            std::vector<std::pair<size_t,std::shared_ptr<Texture>>> swapped;
+            for(size_t i=0;i<rebaked.size();++i){
+                if(!rebaked[i][0])continue;
+                std::string texPath="textures/o3ds/";texPath+=rebaked[i].data();texPath+=".t3x";
+                auto& cache=textureCache();
+                LightLock_Lock(&cache.lock);auto texture=cache.entries[texPath].lock();LightLock_Unlock(&cache.lock);
+                if(!texture){
+                    auto loaded=std::make_shared<Texture>();
+                    if(!loaded->load(texPath.c_str()))return false;
+                    LightLock_Lock(&cache.lock);
+                    texture=cache.entries[texPath].lock();
+                    if(!texture){texture=std::move(loaded);cache.entries[texPath]=texture;}
+                    LightLock_Unlock(&cache.lock);
+                }
+                swapped.emplace_back(i,std::move(texture));
+            }
+            for(auto& [slot,texture]:swapped)textures[slot]=std::move(texture);
+            sourceVertexRepeats=format>=2;sourceSkinPositions=std::move(skinPositions);
+            authoredSubmeshFirst.reserve(submeshes.size());
+            for(const auto& s:submeshes)authoredSubmeshFirst.push_back(s.first);
+            linearFree(indices);indices=replacement.data;replacement.data=nullptr;
+            if(!remap.empty()){
+                authoredVertexCount=vertexCount;vertexCount=uint32_t(remap.size());sourceVertexRemap=std::move(remap);
+                linearFree(vertices);vertices=replacement.vertexData;replacement.vertexData=nullptr;
+            }
+            indexCount=count;submeshes=std::move(spans);reducedGeometry=true;
+            modelDetail().loaded.fetch_add(1,std::memory_order_relaxed);
+            return true;
+        };
+        if(!applyCandidate()){
+            modelDetail().fallbacks.fetch_add(1,std::memory_order_relaxed);
+#ifndef MKW_RELEASE
+            // QA: which sidecar fell back (missing file, stale data or no memory).
+            if(!candidatePath.empty())if(FILE* log=std::fopen("sdmc:/3ds/mkw-3ds/o3ds-fallbacks.txt","a")){std::fprintf(log,"%s\n",candidatePath.c_str());std::fclose(log);}
+#endif
+        }
+    }
     flushGpuData(vertices,vertexCount*sizeof(Vertex));flushGpuData(indices,indexCount*sizeof(uint16_t));
     return true;
 }
@@ -235,23 +347,26 @@ bool Renderer::init(){
     bonesLoc_=shaderInstanceGetUniformLocation(program_.vertexShader,"bones");
     skinnedLoc_=shaderInstanceGetUniformLocation(program_.vertexShader,"skinned");
     skinnedNormalsLoc_=shaderInstanceGetUniformLocation(program_.vertexShader,"skinnedNormals");
-    if(bonesLoc_<0||skinnedLoc_<0||skinnedNormalsLoc_<0)return fail();
+    skinnedNormalsDirectLoc_=shaderInstanceGetUniformLocation(program_.vertexShader,"skinnedNormalsDirect");
+    if(bonesLoc_<0||skinnedLoc_<0||skinnedNormalsLoc_<0||skinnedNormalsDirectLoc_<0)return fail();
     if(!C3D_TexInit(&white_,8,8,GPU_RGBA8))return fail();
     // Blackout, cinema bars and fades may all submit in one frame. Each draw
-    // keeps distinct vertices until the next FrameBegin drains GPU use.
-    overlay_=static_cast<Vertex*>(linearAlloc(kOverlayCapacity*sizeof(Vertex)));if(!overlay_)return fail();
-    sprites_=static_cast<Vertex*>(linearAlloc(kSpriteCapacity*6*sizeof(Vertex)));if(!sprites_)return fail();
-    text_=static_cast<Vertex*>(linearAlloc(kTextVertices*sizeof(Vertex)));if(!text_)return fail();
-    particles_=static_cast<Vertex*>(linearAlloc(DriftEffects::Capacity*12*sizeof(Vertex)));if(!particles_)return fail();
-    effectVertices_=linearAlloc(kEffectVertices*sizeof(ef::DrawVertex));if(!effectVertices_)return fail();
+    // keeps distinct vertices until the next FrameBegin drains GPU use (or,
+    // pipelined, until the frame after the next one begins: two sets).
+    if(!allocScratch(scratch_[0]))return fail();
+    useScratch(0);
     if(shader_->numDVLE<2)return fail();
     shaderProgramInit(&effectProgram_);effectProgramReady_=true;
     if(R_FAILED(shaderProgramSetVsh(&effectProgram_,&shader_->DVLE[1])))return fail();
     effectProjectionLoc_=shaderInstanceGetUniformLocation(effectProgram_.vertexShader,"projection");
     if(effectProjectionLoc_<0)return fail();
-    if(!C3D_TexInit(&effectLookup_,ef::DrawList::LookupSize,ef::DrawList::LookupSize,GPU_RGBA8))return fail();
-    C3D_TexSetFilter(&effectLookup_,GPU_NEAREST,GPU_NEAREST);C3D_TexSetWrap(&effectLookup_,GPU_CLAMP_TO_EDGE,GPU_CLAMP_TO_EDGE);
     effectDraw_=new EffectDrawState;
+    // Old 3DS races pipeline frames (setPipelined): the second command buffer
+    // and scratch set are reserved now, before the race's loads.
+    if(modelDetail().hardware==ModelDetail::Old3DS){
+        pipelineReady_=C3D_PipelineInit(0x100000)&&allocScratch(scratch_[1]);
+        if(!pipelineReady_)freeScratch(scratch_[1]);
+    }
     std::memset(white_.data,255,8*8*4);C3D_TexFlush(&white_);
     Mtx_PerspTilt(&projection_,C3D_AngleFromDegrees(55.f),C3D_AspectRatioTop,10.f,400000.f,false);
     mainProjection_=cullProjection_=projection_;
@@ -290,7 +405,7 @@ bool Renderer::reserveBloom(){
 }
 bool Renderer::loadVramTexture(Texture& texture,const char* path,GPU_TEXTURE_WRAP_PARAM wrap){
     texture.reset();
-    if(!ready_||!text_)return false;
+    if(!ready_||!scratch_[0].text)return false;
     // The GPU and the render thread are idle: nothing reads the staging region.
     waitForGpu();
     // Packed (race.pak) entries are read by range; loose files are streamed.
@@ -313,7 +428,7 @@ bool Renderer::loadVramTexture(Texture& texture,const char* path,GPU_TEXTURE_WRA
     // VRAM only: a failure leaves the texture empty and never falls back to LINEAR.
     ok=ok&&C3D_TexInitVRAM(&texture.gpu,uint16_t(width),uint16_t(height),GPU_TEXCOLOR(format));
     if(!ok){texture.gpu={};if(f)std::fclose(f);return false;}
-    uint8_t* staging=reinterpret_cast<uint8_t*>(text_);
+    uint8_t* staging=reinterpret_cast<uint8_t*>(scratch_[0].text);
     for(std::size_t done=0;ok&&done<bytes;){
         const std::size_t chunk=std::min(kStagingBytes,bytes-done);
         ok=read(staging,chunk);
@@ -333,25 +448,146 @@ bool Renderer::loadVramTexture(Texture& texture,const char* path,GPU_TEXTURE_WRA
 bool Renderer::moveToVram(Texture& texture,std::size_t reserve){
     auto& t=texture.gpu;
     const u32 at=reinterpret_cast<u32>(t.data);
-    if(!texture.ready||!t.data||(at>=OS_VRAM_VADDR&&at<OS_VRAM_VADDR+OS_VRAM_SIZE)||t.maxLevel)return false;
-    const std::size_t bytes=C3D_TexCalcTotalSize(t.size,0);
-    if(vramSpaceFree()<bytes+reserve)return false;
+    if(!texture.ready||!t.data||(at>=OS_VRAM_VADDR&&at<OS_VRAM_VADDR+OS_VRAM_SIZE)||C3D_TexGetType(&t)!=GPU_TEX_2D)return false;
+    // A mip chain is contiguous in both allocations and moves whole.
+    const std::size_t bytes=C3D_TexCalcTotalSize(t.size,t.maxLevel);
+    if(vramSpaceFree()<bytes+reserve){++vramMoves.kept;vramMoves.keptBytes+=bytes;return false;}
     C3D_Tex moved{};
-    if(!C3D_TexInitVRAM(&moved,t.width,t.height,t.fmt))return false;
+    if(!C3D_TexInitWithParams(&moved,nullptr,{t.width,t.height,t.maxLevel,t.fmt,GPU_TEX_2D,true})){++vramMoves.kept;vramMoves.keptBytes+=bytes;return false;}
     // The LINEAR copy was flushed when it was loaded; the copy engine reads it.
     C3D_SyncTextureCopy(static_cast<u32*>(t.data),0,static_cast<u32*>(moved.data),0,u32(bytes),8);
     moved.param=t.param;moved.border=t.border;moved.lodParam=t.lodParam;
     C3D_TexDelete(&t);t=moved;
+    ++vramMoves.moved;vramMoves.movedBytes+=bytes;if(t.maxLevel)++vramMoves.mipmapped;
     return true;
 }
 void Renderer::waitForGpu(){
     if(!deviceReady_)return;
     // The render thread has drawn every recorded frame; this thread owns citro3d.
     drain();
+    // Pipelined: FrameBegin alone would leave the previous frame in flight.
+    C3D_PipelineWaitIdle();
     if(!C3D_FrameBegin(0))std::abort();
     retired_.clear();
     C3D_FrameEnd(GX_CMDLIST_FLUSH);
     gpuIdle_=true;
+}
+bool Renderer::allocScratch(FrameScratch& s){
+    s.overlay=static_cast<Vertex*>(linearAlloc(kOverlayCapacity*sizeof(Vertex)));
+    s.sprites=static_cast<Vertex*>(linearAlloc(kSpriteCapacity*6*sizeof(Vertex)));
+    s.text=static_cast<Vertex*>(linearAlloc(kTextVertices*sizeof(Vertex)));
+    s.particles=static_cast<Vertex*>(linearAlloc(DriftEffects::Capacity*12*sizeof(Vertex)));
+    s.effectVertices=linearAlloc(kEffectVertices*sizeof(ef::DrawVertex));
+    const bool lookup=C3D_TexInit(&s.effectLookup,ef::DrawList::LookupSize,ef::DrawList::LookupSize,GPU_RGBA8);
+    if(lookup){C3D_TexSetFilter(&s.effectLookup,GPU_NEAREST,GPU_NEAREST);C3D_TexSetWrap(&s.effectLookup,GPU_CLAMP_TO_EDGE,GPU_CLAMP_TO_EDGE);}
+    if(s.overlay&&s.sprites&&s.text&&s.particles&&s.effectVertices&&lookup)return true;
+    freeScratch(s);return false;
+}
+void Renderer::freeScratch(FrameScratch& s){
+    if(s.overlay)linearFree(s.overlay);if(s.sprites)linearFree(s.sprites);if(s.text)linearFree(s.text);
+    if(s.particles)linearFree(s.particles);if(s.effectVertices)linearFree(s.effectVertices);if(s.bloom)linearFree(s.bloom);
+    if(s.effectLookup.data)C3D_TexDelete(&s.effectLookup);
+    s={};
+}
+void Renderer::useScratch(unsigned slot){
+    frameSlot_=slot;auto& s=scratch_[slot];
+    overlay_=s.overlay;sprites_=s.sprites;text_=s.text;particles_=s.particles;effectVertices_=s.effectVertices;bloomVertices_=s.bloom;effectLookup_=&s.effectLookup;
+}
+void Renderer::pipelineBeginFrame(){
+    if(!pipelined_){useScratch(0);return;}
+    // Frame N-1's set is free: FrameBegin waited for it.
+    ++pipelineFrames_;
+    useScratch(pipelineFrames_&1);
+    pipelineWriteFrame.store(pipelineFrames_,std::memory_order_release);
+    // Resources retired two frames ago: no queued command list samples them.
+    std::erase_if(retired_,[&](const Retired& r){return r.frame+2<=pipelineFrames_;});
+}
+void Renderer::setPipelined(bool on){
+    if(on)pipelineStatus_=!pipelineReady_?"not ready (init or a write miss)":deferred_?"deferred frames":!deviceReady_?"no device":"on";
+    on=on&&pipelineReady_&&!deferred_&&deviceReady_;
+    if(on==pipelined_)return;
+    drain();
+    if(on){
+        // Waits for the last unpipelined frame, whose swap takes effect at the
+        // next VBlank; until then the LCD still scans gfx's back buffer, the
+        // first buffer the rotation writes.
+        if(!C3D_PipelineEnable(true)){pipelineStatus_="citro3d refused (in a frame?)";return;}
+        gspWaitForVBlank0();
+        if(!lcdInit()){C3D_PipelineEnable(false);return;} // lcdInit named the step
+        C3D_PresentHooks hooks{&Renderer::lcdFramebufferHook,&Renderer::lcdPresentHook,this};
+        C3D_PipelineSetHooks(&hooks);
+        pipelined_=true;
+    }else{
+        pipelineStatus_="off";
+        C3D_PipelineEnable(false); // waits for every queued frame
+        C3D_PipelineSetHooks(nullptr);
+        pipelined_=false;
+        pipelineWriteFrame.store(0,std::memory_order_release);
+        // The last frame's present takes effect before gfx draws again.
+        gspWaitForVBlank0();
+        lcdRestore();
+        useScratch(0);
+    }
+}
+bool Renderer::lcdInit(){
+    for(unsigned s=0;s<2;++s){
+        auto& l=lcd_[s];const gfxScreen_t screen=s?GFX_BOTTOM:GFX_TOP;
+        // gfx's back buffer (double buffering on), then the one it shows.
+        uint8_t* back=gfxGetFramebuffer(screen,GFX_LEFT,nullptr,nullptr);
+        gfxSetDoubleBuffering(screen,false);uint8_t* front=gfxGetFramebuffer(screen,GFX_LEFT,nullptr,nullptr);gfxSetDoubleBuffering(screen,true);
+        if(!back||!front){pipelineStatus_=s?"LCD: bottom gfx buffers":"LCD: top gfx buffers";return false;}
+        // A QA console on this screen turned double buffering off: gfx keeps it.
+        l.single=back==front;
+        if(l.single){if(!s){pipelineStatus_="LCD: top screen single-buffered";return false;}l.buffers[0]=l.buffers[1]=l.buffers[2]=front;l.next=0;l.shown=0;continue;}
+        // gfx allocates both top-screen eyes (800 rows); the same size here.
+        l.size=u32(GSP_SCREEN_WIDTH)*gspGetBytesPerPixel(gfxGetScreenFormat(screen))*(s?GSP_SCREEN_HEIGHT_BOTTOM:GSP_SCREEN_HEIGHT_TOP_2X);
+        if(!l.buffers[2]){
+            l.buffers[2]=static_cast<uint8_t*>(linearAlloc(l.size));
+            if(!l.buffers[2]){pipelineStatus_=s?"LCD: no memory for the third bottom buffer":"LCD: no memory for the third top buffer";return false;}
+            std::memset(l.buffers[2],0,l.size);GSPGPU_FlushDataCache(l.buffers[2],l.size);
+        }
+        l.buffers[0]=front;l.buffers[1]=back;l.next=1;l.shown=0;l.swap=0;l.stereo=false;
+    }
+    return true;
+}
+void Renderer::lcdRestore(){
+    // gfx's next frame draws into its back buffer: if the LCD shows that one,
+    // step gfx forward (it re-presents the same image).
+    for(unsigned s=0;s<2;++s){
+        auto& l=lcd_[s];if(!l.buffers[0])continue;
+        const gfxScreen_t screen=s?GFX_BOTTOM:GFX_TOP;
+        if(!l.single&&l.buffers[l.shown]==gfxGetFramebuffer(screen,GFX_LEFT,nullptr,nullptr))gfxScreenSwapBuffers(screen,l.stereo);
+    }
+}
+u32* Renderer::lcdFramebufferHook(void* self,u32 frame,gfxScreen_t screen,gfx3dSide_t side){
+    auto& r=*static_cast<Renderer*>(self);
+    const unsigned s=screen==GFX_BOTTOM?1:0;auto& l=r.lcd_[s];auto& f=r.lcdFrame_[frame&1];
+    if(f.frame!=frame){f=LcdFrame{};f.frame=frame;f.stereo3D=gfxIs3D();}
+    if(l.single)return nullptr; // gfx's buffer and swap, as unpipelined
+    if(!f.used[s]){f.used[s]=true;f.index[s]=uint8_t(l.next);l.next=(l.next+1)%3;}
+    uint8_t* out=l.buffers[f.index[s]];
+    if(side==GFX_RIGHT)out+=l.size/2;
+    if(screen==GFX_TOP)r.presented_[side==GFX_RIGHT?1:0]=out;
+    return reinterpret_cast<u32*>(out);
+}
+void Renderer::lcdPresentHook(void* self,u32 frame,bool top,bool topStereo,bool bottom){
+    auto& r=*static_cast<Renderer*>(self);const auto& f=r.lcdFrame_[frame&1];
+    if(f.frame!=frame)return;
+    for(unsigned s=0;s<2;++s){
+        if(!(s?bottom:top))continue;
+        auto& l=r.lcd_[s];const gfxScreen_t screen=s?GFX_BOTTOM:GFX_TOP;
+        if(l.single){gfxScreenSwapBuffers(screen,false);continue;}
+        if(!f.used[s])continue;
+        const uint8_t* fb=l.buffers[f.index[s]];const uint8_t* right=fb;
+        // As libctru's gfxPresentFramebuffer: format, 2D/3D top mode, LINEAR buffers.
+        u32 mode=u32(gfxGetScreenFormat(screen))|(1u<<8);
+        if(screen==GFX_TOP){
+            if(f.stereo3D){mode|=BIT(5);if(topStereo)right=fb+l.size/2;}
+            else mode|=BIT(6);
+        }
+        gspPresentBuffer(screen,l.swap,fb,right,u32(GSP_SCREEN_WIDTH)*gspGetBytesPerPixel(gfxGetScreenFormat(screen)),mode);
+        l.swap^=1;l.shown=f.index[s];l.stereo=topStereo;
+    }
 }
 void Renderer::shutdown(){
     if(!deviceReady_)return;
@@ -360,19 +596,18 @@ void Renderer::shutdown(){
         drain();quit_.store(true,std::memory_order_release);LightEvent_Signal(&wake_);
         threadJoin(thread_,U64_MAX);threadFree(thread_);thread_=nullptr;quit_.store(false);deferred_=false;
     }
+    setPipelined(false);
     waitForGpu();
     // Scene models are gone before shutdown. Remove their expired weak owners
     // while the allocation group that created them is still valid.
     retired_.clear();
     LightLock_Lock(&textureCache().lock);textureCache().entries.clear();LightLock_Unlock(&textureCache().lock);
-    linearFree(particles_);particles_=nullptr;
-    linearFree(effectVertices_);effectVertices_=nullptr;
-    if(effectLookup_.data)C3D_TexDelete(&effectLookup_);
-    effectLookup_={};delete effectDraw_;effectDraw_=nullptr;
+    for(auto& s:scratch_)freeScratch(s);
+    overlay_=sprites_=text_=particles_=bloomVertices_=nullptr;effectVertices_=nullptr;effectLookup_=nullptr;
+    for(auto& l:lcd_){if(l.buffers[2])linearFree(l.buffers[2]);l={};}
+    delete effectDraw_;effectDraw_=nullptr;
     if(effectProgramReady_)shaderProgramFree(&effectProgram_);
     effectProgramReady_=false;effectProgram_={};
-    linearFree(sprites_);sprites_=nullptr;linearFree(overlay_);overlay_=nullptr;
-    linearFree(text_);text_=nullptr;
     retailShutdown();
     if(white_.data)C3D_TexDelete(&white_);
     white_={};
@@ -396,9 +631,11 @@ void Renderer::beginNow(const C3D_Mtx& view,const C3D_Mtx& projection,bool sync,
         const auto waitStart=svcGetSystemTick();
         if(!C3D_FrameBegin(sync?C3D_FRAME_SYNCDRAW:0))std::abort();
         stats_.beginWaitMs=float((svcGetSystemTick()-waitStart)*1000.0/SYSCLOCK_ARM11);
-        // Every queued command list has completed: the GPU reads nothing of earlier frames.
+        // Every queued command list but (pipelined) the previous frame's has
+        // completed: the GPU reads nothing of earlier frames.
         stats_.previousGpuMs=C3D_GetDrawingTime();
         renderMetrics={};
+        pipelineBeginFrame();
     }
     flushBatch().begin();
 
@@ -500,7 +737,7 @@ void Renderer::beginFrame(){
     for(int i=0;i<6;++i)C3D_TexEnvInit(C3D_GetTexEnv(i));
     auto* env=C3D_GetTexEnv(0);C3D_TexEnvSrc(env,C3D_Both,GPU_TEXTURE0,GPU_PRIMARY_COLOR);C3D_TexEnvFunc(env,C3D_Both,GPU_MODULATE);
     C3D_DepthTest(true,GPU_GEQUAL,GPU_WRITE_ALL);C3D_AlphaBlend(GPU_BLEND_ADD,GPU_BLEND_ADD,GPU_SRC_ALPHA,GPU_ONE_MINUS_SRC_ALPHA,GPU_ONE,GPU_ONE_MINUS_SRC_ALPHA);
-    if(!eye_)stats_.triangles=stats_.drawCalls=stats_.culledTriangles=stats_.culledSubmeshes=0;
+    if(!eye_)stats_.triangles=stats_.drawCalls=stats_.culledTriangles=stats_.culledSubmeshes=stats_.modelVariantTriangles=stats_.modelVariantDraws=0;
 }
 C3D_Mtx ViewFrustum::cameraFacing(Vec3 position,float scale) const {
     C3D_Mtx transform;Mtx_Identity(&transform);
@@ -609,14 +846,21 @@ void Renderer::resetMaterialUniforms(){
 void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& transform,bool backdrop,MaterialBinder material,void* context,ShapeVisible visible){
     flushSprites();
     const uint32_t animationFrame=execFrame_,additiveColor=execAdditive_;
+    // Replaying a display list (drawStatic): the list holds every material's
+    // GPU state; this pass computes only the uniforms and the visible blocks.
+    const bool listReplay=list_&&!listRecording_&&listDiag_!=1;
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,projectionLoc_,&projection_);
     C3D_Mtx mv;Mtx_Multiply(&mv,&view_,&transform);C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,modelViewLoc_,&mv);
-    auto* attr=C3D_GetAttrInfo();AttrInfo_Init(attr);
-    AttrInfo_AddLoader(attr,0,GPU_FLOAT,3);AttrInfo_AddLoader(attr,1,GPU_FLOAT,3);AttrInfo_AddLoader(attr,2,GPU_FLOAT,4);AttrInfo_AddLoader(attr,3,GPU_UNSIGNED_BYTE,4);
-    auto* buf=C3D_GetBufInfo();BufInfo_Init(buf);BufInfo_Add(buf,vertices,sizeof(Vertex),4,0x3210);
+    auto* attr=C3D_GetAttrInfo();auto* buf=C3D_GetBufInfo();
+    if(!listReplay){
+        AttrInfo_Init(attr);
+        AttrInfo_AddLoader(attr,0,GPU_FLOAT,3);AttrInfo_AddLoader(attr,1,GPU_FLOAT,3);AttrInfo_AddLoader(attr,2,GPU_FLOAT,4);AttrInfo_AddLoader(attr,3,GPU_UNSIGNED_BYTE,4);
+        BufInfo_Init(buf);BufInfo_Add(buf,vertices,sizeof(Vertex),4,0x3210);
+    }
     const bool litSkin=skinPalette_&&model.skinBoneIndices;
-    if(litSkin){AttrInfo_AddLoader(attr,4,GPU_FLOAT,1);BufInfo_Add(buf,model.skinBoneIndices,sizeof(float),1,4);}
+    if(litSkin&&!listReplay){AttrInfo_AddLoader(attr,4,GPU_FLOAT,1);BufInfo_Add(buf,model.skinBoneIndices,sizeof(float),1,4);}
     C3D_BoolUnifSet(GPU_VERTEX_SHADER,skinnedNormalsLoc_,litSkin);
+    C3D_BoolUnifSet(GPU_VERTEX_SHADER,skinnedNormalsDirectLoc_,litSkin&&model.skinNormalsDirect);
     if(skinPalette_){
         for(unsigned b=0;b<skinBones_;++b){const float* m=skinPalette_+b*skinStride_;
             for(unsigned r=0;r<3;++r)C3D_FVUnifSet(GPU_VERTEX_SHADER,bonesLoc_+int(b*3+r),m[r*4],m[r*4+1],m[r*4+2],m[r*4+3]);}
@@ -643,7 +887,11 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
     // The last drawn submesh whose material state is still bound, and its end
     // of submesh (retailEndSubmesh), deferred while the next one repeats it.
     const Submesh* last=nullptr;bool lastRetail=false,lastEnvironment=false,pendingEnd=false;
+    // Old 3DS course PVS: the first block of submesh i in blockMask_.
+    const uint8_t* const blockMask=cull?blockMask_:nullptr;uint32_t blockBase=0;
     for(std::size_t i=0;i<model.submeshes.size();++i){
+        const uint32_t firstBlock=blockBase;
+        if(blockMask)blockBase+=uint32_t(model.visibility[i].blocks.size());
         if(visible && !visible(context,i))continue;
         const auto& s=model.submeshes[i];
         if(!s.count)continue;
@@ -663,8 +911,14 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
             if(!shownParts&&parts->size()<=64){++stats_.culledSubmeshes;continue;}
         }
         VisibleRanges ranges;
-        if(cull){
-            {const prof::Scope t(prof::Cull);ranges=selectVisible(model.visibility[i],frustum);}
+        if(list_){
+            // Display list: one draw per culling block (one per submesh without
+            // blocks); replaying toggles the visible ones. Every submesh runs
+            // its uniform calls, so the uploads match the recording.
+            const prof::Scope t(prof::Cull);
+            listBlocks(model,i,cull,frustum,blockMask,firstBlock);
+        }else if(cull){
+            {const prof::Scope t(prof::Cull);ranges=blockMask?selectVisible(model.visibility[i],frustum,blockMask,firstBlock):selectVisible(model.visibility[i],frustum);}
             unsigned submitted=0;
             for(unsigned n=0;n<ranges.count;++n)submitted+=ranges.ranges[n].count;
             stats_.culledTriangles+=(s.count-submitted)/3;
@@ -691,7 +945,7 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
         if(pendingEnd){retailEndSubmesh();pendingEnd=false;}
         const uint32_t constant=o&&(o->flags&SubmeshOverride::Constant)?o->constant:s.constant;
         const GPU_TEVSCALE scales[]={GPU_TEVSCALE_1,GPU_TEVSCALE_2,GPU_TEVSCALE_4,GPU_TEVSCALE_1};
-        if(!material){
+        if(!material&&!listReplay){
             for(int stage=0;stage<6;++stage)C3D_TexEnvInit(C3D_GetTexEnv(stage));
             auto* e0=C3D_GetTexEnv(0);auto* e1=C3D_GetTexEnv(1);
             C3D_TexEnvSrc(e0,C3D_Both,GPU_TEXTURE0,GPU_PRIMARY_COLOR);
@@ -824,7 +1078,7 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
                 C3D_TexEnvSrc(alpha,C3D_Alpha,GPU_TEXTURE0,GPU_TEXTURE1,GPU_CONSTANT);C3D_TexEnvFunc(alpha,C3D_Alpha,GPU_INTERPOLATE);
             }
         }
-        if(additiveColor||(o&&(o->flags&SubmeshOverride::Add))){
+        if(!listReplay&&(additiveColor||(o&&(o->flags&SubmeshOverride::Add)))){
             // The shared retail Star CLR0 animates GX C1, added to the textured
             // driver/vehicle colour. Keep the source alpha equation untouched.
             // Course-object CLR0 glows use the same stage (already 0xAABBGGRR).
@@ -833,7 +1087,7 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
             C3D_TexEnvColor(star,c?(c>>24)|((c>>8)&0xff00)|((c<<8)&0xff0000):o->add&0xffffff);
             C3D_TexEnvSrc(star,C3D_RGB,GPU_PREVIOUS,GPU_CONSTANT);C3D_TexEnvFunc(star,C3D_RGB,GPU_ADD);
         }
-        if(menuIconLayer_){
+        if(menuIconLayer_&&!listReplay){
             // ButtonMachine's native capture remap has nonnegative C1-C0;
             // keep the material alpha equation, then apply the pane opacity.
             auto channel=[&](unsigned shift){return uint32_t(std::max(0,int((menuIconColor1_>>shift)&255)-int((menuIconColor0_>>shift)&255)));};
@@ -855,28 +1109,29 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
                           ambient*(courseLighting_?1.25f:1.f),1.f);
         }
         // Imported GX triangles wind clockwise relative to their outward normals.
-        C3D_CullFace((s.flags&4)||backdrop?GPU_CULL_NONE:GPU_CULL_FRONT_CCW);
+        if(!listReplay)C3D_CullFace((s.flags&4)||backdrop?GPU_CULL_NONE:GPU_CULL_FRONT_CCW);
         const bool sourceState=s.flags&(1u<<31),blended=s.flags&2;
         const GPU_TESTFUNC alphaComparisons[]={GPU_NEVER,GPU_LESS,GPU_EQUAL,GPU_LEQUAL,GPU_GREATER,GPU_NOTEQUAL,GPU_GEQUAL,GPU_ALWAYS};
         const uint8_t alphaReferences[]={0,128,165,255};
         // animationFrames bits 16..31 (tools/gx_material.py): an exact alpha
         // reference and PICA blend factors (+1) the flags cannot express.
         const uint32_t extended=sourceState?s.animationFrames>>16:0;
-        C3D_AlphaTest((s.flags&1)!=0,sourceState?alphaComparisons[(s.flags>>26)&7]:GPU_GREATER,
+        if(!listReplay)C3D_AlphaTest((s.flags&1)!=0,sourceState?alphaComparisons[(s.flags>>26)&7]:GPU_GREATER,
                      sourceState?((extended&255)?uint8_t(extended&255):alphaReferences[(s.flags>>29)&3]):127);
         auto sourceFactor=blended&&!(sourceState&&(s.flags&128))?GPU_SRC_ALPHA:GPU_ONE;
         auto destinationFactor=blended?(sourceState&&(s.flags&64)?GPU_ONE:GPU_ONE_MINUS_SRC_ALPHA):GPU_ZERO;
         if(blended&&((extended>>8)&15))sourceFactor=GPU_BLENDFACTOR(((extended>>8)&15)-1);
         if(blended&&((extended>>12)&15))destinationFactor=GPU_BLENDFACTOR(((extended>>12)&15)-1);
-        C3D_AlphaBlend(GPU_BLEND_ADD,GPU_BLEND_ADD,menuIconLayer_?GPU_SRC_ALPHA:sourceFactor,
+        if(!listReplay)C3D_AlphaBlend(GPU_BLEND_ADD,GPU_BLEND_ADD,menuIconLayer_?GPU_SRC_ALPHA:sourceFactor,
                       menuIconLayer_?(menuIconAdditive_?GPU_ONE:GPU_ONE_MINUS_SRC_ALPHA):destinationFactor,
                       GPU_ONE,menuIconLayer_?(menuIconAdditive_?GPU_ONE:GPU_ONE_MINUS_SRC_ALPHA):destinationFactor);
         const bool depthTest=!backdrop&&(!sourceState||(s.flags&(1u<<23)));
         const bool depthWrite=!backdrop&&(sourceState?bool(s.flags&(1u<<24)):!blended);
-        C3D_DepthTest(depthTest,GPU_GEQUAL,depthWrite?GPU_WRITE_ALL:GPU_WRITE_COLOR);
+        if(!listReplay)C3D_DepthTest(depthTest,GPU_GEQUAL,depthWrite?GPU_WRITE_ALL:GPU_WRITE_COLOR);
         const bool swap=o&&(o->flags&SubmeshOverride::Texture);
         const int32_t primaryIndex=swap&&o->texture[0]>=0&&size_t(o->texture[0])<model.textures.size()?o->texture[0]:s.texture;
         const int32_t secondaryIndex=swap&&o->texture[1]>=0&&size_t(o->texture[1])<model.textures.size()?o->texture[1]:s.secondary;
+        if(!listReplay){
         auto* texture=primaryIndex>=0?&model.textures[primaryIndex]->gpu:&white_;
         const GPU_TEXTURE_WRAP_PARAM wraps[]={GPU_CLAMP_TO_EDGE,GPU_REPEAT,GPU_MIRRORED_REPEAT,GPU_CLAMP_TO_EDGE};
         C3D_TexSetWrap(texture,wraps[(s.flags>>8)&3],wraps[(s.flags>>10)&3]);
@@ -884,12 +1139,13 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
         auto* secondary=secondaryIndex>=0?&model.textures[secondaryIndex]->gpu:&white_;
         C3D_TexSetWrap(secondary,wraps[(s.flags>>16)&3],wraps[(s.flags>>18)&3]);
         C3D_TexBind(1,secondary);
+        }
         // Retail course lighting: fog stage, light textures (after the generic setup).
         // retailEnvironment=retail&&retailCombiners(s,mv,backdrop,additiveColor||(o&&(o->flags&SubmeshOverride::Add)),
         //     additiveColor?(additiveColor>>24)|((additiveColor>>8)&0xff00)|((additiveColor<<8)&0xff0000):o&&(o->flags&SubmeshOverride::Add)?o->add&0xffffff:0);
         // A material binder owns the combiners and may replace any state above.
             {const prof::Scope t(prof::RetailCombiners);retailEnvironment=retail&&retailCombiners(s,mv,backdrop,additiveColor||(o&&(o->flags&SubmeshOverride::Add)),
-            additiveColor?(additiveColor>>24)|((additiveColor>>8)&0xff00)|((additiveColor<<8)&0xff0000):o&&(o->flags&SubmeshOverride::Add)?o->add&0xffffff:0);}
+            additiveColor?(additiveColor>>24)|((additiveColor>>8)&0xff00)|((additiveColor<<8)&0xff0000):o&&(o->flags&SubmeshOverride::Add)?o->add&0xffffff:0,listReplay);}
             if(material){const prof::Scope t(prof::Binder);material(context,i);}        last=o?nullptr:&s;lastRetail=retail;lastEnvironment=retailEnvironment;
         } // !repeat
         const bool menuEnvironment=s.menuReflection&&s.menuReflection!=3;
@@ -912,6 +1168,9 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
                 }
                 {const prof::Scope t(prof::DrawElements);C3D_DrawElements(GPU_TRIANGLES,part.count,C3D_UNSIGNED_SHORT,model.indices+part.first);}
                 stats_.triangles+=part.count/3;++stats_.drawCalls;
+                if(skinPalette_)renderMetrics.gpuSkinVertexReferences+=part.count;
+                if(litSkin&&model.skinNormalsDirect)objectGpuSkin().vertexReferences.fetch_add(part.count,std::memory_order_relaxed);
+                if(model.reducedGeometry){stats_.modelVariantTriangles+=part.count/3;++stats_.modelVariantDraws;}
             }
             if(environment){
                 C3D_FVUnifSet(GPU_VERTEX_SHADER,envParamLoc_,1,0,0,0);
@@ -920,10 +1179,14 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
             pendingEnd=retail;
             continue;
         }
-        for(unsigned n=0;n<ranges.count;++n){
+        if(list_)listDraws(model,i,cull);
+        else for(unsigned n=0;n<ranges.count;++n){
             const auto range=ranges.ranges[n];
             {const prof::Scope t(prof::DrawElements);C3D_DrawElements(GPU_TRIANGLES,range.count,C3D_UNSIGNED_SHORT,model.indices+range.first);}
             stats_.triangles+=range.count/3;++stats_.drawCalls;
+            if(skinPalette_)renderMetrics.gpuSkinVertexReferences+=range.count;
+            if(litSkin&&model.skinNormalsDirect)objectGpuSkin().vertexReferences.fetch_add(range.count,std::memory_order_relaxed);
+            if(model.reducedGeometry){stats_.modelVariantTriangles+=range.count/3;++stats_.modelVariantDraws;}
         }
         if(menuEnvironment)clearEnvironmentUvNow();
         pendingEnd=retail;
@@ -936,6 +1199,174 @@ void Renderer::drawNow(const Model& model,const Vertex* vertices,const C3D_Mtx& 
         AttrInfo_Init(attr);AttrInfo_AddLoader(attr,0,GPU_FLOAT,3);AttrInfo_AddLoader(attr,1,GPU_FLOAT,3);AttrInfo_AddLoader(attr,2,GPU_FLOAT,4);AttrInfo_AddLoader(attr,3,GPU_UNSIGNED_BYTE,4);
         C3D_BoolUnifSet(GPU_VERTEX_SHADER,skinnedNormalsLoc_,false);
     }
+}
+// ---- Course display lists (include/mkw/display_list.hpp) ----
+namespace {
+static_assert(sizeof(DisplayList::Upload)==sizeof(C3D_UniformUpload),"DisplayList::Upload mirrors C3D_UniformUpload");
+constexpr u32 kDrawTrigger=GPUCMD_HEADER(0,0xF,GPUREG_DRAWELEMENTS); // the header citro3d's draw writes
+constexpr u32 kDrawDisabled=GPUCMD_HEADER(0,0x0,GPUREG_0000);        // writes no byte of an unused register
+constexpr unsigned kDrawWords=30;    // C3D_DrawElements(GPU_TRIANGLES): command words
+constexpr unsigned kTriggerWord=17;  // the trigger's header word within them
+constexpr unsigned kCountWord=6;     // GPUREG_NUMVERTICES's parameter word within them
+constexpr u32 kCountHeader=GPUCMD_HEADER(0,0xF,GPUREG_NUMVERTICES);
+constexpr unsigned kDrawReserve=512; // words a draw and the state it flushes can take
+}
+// The ranges of submesh `submesh` this frame draws: exactly drawNow's
+// (selectVisible, then VisibleRanges' merging of nearby runs). The list holds
+// one draw per block; the first block of each range is patched to the range's
+// count and the others are disabled, so the GPU executes the same draws as
+// without the list, in both recording and replaying frames.
+void Renderer::listBlocks(const Model& model,size_t submesh,bool cull,const ClipFrustum& frustum,const uint8_t* blockMask,uint32_t firstBlock){
+    const auto& s=model.submeshes[submesh];
+    listRanges_=VisibleRanges{};
+    if(!cull||listDiag_==3){listBlocks_=cull?unsigned(model.visibility[submesh].blocks.size()):1u;listRanges_.append({s.first,s.count});return;}
+    const auto& mesh=model.visibility[submesh];
+    listBlocks_=unsigned(mesh.blocks.size());
+    listRanges_=blockMask?selectVisible(mesh,frustum,blockMask,firstBlock):selectVisible(mesh,frustum);
+    unsigned submitted=0;
+    for(unsigned n=0;n<listRanges_.count;++n)submitted+=listRanges_.ranges[n].count;
+    stats_.culledTriangles+=(s.count-submitted)/3;
+    if(!listRanges_.count)++stats_.culledSubmeshes;
+}
+// The draws of submesh `submesh`: recorded one per block, or replayed by
+// patching this frame's uniforms and the visible blocks' triggers.
+void Renderer::listDraws(const Model& model,size_t submesh,bool cull){
+    auto& c=*list_;auto& sm=c.submeshes[submesh];
+    const auto& s=model.submeshes[submesh];
+    const unsigned blocks=listBlocks_;
+    if(listRecording_){
+        sm.firstDraw=uint32_t(c.triggers.size());sm.firstUpload=C3D_UniformRecordCount();
+        sm.boolsDirty=C3D_BoolUnifsDirty[GPU_VERTEX_SHADER];sm.bools=C3D_BoolUnifs[GPU_VERTEX_SHADER];
+        for(unsigned b=0;b<blocks&&listOk_;++b){
+            const IndexRange block=cull?model.visibility[submesh].blocks[b].indices:IndexRange{s.first,s.count};
+            // GPUCMD_Add traps on overflow: stop before the buffer can fill.
+            if(gpuCmdBufOffset+kDrawReserve>gpuCmdBufSize){listOk_=false;break;}
+            {const prof::Scope t(prof::DrawElements);C3D_DrawElements(GPU_TRIANGLES,int(block.count),C3D_UNSIGNED_SHORT,model.indices+block.first);}
+            // The state the draw flushed precedes its fixed command words.
+            const u32 end=gpuCmdBufOffset;
+            if(end<kDrawWords||gpuCmdBuf[end-kDrawWords+kTriggerWord]!=kDrawTrigger||gpuCmdBuf[end-kDrawWords+kCountWord+1]!=kCountHeader){listOk_=false;break;}
+            c.triggers.push_back(end-kDrawWords+kTriggerWord);c.counts.push_back(block.count);
+        }
+        sm.draws=uint32_t(c.triggers.size())-sm.firstDraw;sm.uploads=C3D_UniformRecordCount()-sm.firstUpload;
+        if(!listOk_)return;
+    }else{
+        // This submesh's first draw uploaded the uniforms the calls above
+        // dirtied; the same runs must be pending now. Their values go into the list.
+        const uint32_t n=C3D_UniformsConsume(GPU_VERTEX_SHADER,reinterpret_cast<C3D_UniformUpload*>(listRuns_.data()),uint32_t(listRuns_.size()));
+        if(n==C3D_UNIFORMS_UNSUPPORTED||n>listRuns_.size()||n!=sm.uploads||sm.firstUpload+n>c.uploads.size()){listOk_=false;return;}
+        for(uint32_t k=0;k<n;++k){
+            const auto& u=c.uploads[sm.firstUpload+k];
+            if(u.id!=listRuns_[k].id||u.count!=listRuns_[k].count){listOk_=false;return;}
+            C3D_UniformPatchRun(c.words,u.offset,&C3D_FVUnif[GPU_VERTEX_SHADER][u.id],u.count);
+        }
+        uint16_t bools=0;const bool boolsDirty=C3D_BoolUnifsConsume(GPU_VERTEX_SHADER,&bools);
+        if(boolsDirty!=sm.boolsDirty||(boolsDirty&&bools!=sm.bools)){listOk_=false;return;}
+        if(sm.draws!=blocks||sm.firstDraw+blocks>c.triggers.size()){listOk_=false;return;}
+    }
+    // The frame's draws: each range's first block draws the whole range, the
+    // other blocks' triggers are disabled (the same DrawElements drawNow issues).
+    for(unsigned b=0;b<blocks;++b){
+        const IndexRange block=cull?model.visibility[submesh].blocks[b].indices:IndexRange{s.first,s.count};
+        uint32_t want=0;
+        for(unsigned n=0;n<listRanges_.count;++n)if(listRanges_.ranges[n].first==block.first){want=listRanges_.ranges[n].count;break;}
+        const uint32_t d=sm.firstDraw+b;
+        if(c.counts[d]!=want){
+            if(want){c.words[c.triggers[d]-kTriggerWord+kCountWord]=want;c.words[c.triggers[d]]=kDrawTrigger;}
+            else c.words[c.triggers[d]]=kDrawDisabled;
+            c.counts[d]=want;
+        }
+    }
+    for(unsigned n=0;n<listRanges_.count;++n){
+        const uint32_t count=listRanges_.ranges[n].count;
+        stats_.triangles+=count/3;++stats_.drawCalls;
+        if(model.reducedGeometry){stats_.modelVariantTriangles+=count/3;++stats_.modelVariantDraws;}
+    }
+}
+bool Renderer::recordList(DisplayList& list,DisplayList::Copy& c,const Model& model,const C3D_Mtx& transform,bool backdrop){
+    const prof::Scope timed(prof::ListRecord);
+    const bool cull=!backdrop&&!model.visibility.empty()&&model.visibility.size()==model.submeshes.size();
+    uint32_t blocks=0;
+    for(size_t i=0;i<model.submeshes.size();++i)blocks+=cull?uint32_t(model.visibility[i].blocks.size()):1u;
+    // Every material's state, every uniform and one draw per block, with room.
+    const uint32_t need=uint32_t(model.submeshes.size())*320+blocks*(kDrawWords+2)+2048;
+    if(!c.words||c.capacity<need){
+        if(c.words)linearFree(c.words);
+        c.words=static_cast<uint32_t*>(linearAlloc(need*sizeof(uint32_t)));c.capacity=c.words?need:0;
+        if(!c.words){c.valid=false;return false;}
+    }
+    c.uploads.assign(model.submeshes.size()*16+32,{});c.triggers.clear();c.counts.clear();c.submeshes.assign(model.submeshes.size(),{});
+    // The frame's own list takes the frame-level state; the model's commands
+    // go to the copy's memory (last read by the GPU two frames ago, or idle).
+    C3D_UpdateContextFrameState();
+    u32* mainBuf=nullptr;u32 mainSize=0,mainOffset=0;GPUCMD_GetBuffer(&mainBuf,&mainSize,&mainOffset);
+    GPUCMD_SetBuffer(c.words,c.capacity,0);
+    // The list must not depend on the GPU state the frame happens to be in
+    // when it is replayed: forget the register shadows and mark every
+    // material group dirty, so the first material emits its whole state
+    // (the uniform recorder likewise uploads every dirty uniform).
+    C3D_InvalidateGpuState();
+    C3D_UniformRecordBegin(reinterpret_cast<C3D_UniformUpload*>(c.uploads.data()),uint32_t(c.uploads.size()));
+    list_=&c;listRecording_=true;listOk_=true;listViewDependent_=false;
+    drawNow(model,model.vertices,transform,backdrop,nullptr,nullptr,nullptr);
+    list_=nullptr;listRecording_=false;
+    const uint32_t uploads=C3D_UniformRecordEnd();
+    u32* words=nullptr;u32 size=0;
+    const bool ended=listOk_&&C3D_RecordListEnd(&words,&size);
+    GPUCMD_SetBuffer(mainBuf,mainSize,mainOffset);
+    if(!ended||listViewDependent_||uploads>c.uploads.size()||words!=c.words||size>c.capacity){
+        // The recording consumed state the GPU never received.
+        c.valid=false;C3D_InvalidateGpuState();C3D_InvalidateGpuUniforms();
+        return false;
+    }
+    c.uploads.resize(uploads);c.size=size;c.valid=true;std::memcpy(c.fog,retailFog_,sizeof c.fog);
+    ++list.records;
+    // The frame so far, then the list, in the GX queue's order. No framebuffer
+    // flush at the seams: the list keeps drawing into the frame's target.
+    C3D_FrameSplitRaw(GX_CMDLIST_FLUSH);
+    GX_ProcessCommandList(c.words,c.size*4,GX_CMDLIST_FLUSH);
+    return true;
+}
+bool Renderer::replayList(DisplayList& list,DisplayList::Copy& c,const Model& model,const C3D_Mtx& transform,bool backdrop){
+    const prof::Scope timed(prof::ListReplay);
+    if(listRuns_.size()<64)listRuns_.resize(64);
+    C3D_UpdateContextFrameState();
+    list_=&c;listRecording_=false;listOk_=true;listViewDependent_=false;
+    drawNow(model,model.vertices,transform,backdrop,nullptr,nullptr,nullptr);
+    list_=nullptr;
+    if(!listOk_){
+        // Uniforms consumed for a list that will not run: upload them again.
+        ++list.mismatches;C3D_InvalidateGpuState();C3D_InvalidateGpuUniforms();
+        return false;
+    }
+    ++list.replays;
+    // The GPU registers will hold the list's final state, not the context's.
+    C3D_InvalidateGpuState();
+    if(listDiag_==2)C3D_InvalidateGpuUniforms();
+    C3D_FrameSplitRaw(GX_CMDLIST_FLUSH);
+    GX_ProcessCommandList(c.words,c.size*4,GX_CMDLIST_FLUSH);
+    C3D_FrameMarkDraws(); // a later target change flushes as after any draw
+    return true;
+}
+void Renderer::drawStatic(DisplayList& list,const Model& model,const C3D_Mtx& transform,bool backdrop){
+    // Immediate frames of this thread only (stereo frames record locally).
+    // Each list and its split cost a GX queue entry; keep room for the frame's.
+    if(!displayLists_||list.unsupported||recording()||!model.vertices||!model.indices||C3D_GxQueueSpace()<6){
+        if(displayLists_&&!list.unsupported)++list.fallbacks;
+        draw(model,transform,backdrop);return;
+    }
+    flushSprites(); // sprite draws belong to the frame's list, before this one
+    execFrame_=animationFrame;execAdditive_=additiveColor;
+    // Whatever earlier draws left pending goes to the frame's own list now, so
+    // the list's first draw uploads exactly what drawNow itself dirties: the
+    // same runs every frame, whichever objects drew before it.
+    C3D_UpdateContextFrameState();
+    C3D_UpdateUniforms(GPU_VERTEX_SHADER);C3D_UpdateUniforms(GPU_GEOMETRY_SHADER);
+    auto& c=list.copies[frameSlot_];
+    if(listDiag_!=6&&c.valid&&!std::memcmp(c.fog,retailFog_,sizeof c.fog)&&replayList(list,c,model,transform,backdrop))return;
+    if(recordList(list,c,model,transform,backdrop))return;
+    // Nothing of the model reached the GPU: draw it as usual, from now on.
+    list.unsupported=true;
+    drawNow(model,model.vertices,transform,backdrop,nullptr,nullptr,nullptr);
 }
 void Renderer::shadowVolumesNow(const ShadowVolume* volumes,unsigned count,float darkness){
     flushSprites();
@@ -964,6 +1395,7 @@ void Renderer::shadowVolumesNow(const ShadowVolume* volumes,unsigned count,float
             auto* buf=C3D_GetBufInfo();BufInfo_Init(buf);BufInfo_Add(buf,v.model->vertices,sizeof(Vertex),4,0x3210);
             C3D_DrawElements(GPU_TRIANGLES,v.model->indexCount,C3D_UNSIGNED_SHORT,v.model->indices);
             stats_.triangles+=v.model->indexCount/3;++stats_.drawCalls;
+            if(v.model->reducedGeometry){stats_.modelVariantTriangles+=v.model->indexCount/3;++stats_.modelVariantDraws;}
         }
     };
     // GX winds outward faces clockwise: culling CCW fronts keeps them.
@@ -1181,8 +1613,9 @@ void Renderer::drawEffectsImmediate(RaceEffects& effects,const Texture* textures
 }
 void Renderer::effectListNow(const RaceEffects& effects,const ef::DrawList& list,const Texture* textures){
     EffectDrawState& state=*effectDraw_;
-    // Submit only complete triangles within the existing 8192-vertex allocation.
-    const size_t vertexCount=ef::triangleVertexCount(list.vertices.size(),kEffectVertices);
+    // Within the existing 8192-vertex allocation; each batch draws only
+    // complete triangles (drawBatchVertexCount).
+    const size_t vertexCount=std::min<size_t>(list.vertices.size(),kEffectVertices);
     if(!vertexCount)return;
     flushSprites();
     // Both eyes draw the list built from the centre camera; the left eye uploads it.
@@ -1191,12 +1624,12 @@ void Renderer::effectListNow(const RaceEffects& effects,const ef::DrawList& list
         std::memcpy(effectVertices_,list.vertices.data(),vertexCount*sizeof(ef::DrawVertex));
         flushGpuData(effectVertices_,vertexCount*sizeof(ef::DrawVertex));
         // Lookup texels in index order are already in tiled order (8x8 Morton tiles).
-        uint8_t* texels=static_cast<uint8_t*>(effectLookup_.data);
+        uint8_t* texels=static_cast<uint8_t*>(effectLookup_->data);
         for(size_t i=0;i<list.lookup.size();++i){
             const uint32_t c=list.lookup[i];
             texels[i*4+0]=uint8_t(c>>24);texels[i*4+1]=uint8_t(c>>16);texels[i*4+2]=uint8_t(c>>8);texels[i*4+3]=uint8_t(c);
         }
-        flushGpuData(effectLookup_.data,list.lookup.size()*4);
+        flushGpuData(effectLookup_->data,list.lookup.size()*4);
     }
     C3D_BindProgram(&effectProgram_);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,effectProjectionLoc_,&projection_);
@@ -1204,7 +1637,7 @@ void Renderer::effectListNow(const RaceEffects& effects,const ef::DrawList& list
     static_assert(sizeof(ef::DrawVertex)==44,"position 3f, unit 0 3f, units 1 and 2 4f, colour 4ub");
     AttrInfo_AddLoader(attr,0,GPU_FLOAT,3);AttrInfo_AddLoader(attr,1,GPU_FLOAT,3);AttrInfo_AddLoader(attr,2,GPU_FLOAT,4);AttrInfo_AddLoader(attr,3,GPU_UNSIGNED_BYTE,4);
     auto* buf=C3D_GetBufInfo();BufInfo_Init(buf);BufInfo_Add(buf,effectVertices_,sizeof(ef::DrawVertex),4,0x3210);
-    C3D_TexBind(2,&effectLookup_);
+    C3D_TexBind(2,effectLookup_);
     C3D_TexEnvBufColor(0);
     // Unit 0 in projection mode for projected layers; bound by pointer until the draw.
     C3D_Tex projected{};
@@ -1263,7 +1696,7 @@ void Renderer::effectListNow(const RaceEffects& effects,const ef::DrawList& list
         // GX front faces wind clockwise here, as for models (GX_CULL_BACK keeps them under
         // GPU_CULL_FRONT_CCW): GX_CULL_FRONT (1) is GPU_CULL_BACK_CCW, GX_CULL_BACK (2) the other.
         C3D_CullFace(b.cull==1?GPU_CULL_BACK_CCW:b.cull==2?GPU_CULL_FRONT_CCW:GPU_CULL_NONE);
-        C3D_DrawArrays(GPU_TRIANGLES,int(b.first),int(count));
+        C3D_DrawArrays(b.strip?GPU_TRIANGLE_STRIP:GPU_TRIANGLES,int(b.first),int(count));
         stats_.triangles+=count/3;++stats_.drawCalls;
     }
     // Back to the scene program and its state.
@@ -1525,12 +1958,16 @@ bool Renderer::initBloomTargets(){
 }
 bool Renderer::initBloom(){
     if(!initBloomTargets())return false;
-    if(bloomVertices_)return true;
+    if(scratch_[0].bloom)return true;
     // The quad vertices are LINEAR: allocated with the first bloom request,
-    // never by reserveBloom().
-    if(!(bloomVertices_=static_cast<Vertex*>(linearAlloc(kBloomVertices*sizeof(Vertex))))){freeBloom();bloomFailed_=true;return false;}
-    // Known, flushed contents: bloomQuad only rewrites slots that differ.
-    std::memset(static_cast<void*>(bloomVertices_),0,kBloomVertices*sizeof(Vertex));flushGpuData(bloomVertices_,kBloomVertices*sizeof(Vertex));
+    // never by reserveBloom(). One per scratch set (pipelined frames alternate).
+    for(auto& s:scratch_){
+        if(!s.overlay)continue;
+        if(!(s.bloom=static_cast<Vertex*>(linearAlloc(kBloomVertices*sizeof(Vertex))))){freeBloom();bloomFailed_=true;return false;}
+        // Known, flushed contents: bloomQuad only rewrites slots that differ.
+        std::memset(static_cast<void*>(s.bloom),0,kBloomVertices*sizeof(Vertex));flushGpuData(s.bloom,kBloomVertices*sizeof(Vertex));
+    }
+    bloomVertices_=scratch_[frameSlot_].bloom;
     return true;
 }
 void Renderer::freeBloom(){
@@ -1539,7 +1976,9 @@ void Renderer::freeBloom(){
     sceneTarget_=nullptr;
     for(auto& t:bloomTex_){if(t.data)C3D_TexDelete(&t);t={};}
     if(sceneTex_.data)C3D_TexDelete(&sceneTex_);
-    sceneTex_={};linearFree(bloomVertices_);bloomVertices_=nullptr;
+    sceneTex_={};
+    for(auto& s:scratch_){if(s.bloom)linearFree(s.bloom);s.bloom=nullptr;}
+    bloomVertices_=nullptr;
 }
 // citro3d resets the scissor whenever a target is selected (C3D_SetViewport), so this runs after each
 // selection of the top screen's target. Scissor is in the target's rotated pixels: x spans the 240
@@ -1674,7 +2113,8 @@ void Renderer::beginBottomNow(){
 
 void Renderer::endNow(){
     {const prof::Scope t(prof::EndSprites);endEyeNow();}
-    if(execStereo_.active())for(unsigned eye=0;eye<2;++eye)presented_[eye]=gfxGetFramebuffer(GFX_TOP,eye?GFX_RIGHT:GFX_LEFT,nullptr,nullptr);
+    // Pipelined frames record their transfer destinations in lcdFramebufferHook.
+    if(execStereo_.active()&&!pipelined_)for(unsigned eye=0;eye<2;++eye)presented_[eye]=gfxGetFramebuffer(GFX_TOP,eye?GFX_RIGHT:GFX_LEFT,nullptr,nullptr);
     stats_.commandUsage=C3D_GetCmdBufUsage();
     flushBatch().end();
     {const prof::Scope t(prof::FrameEnd);C3D_FrameEnd(GX_CMDLIST_FLUSH);}

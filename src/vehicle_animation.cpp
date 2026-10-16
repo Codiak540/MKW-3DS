@@ -1,4 +1,5 @@
 #include "mkw/vehicle_animation.hpp"
+#include "mkw/wrap_angle.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -38,14 +39,23 @@ Vec3 inverseRigid(const C3D_Mtx& m,Vec3 p){
             p.x*m.r[0].y+p.y*m.r[1].y+p.z*m.r[2].y,
             p.x*m.r[0].z+p.y*m.r[1].z+p.z*m.r[2].z};
 }
-C3D_Mtx local(Vec3 position={},Vec3 rotation={},Vec3 scale={1,1,1}){
-    const float sx=std::sin(rotation.x),cx=std::cos(rotation.x),sy=std::sin(rotation.y),cy=std::cos(rotation.y),sz=std::sin(rotation.z),cz=std::cos(rotation.z);
+// The rotation from its sines and cosines. The single-axis forms below pass
+// sin 0 = 0 and cos 0 = 1 as constants: the same arithmetic, bit for bit, as
+// local() with literal zero angles, without four software sinf/cosf calls.
+C3D_Mtx localSinCos(Vec3 position,float sx,float cx,float sy,float cy,float sz,float cz,Vec3 scale){
     auto m=identity();
     m.r[0].x=cy*cz*scale.x;m.r[0].y=(sx*sy*cz-cx*sz)*scale.y;m.r[0].z=(cx*sy*cz+sx*sz)*scale.z;
     m.r[1].x=cy*sz*scale.x;m.r[1].y=(sx*sy*sz+cx*cz)*scale.y;m.r[1].z=(cx*sy*sz-sx*cz)*scale.z;
     m.r[2].x=-sy*scale.x;m.r[2].y=cy*sx*scale.y;m.r[2].z=cx*cy*scale.z;
     m.r[0].w=position.x;m.r[1].w=position.y;m.r[2].w=position.z;return m;
 }
+C3D_Mtx local(Vec3 position={},Vec3 rotation={},Vec3 scale={1,1,1}){
+    return localSinCos(position,std::sin(rotation.x),std::cos(rotation.x),std::sin(rotation.y),std::cos(rotation.y),std::sin(rotation.z),std::cos(rotation.z),scale);
+}
+// local(position,{x,0,0},scale), local({},{0,y,0}) and local(position,{x,0,z},scale).
+C3D_Mtx localX(Vec3 position,float x,Vec3 scale={1,1,1}){return localSinCos(position,std::sin(x),std::cos(x),0.f,1.f,0.f,1.f,scale);}
+C3D_Mtx localY(float y){return localSinCos({},0.f,1.f,std::sin(y),std::cos(y),0.f,1.f,{1,1,1});}
+C3D_Mtx localXZ(Vec3 position,float x,float z,Vec3 scale={1,1,1}){return localSinCos(position,std::sin(x),std::cos(x),0.f,1.f,std::sin(z),std::cos(z),scale);}
 void scale(C3D_Mtx& m,Vec3 scale){for(unsigned r=0;r<3;++r){m.r[r].x*=scale.x;m.r[r].y*=scale.y;m.r[r].z*=scale.z;}}
 bool finiteMatrix(const C3D_Mtx& m){for(const auto& row:m.r)for(float value:row.c)if(!std::isfinite(value))return false;return true;}
 Vec3 vec(const Kinoko::EGG::Vector3f& v){return {v.x,v.y,v.z};}
@@ -53,7 +63,7 @@ Vec3 vec(const Kinoko::EGG::Vector3f& v){return {v.x,v.y,v.z};}
 
 void VehicleAnimation::reset(){
     body_=handle_=handleBase_=identity();for(auto& m:wheels_)m=identity();for(auto& m:wheelFrames_)m=identity();
-    for(auto& m:accessories_)m=identity();accessorySet_=0;roll_={};travel_={};radii_={};display_={};wheelLocal_={};count_=0;vehicle_=~0u;bike_=false;driveFrame_=15;
+    for(auto& m:accessories_)m=identity();accessorySet_=0;partsDirty_=false;roll_={};travel_={};radii_={};display_={};wheelLocal_={};count_=0;vehicle_=~0u;bike_=false;driveFrame_=15;
     base_=handleSource_=identity();for(auto& m:wheelSources_)m=identity();tirePositions_={};bspRadii_={};kartScale_={1,1,1};steering_=0;wheelMotion_={};dirty_=false;
 }
 Vec3 VehicleAnimation::displayVec(unsigned offset) const{return {display_[offset/4],display_[offset/4+1],display_[offset/4+2]};}
@@ -66,10 +76,18 @@ void VehicleAnimation::readParameters(unsigned vehicle){
     // doesn't change KartParam or any simulation state.
     const unsigned floats=bike_?0x58/4:0xf8/4;
     for(unsigned i=0;i<floats;++i)display_[i]=stream.read_f32();
+    // Kart suspension arms rotate by constant X/Y angles from this file plus a
+    // live Z (travel) angle: their sines and cosines are computed once here,
+    // by the same expressions updateAccessories() used per frame.
+    const Vec3 front=displayVec(0x54)*Degrees;
+    armTrig_={std::sin(front.x),std::cos(front.x),std::sin(front.y),std::cos(front.y),
+              std::sin(display_[0x6c/4]*Degrees),std::cos(display_[0x6c/4]*Degrees)};
 }
 float VehicleAnimation::advanceRoll(float phase,float signedDistance,float radius){
     if(!std::isfinite(signedDistance)||!std::isfinite(radius)||radius<=.0001f)return phase;
-    return std::remainder(phase+signedDistance/radius,2*Pi);
+    // Bit-identical to std::remainder(...,2*Pi) (tools/test_wrap_angle.cpp checks
+    // every float in [-5pi, 5pi]) without newlib's bit-by-bit fmodf.
+    return remainderTwoPi(phase+signedDistance/radius);
 }
 void VehicleAnimation::step(Kinoko::Kart::KartObject& kart){
     bike_=kart.param()->isBike();count_=std::min(4u,unsigned(kart.param()->tireCount()));
@@ -99,7 +117,7 @@ void VehicleAnimation::step(Kinoko::Kart::KartObject& kart){
         bspRadii_[i]=bsp.wheels[bspIndex].wheelRadius;
     }
     if(bike_)handleSource_=count_?wheelSources_[0]:fromSource(kart.body()->wheelMatrix(0));
-    dirty_=true;
+    dirty_=true;partsDirty_=true;
 }
 void VehicleAnimation::evaluate() const{
     if(!dirty_)return;
@@ -117,6 +135,15 @@ void VehicleAnimation::evaluate() const{
         const Vec3 steeredZ{handle_.r[0].z,handle_.r[1].z,handle_.r[2].z};
         driveFrame_=std::clamp(15.f+std::atan2(dot(baseX,steeredZ),dot(baseZ,steeredZ))/Degrees,0.f,29.f);
     }
+}
+// Wheels and accessories: only for racers whose parts are actually posed or drawn.
+void VehicleAnimation::evaluateParts() const{
+    evaluate();
+    if(!partsDirty_)return;
+    partsDirty_=false;
+    const auto& base=base_;const auto kartScale=kartScale_;const float steering=steering_;
+    // Both front kart wheels turn by the same steering rotation.
+    const C3D_Mtx steer=bike_?C3D_Mtx{}:localY(-15.f*Degrees*steering);
     for(unsigned i=0;i<count_;++i){
         const unsigned bspIndex=bike_?i:(count_==3?(i+1)/2:i/2);
         const bool front=bspIndex==0;
@@ -124,9 +151,9 @@ void VehicleAnimation::evaluate() const{
         wheelLocal_[i]=inverseRigid(base,position);
         wheelLocal_[i]={wheelLocal_[i].x/std::max(.001f,kartScale.x),wheelLocal_[i].y/std::max(.001f,kartScale.y),wheelLocal_[i].z/std::max(.001f,kartScale.z)};
         wheelFrames_[i]=wheelSources_[i];
-        if(!bike_&&front)wheelFrames_[i]=multiply(wheelFrames_[i],local({},{0,-15.f*Degrees*steering,0}));
+        if(!bike_&&front)wheelFrames_[i]=multiply(wheelFrames_[i],steer);
         wheelFrames_[i].r[0].w=position.x;wheelFrames_[i].r[1].w=position.y;wheelFrames_[i].r[2].w=position.z;
-        wheels_[i]=multiply(wheelFrames_[i],local({},{roll_[i],0,0}));
+        wheels_[i]=multiply(wheelFrames_[i],localX({},roll_[i]));
         Vec3 meshScale=(!bike_&&!front)?displayVec(0x3c):Vec3{1,1,1};
         // Preserve source model oversize and the original rear XYZ scale. Only
         // the physical radius's live change (e.g. offroad sinking) is additional.
@@ -144,14 +171,14 @@ void VehicleAnimation::updateAccessories() const{
         set(4,wheelFrames_[0]); // lower fork follows the suspended front axle
         const Vec3 pivot=displayVec(0x24),delta=wheelLocal_[1]-pivot;
         const float swingAngle=std::atan2(delta.y,-delta.z);
-        set(8,multiply(body_,local(pivot,{swingAngle,0,0})));
+        set(8,multiply(body_,localX(pivot,swingAngle)));
         const Vec3 shockTop=displayVec(0x3c),shockDelta=wheelLocal_[1]-shockTop;
         // Source shock meshes point down -Y, swingarms back along -Z.
         // The source rest-length multiplier converts link length to mesh scale.
         const float shockAngle=std::atan2(-shockDelta.z,-shockDelta.y);
         const float multiplier=display_[0x54/4];
         const float stretch=multiplier>0?length(shockDelta)*multiplier:1;
-        set(12,multiply(body_,local(shockTop,{shockAngle,0,0},{1,stretch,1})));
+        set(12,multiply(body_,localX(shockTop,shockAngle,{1,stretch,1})));
         return;
     }
     if(bike_)return;
@@ -163,7 +190,11 @@ void VehicleAnimation::updateAccessories() const{
         const Vec3 delta=wheelLocal_[i]-pivot;
         const float travelAngle=std::atan2(delta.y,std::abs(delta.x));
         rotation=rotation*Degrees;rotation.z+=(reflected?-travelAngle:travelAngle);
-        const auto arm=multiply(body_,local(pivot,rotation));
+        // Only the Z angle changes per frame; X and Y come from readParameters
+        // (rear arms: X only, their Y angle is the constant 0).
+        const float sz=std::sin(rotation.z),cz=std::cos(rotation.z);
+        const auto arm=multiply(body_,front?localSinCos(pivot,armTrig_[0],armTrig_[1],armTrig_[2],armTrig_[3],sz,cz,{1,1,1}):
+                                             localSinCos(pivot,armTrig_[4],armTrig_[5],0.f,1.f,sz,cz,{1,1,1}));
         set((4+i)*4,arm);
         // A sole right-arm mesh is mirrored for the opposite side; all four
         // pivots remain the authored front/rear values, never bounding-box guesses.
@@ -178,7 +209,7 @@ void VehicleAnimation::updateAccessories() const{
         const Vec3 shock=bottom-shockTop;
         const float zAngle=std::atan2(shock.x,-shock.y);
         const float xAngle=std::atan2(-shock.z,std::sqrt(shock.x*shock.x+shock.y*shock.y));
-        auto suspension=multiply(body_,local(shockTop,{xAngle,0,zAngle},{1,inverseLength>0?length(shock)*inverseLength:1,1}));
+        auto suspension=multiply(body_,localXZ(shockTop,xAngle,zAngle,{1,inverseLength>0?length(shock)*inverseLength:1,1}));
         if(!reflected)scale(suspension,{-1,1,1});
         set(8*4+i,suspension);
     }
@@ -193,14 +224,14 @@ unsigned VehicleAnimation::accessoryCount(const char* name) const{
     return 1;
 }
 C3D_Mtx VehicleAnimation::accessory(const char* name,bool sourceAnimated,unsigned instance) const{
-    evaluate();
+    evaluateParts();
     const int index=accessoryIndex(name);if(index<0||!accessorySupported(name))return body_;
     if(index==0&&sourceAnimated)return handleBase_;
     const unsigned slot=unsigned(index)*4+std::min(instance,3u);
     return accessorySet_>>slot&1?accessories_[slot]:body_;
 }
 bool VehicleAnimation::finite() const{
-    evaluate();
+    evaluateParts();
     if(!finiteMatrix(body_)||!finiteMatrix(handle_)||!finiteMatrix(handleBase_))return false;
     for(unsigned i=0;i<count_;++i)if(!finiteMatrix(wheels_[i])||!std::isfinite(roll_[i]))return false;
     for(unsigned i=0;i<accessories_.size();++i)if(!finiteMatrix(accessorySet_>>i&1?accessories_[i]:body_))return false;

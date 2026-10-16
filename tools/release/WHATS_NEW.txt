@@ -1,7 +1,8 @@
-Fixed: quick updates on Windows builds
-  (game files were wrongly refused)
-Fixed: crash when closing the game
-Fixed: race-start sound on OK, and no
-  hop/drift sounds after finishing
-  (DarthMDev)
+Old 3DS: low-poly models, track
+  and object culling, mipmaps
+Old 3DS: faster engine, two-core
+  physics (identical results)
+Old 3DS: GPU frame pipelining and
+  course display lists
+Old 3DS: bloom is back on
 New o3DS optimizations by Codiak540

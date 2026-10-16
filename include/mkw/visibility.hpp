@@ -118,4 +118,17 @@ inline VisibleRanges selectVisible(const SubmeshVisibility& mesh,const ClipFrust
  for(const auto& b:mesh.blocks)if(frustum.intersects(b.bounds))out.append(b.indices);
  return out;
 }
+// Old 3DS precomputed visibility (src/course_pvs.cpp): blocks whose bit in
+// mask, counted from `base` over the model's blocks in submesh order, is clear
+// are hidden from the camera's column and skip their frustum tests.
+inline VisibleRanges selectVisible(const SubmeshVisibility& mesh,const ClipFrustum& frustum,const uint8_t* mask,uint32_t base){
+ VisibleRanges out;
+ const auto potential=[&](size_t b){const size_t k=base+b;return (mask[k>>3]>>(k&7))&1u;};
+ size_t first=0;while(first<mesh.blocks.size()&&!potential(first))++first;
+ if(first==mesh.blocks.size()||!frustum.intersects(mesh.bounds))return out;
+ const bool all=frustum.contains(mesh.bounds);
+ for(size_t b=first;b<mesh.blocks.size();++b)
+  if(potential(b)&&(all||frustum.intersects(mesh.blocks[b].bounds)))out.append(mesh.blocks[b].indices);
+ return out;
+}
 }

@@ -2,6 +2,7 @@
 """Stage a private playable SD package from the user's locally cooked assets."""
 import hashlib,json,shutil,struct,zipfile
 from gx_material import GMDL_SUBMESH_BYTES
+from stage_copy import stage_copy
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];assets=ROOT/'sd-card/3ds/mkw-3ds';out=ROOT/'build/playable/3ds/mkw-3ds';out.mkdir(parents=True,exist_ok=True)
 roster_overlay=ROOT/'build/roster'
@@ -309,6 +310,31 @@ overlay['models/bomb_blast.gmdl']=blast
 b=blast.read_bytes();ns,nt=struct.unpack_from('<II',b,16)
 for i in range(nt):
  tex=b[24+ns*44+i*64:24+ns*44+(i+1)*64].split(b'\0')[0].decode();overlay['textures/'+tex+'.t3x']=vfx/(tex+'.t3x')
+# Old 3DS overlay (tools/stage_o3ds_lowpoly.py, docs/o3ds-lowpoly.md and
+# docs/o3ds-merged-build.md): reduced models, opponent models, re-baked textures,
+# course mip chains and course/object visibility, cooked on this machine from
+# the player's own disc. The game loads them only on Old 3DS (model_detail.hpp)
+# and falls back to the originals for anything missing or stale; without a
+# staged package nothing changes. Every file must match its staging receipt.
+o3ds=ROOT/'build/o3ds-lowpoly-package'
+if (o3ds/'o3ds-lowpoly-receipt.json').is_file():
+ o3ds_receipt=json.loads((o3ds/'o3ds-lowpoly-receipt.json').read_text());o3ds_files={}
+ for name,info in o3ds_receipt['models'].items():o3ds_files['models/o3ds/'+name]=info['sha256']
+ for name,sha in o3ds_receipt.get('rivals',{}).items():o3ds_files['models/o3ds/rival/'+name]=sha
+ for name,sha in o3ds_receipt.get('textures',{}).items():o3ds_files['textures/o3ds/'+name+'.t3x']=sha
+ for name,sha in (o3ds_receipt.get('pvs') or {}).items():o3ds_files['models/pvs/'+name]=sha
+ if o3ds_receipt.get('textureMips'):o3ds_files['textures/o3ds/mips.pak']=o3ds_receipt['textureMips']
+ for rel,sha in o3ds_files.items():
+  src=o3ds/rel
+  if Path(rel).suffix not in ('.gmdl','.t3x','.pvs','.opvs','.pak') or '..' in Path(rel).parts:raise ValueError('Invalid Old 3DS overlay path: '+rel)
+  if not src.is_file() or digest_file(src)!=sha:raise ValueError('Old 3DS overlay changed since staging (rerun tools/stage_o3ds_lowpoly.py): '+rel)
+  overlay[rel]=src
+ # Sidecars and re-baked textures ship as one archive, o3ds.pak (tools/o3ds_pak.py):
+ # thousands of loose files made every race load open far more files.
+ import o3ds_pak
+ o3ds_packed={rel:overlay.pop(rel) for rel in list(overlay) if o3ds_pak.packed(rel)}
+ if o3ds_packed:
+  o3ds_pak.write(o3ds_packed,ROOT/'build/o3ds-pak/o3ds.pak');overlay['o3ds.pak']=ROOT/'build/o3ds-pak/o3ds.pak'
 for rel,src in overlay.items():
  for old in [s for s,r in files.items() if r==Path(rel)]:del files[old]
  files[src]=Path(rel)
@@ -323,7 +349,7 @@ if '--list' in sys.argv:
  raise SystemExit(0)
 manifest={}
 for src,rel in files.items():
- dest=out/rel;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(src,dest);manifest[rel.as_posix()]=hashlib.sha256(dest.read_bytes()).hexdigest()
+ dest=out/rel;dest.parent.mkdir(parents=True,exist_ok=True);stage_copy(src,dest);manifest[rel.as_posix()]=hashlib.sha256(dest.read_bytes()).hexdigest()
 # FAT32 allows one folder 65,536 entries, and a long file name takes several:
 # the loose textures folder outgrew it. menu.pak and race.pak already hold every
 # texture and the game reads them first (src/renderer.cpp Texture::load), so a
