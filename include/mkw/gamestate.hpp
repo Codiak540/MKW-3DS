@@ -6,11 +6,10 @@
 #define MKW_3DS_GAMESTATE_H
 
 struct GameState {
-    u64 lastFrameTime = 0; // Get initial tick timestamp in ms
-    u32 frameCount = 0;
-    float fps = 0.0f;
+    static inline u64 lastFrameTime = 0; // Get initial tick timestamp in ms
+    static inline u32 frameCount = 0;
+    static inline float fps = 0.0f;
+    static inline float frameMs = 0.0f;
 };
-
-inline GameState gameState;
 
 #endif //MKW_3DS_GAMESTATE_H

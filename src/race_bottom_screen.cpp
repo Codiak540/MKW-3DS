@@ -15,8 +15,6 @@
 #include <new>
 #include <mkw/gamestate.hpp>
 
-#include "../include/mkw/gamestate.hpp"
-
 namespace mkw {
 namespace {
 constexpr float ScreenW=320.f,ScreenH=240.f;
@@ -347,9 +345,13 @@ void RaceBottomScreen::draw(Renderer& renderer,const BottomView& view){
     }
     if (atlas && view.timerVisible && m.count < QuadCapacity) {
         // Safe-cast FPS to a standard integer capped at 60 or 99
-        unsigned baseFps = std::clamp(unsigned(std::lround(gameState.fps)), 0u, 99u);
+        auto baseFps = static_cast<unsigned>(lround(GameState::fps));
         unsigned fpsTens = baseFps / 10;
         unsigned fpsOnes = baseFps % 10;
+
+        auto baseMs = static_cast<unsigned>(lround(GameState::frameMs));
+        unsigned msTens = baseMs / 10;
+        unsigned msOnes = baseMs % 10;
 
         // Anchor it near X=120, Y=4 to keep it perfectly balanced
         // with the timer's layout bounds and scaling context
@@ -366,6 +368,16 @@ void RaceBottomScreen::draw(Renderer& renderer,const BottomView& view){
         fpsX += fpsSizeW - 2.f; // Apply layout kerning adjustment spacing
         m.add(RaceMapDigits[fpsOnes], fpsX, fpsY, fpsX + fpsSizeW, fpsY + fpsSizeH);
         for(unsigned k=0; k<4; ++k) m.base[m.count-1].color[k] = 0x00ff00ffu; // Bright Green
+
+
+        fpsX += (fpsSizeW * 2);
+        m.add(RaceMapDigits[msTens], fpsX, fpsY, fpsX + fpsSizeW, fpsY + fpsSizeH);
+        for(unsigned k=0; k<4; ++k) m.base[m.count-1].color[k] = 0x00ff00ffu; // Bright Green
+
+        fpsX += fpsSizeW - 2.f; // Apply layout kerning adjustment spacing
+        m.add(RaceMapDigits[msOnes], fpsX, fpsY, fpsX + fpsSizeW, fpsY + fpsSizeH);
+        for(unsigned k=0; k<4; ++k) m.base[m.count-1].color[k] = 0x00ff00ffu; // Bright Green
+        fpsX += (fpsSizeW * 2);
     }
     // ========================================================
 

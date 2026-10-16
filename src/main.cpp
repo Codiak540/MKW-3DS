@@ -487,16 +487,7 @@ int main() {
             renderer.waitForGpu();return action;
         };
 
-        while(aptMainLoop()){
-            u64 currentTime = osGetTime();
-            u64 cycleTime = currentTime - gameState.lastFrameTime; // Calculate actual time passed
-
-            if (cycleTime >= 1000) {
-                gameState.fps = (float)gameState.frameCount / (cycleTime / 1000.0f);
-                gameState.frameCount = 0;
-                gameState.lastFrameTime = currentTime;
-            }
-
+        while (aptMainLoop()) {
 
             // The logical page becomes Race while the pause exit still animates.
             // Keep the resident course for ResumeRace; only release when leaving
@@ -1172,7 +1163,7 @@ int main() {
     // Simulation stays at 60 Hz on every model. Old 3DS presents races at
     // 30 FPS. New 3DS and New 2DS XL present at 60, or at 30 while the 3D
     // slider is up (stereo draws every frame twice).
-    auto raceTicksPerFrame=[&]{return new3ds&&!renderer.stereoWanted()?1u:2u;};
+    auto raceTicksPerFrame=[&]{return !renderer.stereoWanted()?1u:2u;};
     presentation.setTicksPerSlot(raceTicksPerFrame());
     LOGF("race presentation every %u ticks",presentation.ticksPerSlot());
     // accumulator: simulation ticks owed (1 = 1/60 s). Races owe one per top-screen
@@ -1198,7 +1189,22 @@ int main() {
     // The animation fixtures read posed vertices back while racing: immediate.
     const bool deferredRace=!animationTest;
     renderer.setDeferred(deferredRace);
-    while(aptMainLoop()){
+
+    u64 prev = osGetTime();                 // before the loop, no 'static' needed
+    GameState::lastFrameTime = prev;        // avoids the huge first interval
+
+    while (aptMainLoop()) {
+        u64 currentTime = osGetTime();
+        GameState::frameCount++;
+
+        u64 cycleTime = currentTime - GameState::lastFrameTime;
+        if (cycleTime >= 1000) {
+            GameState::fps     = GameState::frameCount * 1000.0f / cycleTime;
+            GameState::frameMs = static_cast<float>(cycleTime) / GameState::frameCount;  // average ms per frame
+            GameState::frameCount = 0;
+            GameState::lastFrameTime = currentTime;
+        }
+
         // Poll controls and advance source state once per top-screen refresh.
         // Submit once per presentation slot. FrameBegin below retires
         // the prior GPU queue without inserting a second VBlank wait.
