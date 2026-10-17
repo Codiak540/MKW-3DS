@@ -38,7 +38,8 @@ Prix award ceremony. Not yet: Mirror, online play.
 - [Python 3.11+](https://www.python.org/downloads/) and [Node.js LTS](https://nodejs.org)
 - [Git](https://git-scm.com)
 - macOS: Xcode command line tools (`xcode-select --install`)
-- Linux and Windows: a C++ compiler (`clang` or `g++`; on Linux `sudo apt install clang`)
+- No C++ compiler needed: the Old 3DS step uses yours if it works, otherwise
+  it downloads Zig once (50–95 MB) into `.toolchain/`.
 
 ## Building
 

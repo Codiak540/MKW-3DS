@@ -51,6 +51,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'tools'))
 from cook_o3ds_textures import Assets  # noqa: E402
+from host_cxx import MISSING, find_host_cxx  # noqa: E402
 
 # Coconut Mall's main mesh smears shop-front texture across the outdoor arch
 # when reduced, for 7% fewer triangles (docs/o3ds-lowpoly.md): it stays authored.
@@ -58,6 +59,8 @@ EXCLUDED_LEVELS = ('course_05_000',)
 LEVEL_ERROR = '600'        # level cook bound, course units
 GUARD_ROUNDS = 8           # piece guard: cook again until no piece is lost
 LANDMARK_RATIO = '0.4'
+# In the package folder when the visibility stage was skipped (no C++ compiler).
+VISIBILITY_SKIPPED = 'visibility-skipped.txt'
 LANDMARKS = ROOT / 'tools' / 'o3ds' / 'landmarks.txt'
 
 # The tools each stage runs (as programs, so tools/release/build_cia.py reads
@@ -133,8 +136,11 @@ def package_listing(package):
         r = listing()
     if r.returncode:
         raise SystemExit(r.stderr.strip()[-2000:] + '\ntools/package_sd.py --list failed')
+    # o3ds.pak is the previous overlay, rewritten by every listing: as an
+    # input it would make every stage look stale, so a stopped cook could
+    # never resume.
     return {rel: src for rel, src in json.loads(r.stdout).items()
-            if re.fullmatch(r'models/[^/]+|textures/[^/]+|[^/]+\.pak', rel)}
+            if re.fullmatch(r'models/[^/]+|textures/[^/]+|[^/]+\.pak', rel) and rel != 'o3ds.pak'}
 
 
 def input_digest(c):
@@ -302,19 +308,40 @@ def stage(c):
 
 
 def visibility(c):
+    if not find_host_cxx():
+        # Its rasterizer is C++ (tools/host_cxx.py: no compiler worked and Zig
+        # could not be downloaded). The overlay ships without visibility files
+        # (the game then draws without that culling); final() leaves
+        # VISIBILITY_SKIPPED so the CIA builder adds them on a later build.
+        for d in ('pvs', 'ovis'):
+            c.path(d, 'models', 'pvs').mkdir(parents=True, exist_ok=True)
+        print(f'  visibility skipped: {MISSING}; everything else is built')
+        return
     # Visibility fingerprints cover the staged overlay's geometry and index order.
     folder = staged_models(c)
-    (folder / 'o3ds').symlink_to((c.package / 'models' / 'o3ds').resolve())
+    # Windows needs a folder link marked as one.
+    (folder / 'o3ds').symlink_to((c.package / 'models' / 'o3ds').resolve(), target_is_directory=True)
     for tool, out in (('build_o3ds_pvs.py', 'pvs'), ('build_o3ds_object_pvs.py', 'ovis')):
         shutil.rmtree(c.path(out), ignore_errors=True)
-        c.run('visibility', [sys.executable, f'tools/{tool}', '--models', folder, '--assets', c.sources / 'courses',
-                             '--out', c.path(out, 'models', 'pvs')])
+        try:
+            c.run('visibility', [sys.executable, f'tools/{tool}', '--models', folder, '--assets', c.sources / 'courses',
+                                 '--out', c.path(out, 'models', 'pvs')])
+        except SystemExit as error:
+            # The overlay ships without visibility files rather than stopping the build.
+            print(f'{error}\n  visibility left out: {tool} failed; everything else is built')
+            for d in ('pvs', 'ovis'):
+                shutil.rmtree(c.path(d), ignore_errors=True)
+                c.path(d, 'models', 'pvs').mkdir(parents=True, exist_ok=True)
+            return
         # Per-camera rasters (the bulk of the output); the sidecars stay.
         shutil.rmtree(c.path(out, 'models', 'work'), ignore_errors=True)
 
 
 def final(c):
     c.run('final', stage_command(c))
+    # The stage rewrote the package folder; package_sd.py ships only what the receipt lists.
+    if not find_host_cxx():
+        (c.package / VISIBILITY_SKIPPED).write_text(f'Visibility files left out: {MISSING}.\n')
     receipt = json.loads((c.package / 'o3ds-lowpoly-receipt.json').read_text())
     built = {p.name for d in ('pvs', 'ovis') for p in c.path(d, 'models', 'pvs').glob('*') if p.suffix in ('.pvs', '.opvs')}
     stale = sorted(built - set(receipt['pvs']))
@@ -337,7 +364,9 @@ STAGES = [
 
 
 def stage_key(c, name):
-    digest = hashlib.sha256(json.dumps([name, c.settings, c.inputs]).encode())
+    # Visibility without a compiler is a skip: installing one makes it run.
+    skip = ['no compiler'] if name == 'visibility' and not find_host_cxx() else []
+    digest = hashlib.sha256(json.dumps([name, c.settings, c.inputs] + skip).encode())
     for rel in COOK_SOURCES[name]:
         digest.update(rel.encode() + b'\0' + (ROOT / rel).read_bytes().replace(b'\r\n', b'\n'))
     return digest.hexdigest()
