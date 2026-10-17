@@ -49,6 +49,9 @@ struct DrawBatch {
     u8 constant[6][4];
     u8 cull; // 0 none, 1 GX front, 2 GX back
     u8 alphaRef0,alphaRef1;
+    // 1: a GPU triangle strip (tube stripes: segments joined by repeated
+    // vertices into zero-area triangles); 0: a triangle list.
+    u8 strip;
 };
 // GPU_TRIANGLES draws must contain whole triangles, including a batch clipped at
 // the end of a fixed GPU buffer. Shared with the host overflow regression.
@@ -57,7 +60,13 @@ constexpr size_t triangleVertexCount(size_t requested,size_t available){
     return count-count%3;
 }
 constexpr u32 drawBatchVertexCount(const DrawBatch& batch,size_t vertexCount){
-    return batch.first<vertexCount?u32(triangleVertexCount(batch.count,vertexCount-batch.first)):0;
+    if(batch.first>=vertexCount)return 0;
+    if(batch.strip){
+        // Every prefix of a strip is whole triangles.
+        const size_t available=vertexCount-batch.first,count=batch.count<available?batch.count:available;
+        return count>=3?u32(count):0;
+    }
+    return u32(triangleVertexCount(batch.count,vertexCount-batch.first));
 }
 struct TextureSize { u16 width,height,paddedWidth,paddedHeight; };
 struct DrawList {

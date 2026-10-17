@@ -1,0 +1,230 @@
+{
+ "build": "build/mkw-3ds.3dsx (branch o3ds-asset-gpu, --external-assets)",
+ "emulator": "Azahar 2126.2, Old 3DS, frame_limit unlimited, lockstep race-capture every 20 ticks",
+ "inputPackage": "build/o3ds-base-package = build/o3ds-lowpoly-package @ 2026-10-15T23:10:03Z",
+ "runs": {
+  "base-coconut": {
+   "status": "done",
+   "captures": 92,
+   "autoplay": {
+    "pass": true,
+    "races": 1,
+    "failure": ""
+   },
+   "models": "build/o3ds-base-package/models/o3ds",
+   "textures": "build/o3ds-base-package/textures/o3ds",
+   "perf": {
+    "frames": 837,
+    "draws": 107.5209,
+    "triangles": 23042.9391,
+    "culled_triangles": 5457.405,
+    "culled_submeshes": 58.0992,
+    "draw_elements_calls": 110.4397,
+    "model_variants_loaded": 157.0,
+    "model_variant_fallbacks": 12.0
+   }
+  },
+  "base-daisy": {
+   "status": "done",
+   "captures": 92,
+   "autoplay": {
+    "pass": true,
+    "races": 1,
+    "failure": ""
+   },
+   "models": "build/o3ds-base-package/models/o3ds",
+   "textures": "build/o3ds-base-package/textures/o3ds",
+   "perf": {
+    "frames": 837,
+    "draws": 83.0621,
+    "triangles": 21412.5424,
+    "culled_triangles": 7011.7682,
+    "culled_submeshes": 70.9104,
+    "draw_elements_calls": 85.1302,
+    "model_variants_loaded": 149.0,
+    "model_variant_fallbacks": 1.0
+   }
+  },
+  "base-luigi-1": {
+   "status": "done",
+   "captures": 92,
+   "autoplay": {
+    "pass": true,
+    "races": 1,
+    "failure": ""
+   },
+   "models": "build/o3ds-base-package/models/o3ds",
+   "textures": "build/o3ds-base-package/textures/o3ds",
+   "perf": {
+    "frames": 837,
+    "draws": 88.7264,
+    "triangles": 14810.8877,
+    "culled_triangles": 2271.4265,
+    "culled_submeshes": 17.2569,
+    "draw_elements_calls": 89.8148,
+    "model_variants_loaded": 146.0,
+    "model_variant_fallbacks": 1.0
+   }
+  },
+  "base-luigi-2": {
+   "status": "done",
+   "captures": 92,
+   "autoplay": {
+    "pass": true,
+    "races": 1,
+    "failure": ""
+   },
+   "models": "build/o3ds-base-package/models/o3ds",
+   "textures": "build/o3ds-base-package/textures/o3ds",
+   "perf": {
+    "frames": 837,
+    "draws": 88.7264,
+    "triangles": 14809.773,
+    "culled_triangles": 2271.3978,
+    "culled_submeshes": 17.2497,
+    "draw_elements_calls": 89.8172,
+    "model_variants_loaded": 146.0,
+    "model_variant_fallbacks": 1.0
+   }
+  },
+  "mips-luigi": {
+   "status": "done",
+   "captures": 92,
+   "autoplay": {
+    "pass": true,
+    "races": 1,
+    "failure": ""
+   },
+   "models": "build/o3ds-coursetex-mips/models/o3ds",
+   "textures": "build/o3ds-coursetex-mips/textures/o3ds",
+   "perf": {
+    "frames": 837,
+    "draws": 88.7192,
+    "triangles": 14809.8901,
+    "culled_triangles": 2271.405,
+    "culled_submeshes": 17.2509,
+    "draw_elements_calls": 89.8088,
+    "model_variants_loaded": 146.0,
+    "model_variant_fallbacks": 1.0
+   }
+  },
+  "vcache-coconut": {
+   "status": "done",
+   "captures": 92,
+   "autoplay": {
+    "pass": true,
+    "races": 1,
+    "failure": ""
+   },
+   "models": "build/o3ds-vcache-package/models/o3ds",
+   "textures": "build/o3ds-base-package/textures/o3ds",
+   "perf": {
+    "frames": 837,
+    "draws": 107.5125,
+    "triangles": 23040.4588,
+    "culled_triangles": 5457.2521,
+    "culled_submeshes": 58.0992,
+    "draw_elements_calls": 110.4313,
+    "model_variants_loaded": 157.0,
+    "model_variant_fallbacks": 12.0
+   }
+  },
+  "vcache-daisy": {
+   "status": "done",
+   "captures": 92,
+   "autoplay": {
+    "pass": true,
+    "races": 1,
+    "failure": ""
+   },
+   "models": "build/o3ds-vcache-package/models/o3ds",
+   "textures": "build/o3ds-base-package/textures/o3ds",
+   "perf": {
+    "frames": 837,
+    "draws": 83.0753,
+    "triangles": 21413.6141,
+    "culled_triangles": 7011.8112,
+    "culled_submeshes": 70.914,
+    "draw_elements_calls": 85.1434,
+    "model_variants_loaded": 149.0,
+    "model_variant_fallbacks": 1.0
+   }
+  },
+  "vcache-luigi-1": {
+   "status": "done",
+   "captures": 92,
+   "autoplay": {
+    "pass": true,
+    "races": 1,
+    "failure": ""
+   },
+   "models": "build/o3ds-vcache-package/models/o3ds",
+   "textures": "build/o3ds-base-package/textures/o3ds",
+   "perf": {
+    "frames": 837,
+    "draws": 88.7145,
+    "triangles": 14809.2963,
+    "culled_triangles": 2271.5269,
+    "culled_submeshes": 17.2509,
+    "draw_elements_calls": 89.8208,
+    "model_variants_loaded": 146.0,
+    "model_variant_fallbacks": 1.0
+   }
+  }
+ },
+ "comparisons": {
+  "base-luigi-2": {
+   "a": "base-luigi-1",
+   "b": "base-luigi-2",
+   "frames": 92,
+   "identical": 92,
+   "different": 0,
+   "missing": 0,
+   "maxPixels": 0
+  },
+  "mips-luigi": {
+   "a": "base-luigi-1",
+   "b": "mips-luigi",
+   "frames": 92,
+   "identical": 48,
+   "different": 44,
+   "missing": 0,
+   "maxPixels": 960
+  },
+  "vcache-coconut": {
+   "a": "base-coconut",
+   "b": "vcache-coconut",
+   "frames": 92,
+   "identical": 92,
+   "different": 0,
+   "missing": 0,
+   "maxPixels": 0
+  },
+  "vcache-daisy": {
+   "a": "base-daisy",
+   "b": "vcache-daisy",
+   "frames": 92,
+   "identical": 92,
+   "different": 0,
+   "missing": 0,
+   "maxPixels": 0
+  },
+  "vcache-luigi-1": {
+   "a": "base-luigi-1",
+   "b": "vcache-luigi-1",
+   "frames": 92,
+   "identical": 92,
+   "different": 0,
+   "missing": 0,
+   "maxPixels": 0
+  },
+  "unrestricted-reorder-luigi (superseded, pre-freeze run)": {
+   "a": "base (package 21:57)",
+   "b": "reorder without the bone rule",
+   "frames": 92,
+   "identical": 46,
+   "different": 46,
+   "pixelsPerFrame": "25..1205, median 34 (top screen only; drivers and karts)"
+  }
+ }
+}

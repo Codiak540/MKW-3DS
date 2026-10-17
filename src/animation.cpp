@@ -2,6 +2,7 @@
 #include <mkw/render_metrics.hpp>
 #include <mkw/asset_pack.hpp>
 #include "mkw/pose_blend.hpp"
+#include "mkw/model_variant.hpp"
 #include <3ds.h>
 #include <cstdio>
 #include <cstring>
@@ -26,7 +27,7 @@ static uint8_t* allocateBank(size_t size,bool& linear){
     if(linear)if(void* p=linearAlloc(size))return static_cast<uint8_t*>(p);
     linear=false;return static_cast<uint8_t*>(std::aligned_alloc(16,(size+15)&~size_t(15)));
 }
-void DriverAnimation::reset(){if(data_){if(dataLinear_)linearFree(data_);else std::free(data_);}data_=nullptr;ready=false;rigidParts_.clear();count_=faceCount_=hairNodeCount_=hairClipCount_=uvClipCount_=0;baseUV_.clear();lastClip_=-1;hasPreviousPose_=false;cachedVertices_=nullptr;cachedSettled_=false;poseBoundsValid_=false;usedMatrices_.fill(false);neutralUv_=nullptr;uvBuffer_=nullptr;uvNeutral_=true;shared_={};handleDrive_=dash_=shake_=-1;gpu_=false;shapeHidden_.fill(false);}
+void DriverAnimation::reset(){if(data_){if(dataLinear_)linearFree(data_);else std::free(data_);}data_=nullptr;ready=false;rigidParts_.clear();count_=faceCount_=hairNodeCount_=hairClipCount_=uvClipCount_=0;baseUV_.clear();lastClip_=-1;hasPreviousPose_=false;cachedVertices_=nullptr;cachedSettled_=false;poseBoundsValid_=false;poseApplied_=false;usedMatrices_.fill(false);neutralUv_=nullptr;uvBuffer_=nullptr;uvNeutral_=true;shared_={};handleDrive_=dash_=shake_=-1;gpu_=false;shapeHidden_.fill(false);}
 bool DriverAnimation::gpuSkin(Model& model){
     if(!ready||gpu_||matrices_>Renderer::MaxSkinBones||vertices_!=model.vertexCount)return false;
     if(skinNormals_){
@@ -41,7 +42,7 @@ bool DriverAnimation::gpuSkin(Model& model){
     }
     if(skinNormals_)flushGpuData(model.skinBoneIndices,vertices_*sizeof(float));
     flushGpuData(model.vertices,vertices_*sizeof(Vertex));
-    shapeHidden_.fill(false);cachedVertices_=nullptr;cachedSettled_=false;uvBuffer_=nullptr;uvNeutral_=true;
+    shapeHidden_.fill(false);cachedVertices_=nullptr;cachedSettled_=false;poseApplied_=false;uvBuffer_=nullptr;uvNeutral_=true;
     uvDisjoint_=true;
     for(unsigned i=0;i<shapes_;++i)for(unsigned j=i+1;j<shapes_;++j)
         if(ranges_[i].count&&ranges_[j].count&&ranges_[i].first<ranges_[j].first+ranges_[j].count&&ranges_[j].first<ranges_[i].first+ranges_[i].count)uvDisjoint_=false;
@@ -89,7 +90,7 @@ bool DriverAnimation::load(const char* path,const Model& model){
     auto u32=[](const uint8_t* p){uint32_t v;std::memcpy(&v,p,4);return v;};
     if(!ok||std::memcmp(data_,"DSKM",4)||u32(data_+4)<2||u32(data_+4)>5){reset();return false;}
     vertices_=u32(data_+8);matrices_=u32(data_+12);count_=u32(data_+16);shapes_=u32(data_+20);faceCount_=u32(data_+24);
-    if(vertices_!=model.vertexCount||!matrices_||matrices_>128||!count_||count_>64||shapes_>64||faceCount_>64||model.submeshes.size()>64){reset();return false;}
+    if(vertices_!=model.animationVertexCount()||!matrices_||matrices_>128||!count_||count_>64||shapes_>64||faceCount_>64||model.submeshes.size()>64){reset();return false;}
     size_t cursor=28;
     int32_t rootSlot=-2;
     if(u32(data_+4)==5){
@@ -101,11 +102,6 @@ bool DriverAnimation::load(const char* path,const Model& model){
     ranges_=reinterpret_cast<const Range*>(data_+cursor);cursor+=shapes_*sizeof(Range);
     if(cursor>size){reset();return false;}
     for(unsigned i=0;i<vertices_;++i)if(source_[i].matrix>=matrices_){reset();return false;}
-    for(unsigned i=0;i<vertices_;++i){
-        const auto& v=source_[i];Vec3 p{v.p[0],v.p[1],v.p[2]};
-        if(!usedMatrices_[v.matrix]){sourceBounds_[v.matrix]={p,p};usedMatrices_[v.matrix]=true;}
-        else sourceBounds_[v.matrix].include(p);
-    }
     for(unsigned i=0;i<shapes_;++i)if(ranges_[i].first>vertices_||ranges_[i].count>vertices_-ranges_[i].first){reset();return false;}
     for(unsigned bank=0;bank<2;++bank)for(unsigned i=0;i<(bank?faceCount_:count_);++i){
         if(cursor+44>size){reset();return false;}auto& c=(bank?faces_:clips_)[i];std::memcpy(c.name,data_+cursor,32);c.name[31]=0;
@@ -141,8 +137,6 @@ bool DriverAnimation::load(const char* path,const Model& model){
             if(!c.count||c.count>2000||c.duration!=c.count){reset();return false;}
             cursor+=size_t(c.count)*shapes_*24;if(cursor>size){reset();return false;}
         }
-        baseUV_.resize(vertices_);
-        for(unsigned i=0;i<vertices_;++i)baseUV_[i]={model.vertices[i].uv[0],model.vertices[i].uv[1]};
     }
     // DSKM5 appends translation tracks only for a root outside the palette.
     // Ordinary skin/face/hair/UV payloads retain their previous layout.
@@ -156,6 +150,23 @@ bool DriverAnimation::load(const char* path,const Model& model){
         }
     }
     if(cursor!=size){reset();return false;}
+    for(unsigned i=0;i<shapes_;++i)authoredRanges_[i]=ranges_[i];
+    if(!model.sourceVertexRemap.empty()){
+        if(!compactModelAnimation(const_cast<SourceVertex*>(source_),vertices_,const_cast<Range*>(ranges_),shapes_,model.sourceVertexRemap,model.sourceVertexRepeats)){reset();return false;}
+        vertices_=model.vertexCount;
+        if(!applySkinPositions(const_cast<SourceVertex*>(source_),vertices_,model.sourceSkinPositions)){reset();return false;}
+    }
+    // All original bank bytes were validated before its mutable load buffer was
+    // compacted. Poses, UV/visibility and facial texture tracks remain authored.
+    for(unsigned i=0;i<vertices_;++i){
+        const auto& v=source_[i];Vec3 p{v.p[0],v.p[1],v.p[2]};
+        if(!usedMatrices_[v.matrix]){sourceBounds_[v.matrix]={p,p};usedMatrices_[v.matrix]=true;}
+        else sourceBounds_[v.matrix].include(p);
+    }
+    if(u32(data_+4)>=4){
+        baseUV_.resize(vertices_);
+        for(unsigned i=0;i<vertices_;++i)baseUV_[i]={model.vertices[i].uv[0],model.vertices[i].uv[1]};
+    }
     for(unsigned i=0;i<model.submeshes.size();++i)baseTextures_[i]=model.submeshes[i].texture;
     handleDrive_=find("handle_drive");dash_=find("dash");shake_=find("shake");
     return ready=true;
@@ -235,6 +246,26 @@ void DriverAnimation::applyHair(const Clip& primary,unsigned tick){
     }
     for(unsigned i=0;i<hairNodeCount_;++i)std::memcpy(palette_.data()+hairNodes_[i].matrix*21,corrected.data()+i*21,84);
 }
+bool DriverAnimation::poseVisible(const ClipFrustum* frustum){
+    if(!frustum)return true;
+    if(!poseBoundsValid_){
+        // Matrix-local vertex AABBs conservatively contain every skinned
+        // vertex, including fractional samples, transition blends and hair.
+        poseBounds_={{0,0,0},{0,0,0}};
+        for(unsigned i=0;i<matrices_;++i)if(usedMatrices_[i]){
+            auto b=transformBoundsPadded(sourceBounds_[i],palette_.data()+i*21);
+            poseBounds_.include(b.minimum);poseBounds_.include(b.maximum);
+        }
+        poseBoundsValid_=true;
+    }
+    return frustum->intersects(poseBounds_);
+}
+bool DriverAnimation::keepPose(const ClipFrustum* frustum,unsigned tick,bool& visible){
+    if(!ready||!poseApplied_||tick-appliedTick_>KeepTicks)return false;
+    ++renderMetrics.poseReuses;
+    visible=poseVisible(frustum);
+    return true;
+}
 bool DriverAnimation::apply(Model& model,int clip,float frame,unsigned tick,int expression,float expressionFrame,const ClipFrustum* frustum){
     if(!ready||clip<0||unsigned(clip)>=count_)return true;
     auto sample=[](const Clip& c,float t){return c.loop?std::fmod(std::max(t,0.f),float(c.count)):std::clamp(t,0.f,float(c.count-1));};
@@ -242,27 +273,14 @@ bool DriverAnimation::apply(Model& model,int clip,float frame,unsigned tick,int 
     if(lastClip_!=clip){hasPreviousPose_=lastClip_>=0;previousPalette_=palette_;transitionTick_=tick;lastClip_=clip;}
     float blend=hasPreviousPose_?std::clamp(float(tick-transitionTick_+1)/6.f,0.f,1.f):1.f;
     const float faceFrame=expression>=0&&unsigned(expression)<faceCount_?sample(faces_[expression],expressionFrame):0.f;
-    auto poseVisible=[&](){
-        if(!frustum)return true;
-        if(!poseBoundsValid_){
-            // Matrix-local vertex AABBs conservatively contain every skinned
-            // vertex, including fractional samples, transition blends and hair.
-            poseBounds_={{0,0,0},{0,0,0}};
-            for(unsigned i=0;i<matrices_;++i)if(usedMatrices_[i]){
-                auto b=transformBoundsPadded(sourceBounds_[i],palette_.data()+i*21);
-                poseBounds_.include(b.minimum);poseBounds_.include(b.maximum);
-            }
-            poseBoundsValid_=true;
-        }
-        return frustum->intersects(poseBounds_);
-    };
     if(cachedSettled_&&blend>=1&&cachedVertices_==model.vertices&&cachedClip_==clip&&
        cachedFrame_==frame&&cachedExpression_==expression&&cachedExpressionFrame_==faceFrame&&
-       (!hairClipCount_||cachedTick_==tick)){++renderMetrics.poseReuses;return poseVisible();}
+       (!hairClipCount_||cachedTick_==tick)){++renderMetrics.poseReuses;if(poseApplied_)appliedTick_=tick;return poseVisible(frustum);}
     unsigned stride=matrices_*84+shapes_*4;
     evaluate(c,a,b,t,tick,blend);
     poseBoundsValid_=false;
-    if(!poseVisible()){cachedSettled_=false;return false;}
+    if(!poseVisible(frustum)){cachedSettled_=false;poseApplied_=false;return false;}
+    poseApplied_=true;appliedTick_=tick;
     ++renderMetrics.poseEvaluations;renderMetrics.skinnedVertices+=vertices_;
     cachedVertices_=model.vertices;cachedClip_=clip;cachedFrame_=frame;
     cachedExpression_=expression;cachedExpressionFrame_=faceFrame;cachedTick_=tick;cachedSettled_=blend>=1;
@@ -291,49 +309,71 @@ void DriverAnimation::write(Model& model,const uint32_t* shown,const int32_t* te
     if(gpu_){
         // The GPU applies palette_. Hidden shapes collapse to one point (no
         // fragments, as the CPU path's zeroed positions); writes only on change.
-        unsigned lo=vertices_,hi=0;
-        auto touch=[&](unsigned first,unsigned count){if(count){lo=std::min(lo,first);hi=std::max(hi,first+count);}};
-        for(unsigned i=0;i<shapes_;++i){
-            const bool hide=!shown[i];if(hide==shapeHidden_[i])continue;
-            for(unsigned j=ranges_[i].first;j<ranges_[i].first+ranges_[i].count;++j){
-                const auto& v=source_[j];model.vertices[j].position=hide?Vec3{0,0,0}:Vec3{v.p[0],v.p[1],v.p[2]};
-            }
-            shapeHidden_[i]=hide;touch(ranges_[i].first,ranges_[i].count);
+        // What this pose changes in the buffer: shapes whose visibility
+        // toggles, and UV0 when the expression's transforms differ from the
+        // buffer's. A pose that changes nothing leaves the buffer alone.
+        bool hideChange=false;
+        for(unsigned i=0;i<shapes_&&!hideChange;++i)hideChange=(!shown[i])!=shapeHidden_[i];
+        bool known=uvBuffer_==model.vertices;
+        bool uvChange=!known||(!uv&&!uvNeutral_)||(uv&&uvNeutral_);
+        if(!uvChange&&uv){
+            if(uvDisjoint_){for(unsigned j=0;j<shapes_&&!uvChange;++j)uvChange=std::memcmp(appliedUv_.data()+j*6,uv+j*6,24)!=0;}
+            else uvChange=std::memcmp(appliedUv_.data(),uv,shapes_*24)!=0;
         }
-        // UV0 = baseUV_ outside the shape ranges and each shape's transform of
-        // baseUV_ inside its range (later shapes win). A buffer whose state
-        // is known rewrites only shapes whose 2x3 transform bits changed.
-        auto transform=[&](unsigned j){const auto* m=uv+j*6;
-            for(unsigned i=ranges_[j].first;i<ranges_[j].first+ranges_[j].count;++i){
-                const auto& p=baseUV_[i];model.vertices[i].uv[0]=m[0]*p[0]+m[1]*p[1]+m[2];model.vertices[i].uv[1]=m[3]*p[0]+m[4]*p[1]+m[5];
+        if(hideChange||uvChange){
+            // Pipelined frames write the model's other buffer (Model::beginWrite),
+            // whose content is two writes old: every shape and UV is rewritten.
+            if(model.beginWrite()){known=false;for(unsigned i=0;i<shapes_;++i)shapeHidden_[i]=shown[i]!=0;}
+            unsigned lo=vertices_,hi=0;
+            auto touch=[&](unsigned first,unsigned count){if(count){lo=std::min(lo,first);hi=std::max(hi,first+count);}};
+            for(unsigned i=0;i<shapes_;++i){
+                const bool hide=!shown[i];if(hide==shapeHidden_[i])continue;
+                for(unsigned j=ranges_[i].first;j<ranges_[i].first+ranges_[i].count;++j){
+                    const auto& v=source_[j];model.vertices[j].position=hide?Vec3{0,0,0}:Vec3{v.p[0],v.p[1],v.p[2]};
+                }
+                shapeHidden_[i]=hide;touch(ranges_[i].first,ranges_[i].count);
             }
-            touch(ranges_[j].first,ranges_[j].count);
-        };
-        const bool known=uvBuffer_==model.vertices;
-        if(!known||(!uv&&!uvNeutral_)){
-            for(unsigned i=0;i<baseUV_.size();++i){model.vertices[i].uv[0]=baseUV_[i][0];model.vertices[i].uv[1]=baseUV_[i][1];}
-            touch(0,unsigned(baseUV_.size()));
-            if(uv)for(unsigned j=0;j<shapes_;++j)transform(j);
-        }else if(uv&&uvNeutral_){
-            for(unsigned j=0;j<shapes_;++j)transform(j);
-        }else if(uv){
-            if(uvDisjoint_){for(unsigned j=0;j<shapes_;++j)if(std::memcmp(appliedUv_.data()+j*6,uv+j*6,24))transform(j);}
-            else if(std::memcmp(appliedUv_.data(),uv,shapes_*24))for(unsigned j=0;j<shapes_;++j)transform(j);
+            // UV0 = baseUV_ outside the shape ranges and each shape's transform of
+            // baseUV_ inside its range (later shapes win). A buffer whose state
+            // is known rewrites only shapes whose 2x3 transform bits changed.
+            auto transform=[&](unsigned j){const auto* m=uv+j*6;
+                for(unsigned i=ranges_[j].first;i<ranges_[j].first+ranges_[j].count;++i){
+                    const auto& p=baseUV_[i];model.vertices[i].uv[0]=m[0]*p[0]+m[1]*p[1]+m[2];model.vertices[i].uv[1]=m[3]*p[0]+m[4]*p[1]+m[5];
+                }
+                touch(ranges_[j].first,ranges_[j].count);
+            };
+            if(!known||(!uv&&!uvNeutral_)){
+                for(unsigned i=0;i<baseUV_.size();++i){model.vertices[i].uv[0]=baseUV_[i][0];model.vertices[i].uv[1]=baseUV_[i][1];}
+                touch(0,unsigned(baseUV_.size()));
+                if(uv)for(unsigned j=0;j<shapes_;++j)transform(j);
+            }else if(uv&&uvNeutral_){
+                for(unsigned j=0;j<shapes_;++j)transform(j);
+            }else if(uv){
+                if(uvDisjoint_){for(unsigned j=0;j<shapes_;++j)if(std::memcmp(appliedUv_.data()+j*6,uv+j*6,24))transform(j);}
+                else if(std::memcmp(appliedUv_.data(),uv,shapes_*24))for(unsigned j=0;j<shapes_;++j)transform(j);
+            }
+            if(uv)std::memcpy(appliedUv_.data(),uv,shapes_*24);
+            uvBuffer_=model.vertices;uvNeutral_=!uv;
+            if(hi>lo)flushGpuData(model.vertices+lo,(hi-lo)*sizeof(Vertex));
         }
-        if(uv)std::memcpy(appliedUv_.data(),uv,shapes_*24);
-        uvBuffer_=model.vertices;uvNeutral_=!uv;
-        for(unsigned i=0;i<model.submeshes.size();++i){auto& sub=model.submeshes[i];sub.texture=baseTextures_[i];if(textures)for(unsigned j=0;j<shapes_;++j)if(sub.first>=ranges_[j].first&&sub.first<ranges_[j].first+ranges_[j].count&&textures[j]>=0&&unsigned(textures[j])<model.textures.size()){sub.texture=textures[j];break;}}
-        if(hi>lo)flushGpuData(model.vertices+lo,(hi-lo)*sizeof(Vertex));
+        for(unsigned i=0;i<model.submeshes.size();++i){auto& sub=model.submeshes[i];sub.texture=baseTextures_[i];if(textures)for(unsigned j=0;j<shapes_;++j)if(model.animationShapeFirst(i)>=authoredRanges_[j].first&&model.animationShapeFirst(i)<authoredRanges_[j].first+authoredRanges_[j].count&&textures[j]>=0&&unsigned(textures[j])<model.textures.size()){sub.texture=textures[j];break;}}
         return;
     }
+    // CPU skinning rewrites every position (and lit normal); UVs are restored
+    // below unless this buffer is known neutral. Pipelined frames write the
+    // model's other buffer.
+    model.beginWrite();
     if(!skinNormals_&&shared_.ready()){
+        renderMetrics.cpuSkinnedVertices+=unsigned(shared_.first.size());
         auto& unique=sharedPositionScratch();
         for(unsigned u=0;u<shared_.first.size();++u){
             const auto& v=source_[shared_.first[u]];auto m=palette+v.matrix*21;
             unique[u]={m[0]*v.p[0]+m[1]*v.p[1]+m[2]*v.p[2]+m[3],m[4]*v.p[0]+m[5]*v.p[1]+m[6]*v.p[2]+m[7],m[8]*v.p[0]+m[9]*v.p[1]+m[10]*v.p[2]+m[11]};
         }
         for(unsigned i=0;i<vertices_;++i)model.vertices[i].position=unique[shared_.of[i]];
-    }else for(unsigned i=0;i<vertices_;++i){
+    }else {
+      renderMetrics.cpuSkinnedVertices+=vertices_;
+      for(unsigned i=0;i<vertices_;++i){
         const auto& v=source_[i];auto m=palette+v.matrix*21;
         Vec3 p{m[0]*v.p[0]+m[1]*v.p[1]+m[2]*v.p[2]+m[3],m[4]*v.p[0]+m[5]*v.p[1]+m[6]*v.p[2]+m[7],m[8]*v.p[0]+m[9]*v.p[1]+m[10]*v.p[2]+m[11]};
         model.vertices[i].position=p;
@@ -341,6 +381,7 @@ void DriverAnimation::write(Model& model,const uint32_t* shown,const int32_t* te
             Vec3 n{m[12]*v.n[0]+m[13]*v.n[1]+m[14]*v.n[2],m[15]*v.n[0]+m[16]*v.n[1]+m[17]*v.n[2],m[18]*v.n[0]+m[19]*v.n[1]+m[20]*v.n[2]};
             model.vertices[i].normal=normalized(n);
         }
+      }
     }
     for(unsigned i=0;i<shapes_;++i)if(!shown[i])for(unsigned j=ranges_[i].first;j<ranges_[i].first+ranges_[i].count;++j)model.vertices[j].position={0,0,0};
     // Always restore neutral UVs first: blinking or leaving reverse must not
@@ -354,7 +395,7 @@ void DriverAnimation::write(Model& model,const uint32_t* shown,const int32_t* te
         }
     }
     neutralUv_=uv?nullptr:model.vertices;
-    for(unsigned i=0;i<model.submeshes.size();++i){auto& sub=model.submeshes[i];sub.texture=baseTextures_[i];if(textures)for(unsigned j=0;j<shapes_;++j)if(sub.first>=ranges_[j].first&&sub.first<ranges_[j].first+ranges_[j].count&&textures[j]>=0&&unsigned(textures[j])<model.textures.size()){sub.texture=textures[j];break;}}
+    for(unsigned i=0;i<model.submeshes.size();++i){auto& sub=model.submeshes[i];sub.texture=baseTextures_[i];if(textures)for(unsigned j=0;j<shapes_;++j)if(model.animationShapeFirst(i)>=authoredRanges_[j].first&&model.animationShapeFirst(i)<authoredRanges_[j].first+authoredRanges_[j].count&&textures[j]>=0&&unsigned(textures[j])<model.textures.size()){sub.texture=textures[j];break;}}
     flushGpuData(model.vertices,vertices_*sizeof(Vertex));
 }
 const float* DriverAnimation::pose(int clip,float frame,unsigned tick){

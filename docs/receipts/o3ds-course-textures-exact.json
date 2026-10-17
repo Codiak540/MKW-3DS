@@ -1,0 +1,126 @@
+{
+ "mode": "exact",
+ "package": "build/o3ds-base-package",
+ "totals": {
+  "siblings": 8,
+  "bytesBefore": 8192,
+  "bytesAfter": 4096,
+  "models": 8,
+  "skippedModels": 23
+ },
+ "skipped": {
+  "course_00_000": "UV0 outside the O3RM v2 range",
+  "course_01_000": "UV0 outside the O3RM v2 range",
+  "course_02_000": "UV0 outside the O3RM v2 range",
+  "course_03_000": "UV0 outside the O3RM v2 range",
+  "course_05_000": "UV0 outside the O3RM v2 range",
+  "course_08_000": "UV0 outside the O3RM v2 range",
+  "course_09_000": "UV0 outside the O3RM v2 range",
+  "course_10_000": "UV0 outside the O3RM v2 range",
+  "course_11_000": "UV0 outside the O3RM v2 range",
+  "course_13_000": "UV0 outside the O3RM v2 range",
+  "course_14_000": "UV0 outside the O3RM v2 range",
+  "course_16_000": "UV0 outside the O3RM v2 range",
+  "course_17_000": "UV0 outside the O3RM v2 range",
+  "course_18_000": "UV0 outside the O3RM v2 range",
+  "course_21_000": "UV0 outside the O3RM v2 range",
+  "course_22_000": "UV0 outside the O3RM v2 range",
+  "course_26_000": "UV0 outside the O3RM v2 range",
+  "course_28_000": "UV0 outside the O3RM v2 range",
+  "course_29_000": "UV0 outside the O3RM v2 range",
+  "course_30_000": "UV0 outside the O3RM v2 range",
+  "obj04_beltcrossing__beltcrossing_000": "UV0 outside the O3RM v2 range",
+  "obj04_beltcrossing__beltcrossing_low_000": "UV0 outside the O3RM v2 range",
+  "obj16_psea__psea4tex_000": "UV0 outside the O3RM v2 range"
+ },
+ "textures": {
+  "course_04_005": {
+   "status": "exact",
+   "sibling": "course_04_005_o3d65f9a5c",
+   "bytesBefore": 1024,
+   "bytesAfter": 512,
+   "levels": 0,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "course_06_008": {
+   "status": "exact",
+   "sibling": "course_06_008_o3d65f9a5c",
+   "bytesBefore": 1024,
+   "bytesAfter": 512,
+   "levels": 0,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "course_07_003": {
+   "status": "exact",
+   "sibling": "course_07_003_o3d65f9a5c",
+   "bytesBefore": 1024,
+   "bytesAfter": 512,
+   "levels": 0,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "course_12_004": {
+   "status": "exact",
+   "sibling": "course_12_004_o3d65f9a5c",
+   "bytesBefore": 1024,
+   "bytesAfter": 512,
+   "levels": 0,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "course_15_003": {
+   "status": "exact",
+   "sibling": "course_15_003_o3d65f9a5c",
+   "bytesBefore": 1024,
+   "bytesAfter": 512,
+   "levels": 0,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "course_20_002": {
+   "status": "exact",
+   "sibling": "course_20_002_o3d65f9a5c",
+   "bytesBefore": 1024,
+   "bytesAfter": 512,
+   "levels": 0,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "course_27_002": {
+   "status": "exact",
+   "sibling": "course_27_002_o3d65f9a5c",
+   "bytesBefore": 1024,
+   "bytesAfter": 512,
+   "levels": 0,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj13_aurora_001": {
+   "status": "exact",
+   "sibling": "obj13_aurora_001_o3d65f9a5c",
+   "bytesBefore": 1024,
+   "bytesAfter": 512,
+   "levels": 0,
+   "size": [
+    32,
+    32
+   ]
+  }
+ }
+}

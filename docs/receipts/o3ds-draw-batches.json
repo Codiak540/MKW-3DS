@@ -1,0 +1,831 @@
+{
+ "package": "build/o3ds-base-package",
+ "courses": {
+  "Luigi Circuit": {
+   "track": {
+    "models": 1,
+    "draws": 22,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 22,
+    "triangles": 13266
+   },
+   "objects": {
+    "models": 13,
+    "draws": 140,
+    "adjacentRuns": 7,
+    "adjacentSaved": 117,
+    "sharedMaterialSaved": 117,
+    "sharedOpaqueSaved": 117,
+    "materials": 23,
+    "triangles": 1971
+   }
+  },
+  "Moo Moo Meadows": {
+   "track": {
+    "models": 1,
+    "draws": 25,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 25,
+    "triangles": 14141
+   },
+   "objects": {
+    "models": 11,
+    "draws": 18,
+    "adjacentRuns": 1,
+    "adjacentSaved": 1,
+    "sharedMaterialSaved": 1,
+    "sharedOpaqueSaved": 1,
+    "materials": 17,
+    "triangles": 1284
+   }
+  },
+  "Mushroom Gorge": {
+   "track": {
+    "models": 1,
+    "draws": 25,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 1,
+    "sharedOpaqueSaved": 1,
+    "materials": 24,
+    "triangles": 9738
+   },
+   "objects": {
+    "models": 11,
+    "draws": 17,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 17,
+    "triangles": 1984
+   }
+  },
+  "Toad's Factory": {
+   "track": {
+    "models": 1,
+    "draws": 21,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 21,
+    "triangles": 16380
+   },
+   "objects": {
+    "models": 31,
+    "draws": 63,
+    "adjacentRuns": 5,
+    "adjacentSaved": 12,
+    "sharedMaterialSaved": 12,
+    "sharedOpaqueSaved": 12,
+    "materials": 51,
+    "triangles": 5374
+   }
+  },
+  "Mario Circuit": {
+   "track": {
+    "models": 1,
+    "draws": 25,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 25,
+    "triangles": 12769
+   },
+   "objects": {
+    "models": 15,
+    "draws": 26,
+    "adjacentRuns": 1,
+    "adjacentSaved": 1,
+    "sharedMaterialSaved": 1,
+    "sharedOpaqueSaved": 1,
+    "materials": 25,
+    "triangles": 2049
+   }
+  },
+  "Coconut Mall": {
+   "track": {
+    "models": 1,
+    "draws": 26,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 26,
+    "triangles": 18143
+   },
+   "objects": {
+    "models": 27,
+    "draws": 108,
+    "adjacentRuns": 6,
+    "adjacentSaved": 66,
+    "sharedMaterialSaved": 66,
+    "sharedOpaqueSaved": 66,
+    "materials": 42,
+    "triangles": 4103
+   }
+  },
+  "DK Summit": {
+   "track": {
+    "models": 1,
+    "draws": 23,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 23,
+    "triangles": 13256
+   },
+   "objects": {
+    "models": 16,
+    "draws": 59,
+    "adjacentRuns": 5,
+    "adjacentSaved": 30,
+    "sharedMaterialSaved": 30,
+    "sharedOpaqueSaved": 24,
+    "materials": 29,
+    "triangles": 2819
+   }
+  },
+  "Wario's Gold Mine": {
+   "track": {
+    "models": 1,
+    "draws": 19,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 19,
+    "triangles": 16574
+   },
+   "objects": {
+    "models": 11,
+    "draws": 26,
+    "adjacentRuns": 1,
+    "adjacentSaved": 3,
+    "sharedMaterialSaved": 3,
+    "sharedOpaqueSaved": 3,
+    "materials": 23,
+    "triangles": 1510
+   }
+  },
+  "Daisy Circuit": {
+   "track": {
+    "models": 1,
+    "draws": 21,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 1,
+    "sharedOpaqueSaved": 1,
+    "materials": 20,
+    "triangles": 17484
+   },
+   "objects": {
+    "models": 18,
+    "draws": 165,
+    "adjacentRuns": 11,
+    "adjacentSaved": 134,
+    "sharedMaterialSaved": 134,
+    "sharedOpaqueSaved": 134,
+    "materials": 31,
+    "triangles": 9317
+   }
+  },
+  "Koopa Cape": {
+   "track": {
+    "models": 1,
+    "draws": 28,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 28,
+    "triangles": 18587
+   },
+   "objects": {
+    "models": 17,
+    "draws": 30,
+    "adjacentRuns": 2,
+    "adjacentSaved": 4,
+    "sharedMaterialSaved": 4,
+    "sharedOpaqueSaved": 4,
+    "materials": 26,
+    "triangles": 1819
+   }
+  },
+  "Maple Treeway": {
+   "track": {
+    "models": 1,
+    "draws": 18,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 18,
+    "triangles": 17186
+   },
+   "objects": {
+    "models": 13,
+    "draws": 22,
+    "adjacentRuns": 2,
+    "adjacentSaved": 3,
+    "sharedMaterialSaved": 3,
+    "sharedOpaqueSaved": 3,
+    "materials": 19,
+    "triangles": 2784
+   }
+  },
+  "Grumble Volcano": {
+   "track": {
+    "models": 1,
+    "draws": 31,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 31,
+    "triangles": 13176
+   },
+   "objects": {
+    "models": 23,
+    "draws": 116,
+    "adjacentRuns": 1,
+    "adjacentSaved": 1,
+    "sharedMaterialSaved": 1,
+    "sharedOpaqueSaved": 1,
+    "materials": 115,
+    "triangles": 5061
+   }
+  },
+  "Dry Dry Ruins": {
+   "track": {
+    "models": 1,
+    "draws": 21,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 21,
+    "triangles": 14486
+   },
+   "objects": {
+    "models": 14,
+    "draws": 26,
+    "adjacentRuns": 2,
+    "adjacentSaved": 4,
+    "sharedMaterialSaved": 4,
+    "sharedOpaqueSaved": 4,
+    "materials": 22,
+    "triangles": 2246
+   }
+  },
+  "Moonview Highway": {
+   "track": {
+    "models": 1,
+    "draws": 26,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 26,
+    "triangles": 17475
+   },
+   "objects": {
+    "models": 19,
+    "draws": 43,
+    "adjacentRuns": 1,
+    "adjacentSaved": 9,
+    "sharedMaterialSaved": 9,
+    "sharedOpaqueSaved": 9,
+    "materials": 34,
+    "triangles": 2877
+   }
+  },
+  "Bowser's Castle": {
+   "track": {
+    "models": 1,
+    "draws": 18,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 18,
+    "triangles": 22097
+   },
+   "objects": {
+    "models": 15,
+    "draws": 27,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 27,
+    "triangles": 3533
+   }
+  },
+  "Rainbow Road": {
+   "track": {
+    "models": 1,
+    "draws": 18,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 18,
+    "triangles": 19270
+   },
+   "objects": {
+    "models": 12,
+    "draws": 26,
+    "adjacentRuns": 2,
+    "adjacentSaved": 8,
+    "sharedMaterialSaved": 8,
+    "sharedOpaqueSaved": 8,
+    "materials": 18,
+    "triangles": 3436
+   }
+  },
+  "GCN Peach Beach": {
+   "track": {
+    "models": 1,
+    "draws": 14,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 14,
+    "triangles": 10421
+   },
+   "objects": {
+    "models": 18,
+    "draws": 33,
+    "adjacentRuns": 4,
+    "adjacentSaved": 6,
+    "sharedMaterialSaved": 6,
+    "sharedOpaqueSaved": 6,
+    "materials": 27,
+    "triangles": 6569
+   }
+  },
+  "DS Yoshi Falls": {
+   "track": {
+    "models": 1,
+    "draws": 21,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 21,
+    "triangles": 8963
+   },
+   "objects": {
+    "models": 4,
+    "draws": 11,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 11,
+    "triangles": 314
+   }
+  },
+  "SNES Ghost Valley 2": {
+   "track": {
+    "models": 1,
+    "draws": 8,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 8,
+    "triangles": 2028
+   },
+   "objects": {
+    "models": 11,
+    "draws": 15,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 15,
+    "triangles": 270
+   }
+  },
+  "N64 Mario Raceway": {
+   "track": {
+    "models": 1,
+    "draws": 22,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 22,
+    "triangles": 5953
+   },
+   "objects": {
+    "models": 5,
+    "draws": 11,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 11,
+    "triangles": 649
+   }
+  },
+  "N64 Sherbet Land": {
+   "track": {
+    "models": 1,
+    "draws": 14,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 14,
+    "triangles": 5203
+   },
+   "objects": {
+    "models": 8,
+    "draws": 18,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 18,
+    "triangles": 1118
+   }
+  },
+  "GBA Shy Guy Beach": {
+   "track": {
+    "models": 1,
+    "draws": 15,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 15,
+    "triangles": 4438
+   },
+   "objects": {
+    "models": 9,
+    "draws": 16,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 16,
+    "triangles": 1234
+   }
+  },
+  "DS Delfino Square": {
+   "track": {
+    "models": 1,
+    "draws": 22,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 22,
+    "triangles": 13218
+   },
+   "objects": {
+    "models": 13,
+    "draws": 26,
+    "adjacentRuns": 3,
+    "adjacentSaved": 4,
+    "sharedMaterialSaved": 4,
+    "sharedOpaqueSaved": 4,
+    "materials": 22,
+    "triangles": 2883
+   }
+  },
+  "GCN Waluigi Stadium": {
+   "track": {
+    "models": 1,
+    "draws": 23,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 23,
+    "triangles": 11331
+   },
+   "objects": {
+    "models": 9,
+    "draws": 15,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 15,
+    "triangles": 866
+   }
+  },
+  "DS Desert Hills": {
+   "track": {
+    "models": 1,
+    "draws": 15,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 15,
+    "triangles": 7843
+   },
+   "objects": {
+    "models": 11,
+    "draws": 20,
+    "adjacentRuns": 2,
+    "adjacentSaved": 2,
+    "sharedMaterialSaved": 2,
+    "sharedOpaqueSaved": 1,
+    "materials": 18,
+    "triangles": 1401
+   }
+  },
+  "GBA Bowser Castle 3": {
+   "track": {
+    "models": 1,
+    "draws": 18,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 18,
+    "triangles": 3930
+   },
+   "objects": {
+    "models": 5,
+    "draws": 11,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 11,
+    "triangles": 630
+   }
+  },
+  "N64 DK's Jungle Parkway": {
+   "track": {
+    "models": 1,
+    "draws": 23,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 23,
+    "triangles": 10773
+   },
+   "objects": {
+    "models": 8,
+    "draws": 15,
+    "adjacentRuns": 1,
+    "adjacentSaved": 1,
+    "sharedMaterialSaved": 1,
+    "sharedOpaqueSaved": 1,
+    "materials": 14,
+    "triangles": 5030
+   }
+  },
+  "GCN Mario Circuit": {
+   "track": {
+    "models": 1,
+    "draws": 21,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 21,
+    "triangles": 11306
+   },
+   "objects": {
+    "models": 11,
+    "draws": 20,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 20,
+    "triangles": 1207
+   }
+  },
+  "SNES Mario Circuit 3": {
+   "track": {
+    "models": 1,
+    "draws": 10,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 10,
+    "triangles": 3529
+   },
+   "objects": {
+    "models": 4,
+    "draws": 8,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 8,
+    "triangles": 264
+   }
+  },
+  "DS Peach Gardens": {
+   "track": {
+    "models": 1,
+    "draws": 28,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 28,
+    "triangles": 10962
+   },
+   "objects": {
+    "models": 10,
+    "draws": 21,
+    "adjacentRuns": 1,
+    "adjacentSaved": 1,
+    "sharedMaterialSaved": 1,
+    "sharedOpaqueSaved": 1,
+    "materials": 20,
+    "triangles": 960
+   }
+  },
+  "GCN DK Mountain": {
+   "track": {
+    "models": 1,
+    "draws": 16,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 16,
+    "triangles": 10973
+   },
+   "objects": {
+    "models": 10,
+    "draws": 64,
+    "adjacentRuns": 4,
+    "adjacentSaved": 46,
+    "sharedMaterialSaved": 46,
+    "sharedOpaqueSaved": 40,
+    "materials": 18,
+    "triangles": 1374
+   }
+  },
+  "N64 Bowser's Castle": {
+   "track": {
+    "models": 1,
+    "draws": 23,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 23,
+    "triangles": 9752
+   },
+   "objects": {
+    "models": 6,
+    "draws": 12,
+    "adjacentRuns": 0,
+    "adjacentSaved": 0,
+    "sharedMaterialSaved": 0,
+    "sharedOpaqueSaved": 0,
+    "materials": 12,
+    "triangles": 1083
+   }
+  }
+ },
+ "mergeableObjectModels": [
+  [
+   86,
+   "obj09_miiobjd02__miiobjd02_000"
+  ],
+  [
+   50,
+   "obj08_miiobj01__miiobj01_000"
+  ],
+  [
+   42,
+   "obj08_miiobj02__miiobj02_000"
+  ],
+  [
+   36,
+   "obj19_dkturibashigc__dkturibashigc_000"
+  ],
+  [
+   36,
+   "obj05_shmiiobj01__shmiiobj01_000"
+  ],
+  [
+   24,
+   "obj08_miiobj03__miiobj03_000"
+  ],
+  [
+   22,
+   "obj09_miiobjd01__miiobjd01_000"
+  ],
+  [
+   20,
+   "obj09_miiobjd03__miiobjd03_000"
+  ],
+  [
+   20,
+   "obj06_dk_miiobj00__dk_miiobj00_000"
+  ],
+  [
+   18,
+   "obj05_shmiiobj02__shmiiobj02_000"
+  ],
+  [
+   12,
+   "obj05_shmiiobj03__shmiiobj03_000"
+  ],
+  [
+   9,
+   "obj10_ridgemii00__ridgemii00_000"
+  ],
+  [
+   8,
+   "obj19_donkycannongc__donkycannongc_000"
+  ],
+  [
+   8,
+   "obj06_donkycannon_wii__donkycannon_wii_000"
+  ],
+  [
+   6,
+   "obj13_insekia__insekia_000"
+  ],
+  [
+   4,
+   "obj04_piston__piston_low_000"
+  ],
+  [
+   4,
+   "obj04_piston__piston_000"
+  ],
+  [
+   3,
+   "obj14_basabasa__basabasa_000"
+  ],
+  [
+   3,
+   "obj07_basabasa__basabasa_000"
+  ],
+  [
+   2,
+   "obj23_townbridgeds__townbridgeds_000"
+  ],
+  [
+   2,
+   "obj23_seagull__seagull_000"
+  ],
+  [
+   2,
+   "obj19_bird__bird_000"
+  ],
+  [
+   2,
+   "obj16_seagull__seagull_000"
+  ],
+  [
+   2,
+   "obj16_poihana__poihana_000"
+  ],
+  [
+   2,
+   "obj15_utsubodokan__utsubodokan_000"
+  ],
+  [
+   2,
+   "obj15_seagull__seagull_000"
+  ],
+  [
+   2,
+   "obj13_starring__starring_000"
+  ],
+  [
+   2,
+   "obj11_tree_cannon__tree_cannon_000"
+  ],
+  [
+   2,
+   "obj09_seagull__seagull_000"
+  ],
+  [
+   2,
+   "obj06_miistatuem2__miistatuem2_000"
+  ]
+ ]
+}

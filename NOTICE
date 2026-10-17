@@ -22,6 +22,7 @@ Fetched at build time or included, each under its own license (see licenses/):
   noclip.website             MIT
   gclib (LagoLunatic)        MIT
   citro3d (fincs)            zlib
+  meshoptimizer (Arseny Kapoulkine) MIT (optional offline geometry experiments)
   ogws, mkw decompilations   CC0 (reference only)
   makerom, bannertool        their own licenses, downloaded at build time
 

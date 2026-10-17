@@ -1,0 +1,3888 @@
+{
+ "mode": "mips",
+ "package": "build/o3ds-base-package",
+ "totals": {
+  "siblings": 350,
+  "bytesBefore": 3431296,
+  "bytesAfter": 4568416,
+  "models": 201,
+  "skippedModels": 23
+ },
+ "skipped": {
+  "course_00_000": "UV0 outside the O3RM v2 range",
+  "course_01_000": "UV0 outside the O3RM v2 range",
+  "course_02_000": "UV0 outside the O3RM v2 range",
+  "course_03_000": "UV0 outside the O3RM v2 range",
+  "course_05_000": "UV0 outside the O3RM v2 range",
+  "course_08_000": "UV0 outside the O3RM v2 range",
+  "course_09_000": "UV0 outside the O3RM v2 range",
+  "course_10_000": "UV0 outside the O3RM v2 range",
+  "course_11_000": "UV0 outside the O3RM v2 range",
+  "course_13_000": "UV0 outside the O3RM v2 range",
+  "course_14_000": "UV0 outside the O3RM v2 range",
+  "course_16_000": "UV0 outside the O3RM v2 range",
+  "course_17_000": "UV0 outside the O3RM v2 range",
+  "course_18_000": "UV0 outside the O3RM v2 range",
+  "course_21_000": "UV0 outside the O3RM v2 range",
+  "course_22_000": "UV0 outside the O3RM v2 range",
+  "course_26_000": "UV0 outside the O3RM v2 range",
+  "course_28_000": "UV0 outside the O3RM v2 range",
+  "course_29_000": "UV0 outside the O3RM v2 range",
+  "course_30_000": "UV0 outside the O3RM v2 range",
+  "obj04_beltcrossing__beltcrossing_000": "UV0 outside the O3RM v2 range",
+  "obj04_beltcrossing__beltcrossing_low_000": "UV0 outside the O3RM v2 range",
+  "obj16_psea__psea4tex_000": "UV0 outside the O3RM v2 range"
+ },
+ "textures": {
+  "coconut_sky_000": {
+   "status": "mips",
+   "sibling": "coconut_sky_000_o3d330a049",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_04_000": {
+   "status": "mips",
+   "sibling": "course_04_000_o3fde6f7c7",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    128,
+    64
+   ]
+  },
+  "course_04_001": {
+   "status": "mips",
+   "sibling": "course_04_001_o389e604fe",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_04_003": {
+   "status": "mips",
+   "sibling": "course_04_003_o31ca826ad",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "course_04_012": {
+   "status": "mips",
+   "sibling": "course_04_012_o30749de25",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_04_019": {
+   "status": "mips",
+   "sibling": "course_04_019_o339becc2e",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_04_020": {
+   "status": "mips",
+   "sibling": "course_04_020_o3dce63d3e",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_04_021": {
+   "status": "mips",
+   "sibling": "course_04_021_o39b0bc0ec",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_04_025": {
+   "status": "mips",
+   "sibling": "course_04_025_o35224ab10",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_06_004": {
+   "status": "mips",
+   "sibling": "course_06_004_o3f477bea1",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_06_005": {
+   "status": "mips",
+   "sibling": "course_06_005_o327ab2244",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_06_011": {
+   "status": "mips",
+   "sibling": "course_06_011_o3d8fa33ce",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_06_013": {
+   "status": "mips",
+   "sibling": "course_06_013_o3734f114e",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_06_015": {
+   "status": "mips",
+   "sibling": "course_06_015_o3eb578985",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    128,
+    64
+   ]
+  },
+  "course_06_016": {
+   "status": "mips",
+   "sibling": "course_06_016_o3c8de2b51",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_06_017": {
+   "status": "mips",
+   "sibling": "course_06_017_o3a372c748",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_06_018": {
+   "status": "mips",
+   "sibling": "course_06_018_o370273cee",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_06_019": {
+   "status": "mips",
+   "sibling": "course_06_019_o3db467eeb",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_06_020": {
+   "status": "mips",
+   "sibling": "course_06_020_o319c3ffc1",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_06_023": {
+   "status": "mips",
+   "sibling": "course_06_023_o3f191ec06",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_07_006": {
+   "status": "mips",
+   "sibling": "course_07_006_o3f028ee47",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_07_007": {
+   "status": "mips",
+   "sibling": "course_07_007_o3103a4a48",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_07_008": {
+   "status": "mips",
+   "sibling": "course_07_008_o35900bdc7",
+   "bytesBefore": 4096,
+   "bytesAfter": 5376,
+   "levels": 2,
+   "size": [
+    256,
+    32
+   ]
+  },
+  "course_07_009": {
+   "status": "mips",
+   "sibling": "course_07_009_o31c120d1d",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_07_010": {
+   "status": "mips",
+   "sibling": "course_07_010_o348874484",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_07_011": {
+   "status": "mips",
+   "sibling": "course_07_011_o3ac8bd05e",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_07_012": {
+   "status": "mips",
+   "sibling": "course_07_012_o3cd46b694",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_07_013": {
+   "status": "mips",
+   "sibling": "course_07_013_o3c359ea8d",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "course_07_015": {
+   "status": "mips",
+   "sibling": "course_07_015_o3c2618740",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_12_002": {
+   "status": "mips",
+   "sibling": "course_12_002_o3a8e5d9d4",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "course_12_009": {
+   "status": "mips",
+   "sibling": "course_12_009_o32cfb0c80",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "course_12_010": {
+   "status": "mips",
+   "sibling": "course_12_010_o346ae671b",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "course_12_013": {
+   "status": "mips",
+   "sibling": "course_12_013_o3ec9628c7",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_12_016": {
+   "status": "mips",
+   "sibling": "course_12_016_o3519ebd35",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_12_018": {
+   "status": "mips",
+   "sibling": "course_12_018_o30f84664b",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_12_020": {
+   "status": "mips",
+   "sibling": "course_12_020_o3d294e541",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_12_021": {
+   "status": "mips",
+   "sibling": "course_12_021_o383b4017a",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_12_023": {
+   "status": "mips",
+   "sibling": "course_12_023_o375295544",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_12_025": {
+   "status": "mips",
+   "sibling": "course_12_025_o3bb1113ef",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_15_009": {
+   "status": "mips",
+   "sibling": "course_15_009_o3218d90c6",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_15_011": {
+   "status": "mips",
+   "sibling": "course_15_011_o3c377f364",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    128,
+    64
+   ]
+  },
+  "course_15_013": {
+   "status": "mips",
+   "sibling": "course_15_013_o341cd89f2",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_15_015": {
+   "status": "mips",
+   "sibling": "course_15_015_o3e1ca330b",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_15_016": {
+   "status": "mips",
+   "sibling": "course_15_016_o371fc03e3",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_15_018": {
+   "status": "mips",
+   "sibling": "course_15_018_o328cacde5",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_15_025": {
+   "status": "mips",
+   "sibling": "course_15_025_o3ab4811b4",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_15_026": {
+   "status": "mips",
+   "sibling": "course_15_026_o39219d83a",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_15_027": {
+   "status": "mips",
+   "sibling": "course_15_027_o336999b5e",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_15_032": {
+   "status": "mips",
+   "sibling": "course_15_032_o3e5afa213",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_15_033": {
+   "status": "mips",
+   "sibling": "course_15_033_o34b31b242",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_15_034": {
+   "status": "mips",
+   "sibling": "course_15_034_o3e26364cb",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_19_003": {
+   "status": "mips",
+   "sibling": "course_19_003_o32cae322a",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    64,
+    256
+   ]
+  },
+  "course_19_007": {
+   "status": "mips",
+   "sibling": "course_19_007_o31939f05d",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_19_009": {
+   "status": "mips",
+   "sibling": "course_19_009_o3e657d1d8",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_19_011": {
+   "status": "mips",
+   "sibling": "course_19_011_o3bec6e553",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "course_19_012": {
+   "status": "mips",
+   "sibling": "course_19_012_o378e2cd24",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_19_014": {
+   "status": "mips",
+   "sibling": "course_19_014_o383643b77",
+   "bytesBefore": 512,
+   "bytesAfter": 640,
+   "levels": 1,
+   "size": [
+    64,
+    16
+   ]
+  },
+  "course_19_016": {
+   "status": "mips",
+   "sibling": "course_19_016_o33e29b339",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_19_018": {
+   "status": "mips",
+   "sibling": "course_19_018_o3e46a44c3",
+   "bytesBefore": 2048,
+   "bytesAfter": 2688,
+   "levels": 2,
+   "size": [
+    32,
+    128
+   ]
+  },
+  "course_20_005": {
+   "status": "mips",
+   "sibling": "course_20_005_o3cb0b1925",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_20_008": {
+   "status": "mips",
+   "sibling": "course_20_008_o373e9de13",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_20_009": {
+   "status": "mips",
+   "sibling": "course_20_009_o3d822c07b",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    128,
+    64
+   ]
+  },
+  "course_20_010": {
+   "status": "mips",
+   "sibling": "course_20_010_o33246775c",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_20_013": {
+   "status": "mips",
+   "sibling": "course_20_013_o388b88ebc",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_20_014": {
+   "status": "mips",
+   "sibling": "course_20_014_o3e41853cc",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "course_20_015": {
+   "status": "mips",
+   "sibling": "course_20_015_o330e18a3e",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_20_016": {
+   "status": "mips",
+   "sibling": "course_20_016_o37a5af038",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_20_017": {
+   "status": "mips",
+   "sibling": "course_20_017_o306cf0102",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_20_019": {
+   "status": "mips",
+   "sibling": "course_20_019_o31a98410d",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_20_020": {
+   "status": "mips",
+   "sibling": "course_20_020_o36681a164",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_23_000": {
+   "status": "mips",
+   "sibling": "course_23_000_o3a860c49b",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "course_23_002": {
+   "status": "mips",
+   "sibling": "course_23_002_o358ec5a0e",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_23_006": {
+   "status": "mips",
+   "sibling": "course_23_006_o37b507380",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_23_007": {
+   "status": "mips",
+   "sibling": "course_23_007_o37d2dabbc",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_23_009": {
+   "status": "mips",
+   "sibling": "course_23_009_o3f834d9aa",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "course_23_010": {
+   "status": "mips",
+   "sibling": "course_23_010_o3e0ad1340",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_23_011": {
+   "status": "mips",
+   "sibling": "course_23_011_o3f130d409",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_23_012": {
+   "status": "mips",
+   "sibling": "course_23_012_o3749ac408",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_23_015": {
+   "status": "mips",
+   "sibling": "course_23_015_o351acf9c1",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_23_016": {
+   "status": "mips",
+   "sibling": "course_23_016_o30ad99413",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_23_019": {
+   "status": "mips",
+   "sibling": "course_23_019_o36a4440fa",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_23_020": {
+   "status": "mips",
+   "sibling": "course_23_020_o399673121",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_23_022": {
+   "status": "mips",
+   "sibling": "course_23_022_o3b3feea38",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_24_001": {
+   "status": "mips",
+   "sibling": "course_24_001_o39411c447",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "course_24_002": {
+   "status": "mips",
+   "sibling": "course_24_002_o3d42b0ce5",
+   "bytesBefore": 2048,
+   "bytesAfter": 2560,
+   "levels": 1,
+   "size": [
+    256,
+    16
+   ]
+  },
+  "course_24_003": {
+   "status": "mips",
+   "sibling": "course_24_003_o3f5da3acc",
+   "bytesBefore": 2048,
+   "bytesAfter": 2560,
+   "levels": 1,
+   "size": [
+    256,
+    16
+   ]
+  },
+  "course_24_004": {
+   "status": "mips",
+   "sibling": "course_24_004_o3f429eda1",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_24_005": {
+   "status": "mips",
+   "sibling": "course_24_005_o3ce2556db",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_24_006": {
+   "status": "mips",
+   "sibling": "course_24_006_o32cf1e3f4",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_24_007": {
+   "status": "mips",
+   "sibling": "course_24_007_o373383d6a",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_24_008": {
+   "status": "mips",
+   "sibling": "course_24_008_o3f83a778e",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_24_009": {
+   "status": "mips",
+   "sibling": "course_24_009_o364409d53",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_25_000": {
+   "status": "mips",
+   "sibling": "course_25_000_o31e56f3f9",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_25_001": {
+   "status": "mips",
+   "sibling": "course_25_001_o36da83892",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "course_25_002": {
+   "status": "mips",
+   "sibling": "course_25_002_o3e7db6580",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_25_003": {
+   "status": "mips",
+   "sibling": "course_25_003_o3c6c86c27",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_25_004": {
+   "status": "mips",
+   "sibling": "course_25_004_o3c000dc7d",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "course_25_005": {
+   "status": "mips",
+   "sibling": "course_25_005_o3bbc5fdb9",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    64,
+    256
+   ]
+  },
+  "course_25_006": {
+   "status": "mips",
+   "sibling": "course_25_006_o3973b12eb",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    64,
+    256
+   ]
+  },
+  "course_25_007": {
+   "status": "mips",
+   "sibling": "course_25_007_o3f7dfa732",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "course_27_000": {
+   "status": "mips",
+   "sibling": "course_27_000_o3a860c49b",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "course_27_005": {
+   "status": "mips",
+   "sibling": "course_27_005_o3a4103655",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "course_27_006": {
+   "status": "mips",
+   "sibling": "course_27_006_o3971f38c7",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_27_007": {
+   "status": "mips",
+   "sibling": "course_27_007_o326c71878",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_27_008": {
+   "status": "mips",
+   "sibling": "course_27_008_o3b84d61e6",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_27_009": {
+   "status": "mips",
+   "sibling": "course_27_009_o3e3ff3e93",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_27_010": {
+   "status": "mips",
+   "sibling": "course_27_010_o354791525",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_27_011": {
+   "status": "mips",
+   "sibling": "course_27_011_o3b7d79b42",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_27_013": {
+   "status": "mips",
+   "sibling": "course_27_013_o3f6f680c7",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "course_31_000": {
+   "status": "mips",
+   "sibling": "course_31_000_o3e74bb1c0",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "course_31_002": {
+   "status": "mips",
+   "sibling": "course_31_002_o34b1ff647",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_31_003": {
+   "status": "mips",
+   "sibling": "course_31_003_o3d3db581c",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_31_006": {
+   "status": "mips",
+   "sibling": "course_31_006_o3331dff7f",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_31_016": {
+   "status": "mips",
+   "sibling": "course_31_016_o37a3fea32",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_31_019": {
+   "status": "mips",
+   "sibling": "course_31_019_o31fd67630",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "course_31_023": {
+   "status": "mips",
+   "sibling": "course_31_023_o3fdaab6b9",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_31_024": {
+   "status": "mips",
+   "sibling": "course_31_024_o3cebc2500",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "course_31_027": {
+   "status": "mips",
+   "sibling": "course_31_027_o39411c447",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "course_31_028": {
+   "status": "mips",
+   "sibling": "course_31_028_o32e4ee184",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "obj00_group_enemy_e_000": {
+   "status": "mips",
+   "sibling": "obj00_group_enemy_e_000_o31aad754f",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj00_group_enemy_f_000": {
+   "status": "mips",
+   "sibling": "obj00_group_enemy_f_000_o3d95acdb6",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj00_itembox_001": {
+   "status": "mips",
+   "sibling": "obj00_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj00_itembox_008": {
+   "status": "mips",
+   "sibling": "obj00_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj00_kuribo_000": {
+   "status": "mips",
+   "sibling": "obj00_kuribo_000_o3fac1e46e",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj00_wanwan_000": {
+   "status": "mips",
+   "sibling": "obj00_wanwan_000_o3a0232d46",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj01_choropu_001": {
+   "status": "mips",
+   "sibling": "obj01_choropu_001_o31c872790",
+   "bytesBefore": 1024,
+   "bytesAfter": 1344,
+   "levels": 2,
+   "size": [
+    32,
+    64
+   ]
+  },
+  "obj01_flaga2_000": {
+   "status": "mips",
+   "sibling": "obj01_flaga2_000_o3d758fffb",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "obj01_itembox_001": {
+   "status": "mips",
+   "sibling": "obj01_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj01_itembox_008": {
+   "status": "mips",
+   "sibling": "obj01_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj02_itembox_001": {
+   "status": "mips",
+   "sibling": "obj02_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj02_itembox_008": {
+   "status": "mips",
+   "sibling": "obj02_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj02_kuribo_000": {
+   "status": "mips",
+   "sibling": "obj02_kuribo_000_o3fac1e46e",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj03_firesnake_000": {
+   "status": "mips",
+   "sibling": "obj03_firesnake_000_o34b33ee0a",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj03_itembox_001": {
+   "status": "mips",
+   "sibling": "obj03_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj03_itembox_008": {
+   "status": "mips",
+   "sibling": "obj03_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj03_volcanoball1_000": {
+   "status": "mips",
+   "sibling": "obj03_volcanoball1_000_o362ae87cc",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj04_beltcurvea_001": {
+   "status": "mips",
+   "sibling": "obj04_beltcurvea_001_o3ba4f0d87",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj04_beltcurvea_002": {
+   "status": "mips",
+   "sibling": "obj04_beltcurvea_002_o39db9457a",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj04_beltcurvea_000": {
+   "status": "mips",
+   "sibling": "obj04_beltcurvea_000_o3e95ca6c5",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj04_beltcurvea_004": {
+   "status": "mips",
+   "sibling": "obj04_beltcurvea_004_o3aeda8b99",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj04_beltcurvea_003": {
+   "status": "mips",
+   "sibling": "obj04_beltcurvea_003_o3856c72a0",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj04_beltcurvea_005": {
+   "status": "mips",
+   "sibling": "obj04_beltcurvea_005_o3aeda8b99",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj04_belteasy_000": {
+   "status": "mips",
+   "sibling": "obj04_belteasy_000_o3e95ca6c5",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj04_belteasy_001": {
+   "status": "mips",
+   "sibling": "obj04_belteasy_001_o3856c72a0",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj04_block_000": {
+   "status": "mips",
+   "sibling": "obj04_block_000_o37dc330d9",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    128,
+    64
+   ]
+  },
+  "obj04_group_enemy_c_000": {
+   "status": "mips",
+   "sibling": "obj04_group_enemy_c_000_o3eca1dcae",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj04_itembox_001": {
+   "status": "mips",
+   "sibling": "obj04_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj04_itembox_008": {
+   "status": "mips",
+   "sibling": "obj04_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj04_piston_000": {
+   "status": "mips",
+   "sibling": "obj04_piston_000_o3b6ee2e0c",
+   "bytesBefore": 4096,
+   "bytesAfter": 5376,
+   "levels": 2,
+   "size": [
+    256,
+    32
+   ]
+  },
+  "obj04_piston_001": {
+   "status": "mips",
+   "sibling": "obj04_piston_001_o32d964cb2",
+   "bytesBefore": 4096,
+   "bytesAfter": 5376,
+   "levels": 2,
+   "size": [
+    256,
+    32
+   ]
+  },
+  "obj04_press_001": {
+   "status": "mips",
+   "sibling": "obj04_press_001_o324082ba8",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj04_press_002": {
+   "status": "mips",
+   "sibling": "obj04_press_002_o30e7b4466",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj04_woodbox_000": {
+   "status": "mips",
+   "sibling": "obj04_woodbox_000_o307cd33a5",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj04_woodbox_001": {
+   "status": "mips",
+   "sibling": "obj04_woodbox_001_o35f23fd59",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj05_cara1_000": {
+   "status": "mips",
+   "sibling": "obj05_cara1_000_o3109f2d74",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "obj05_cara1_002": {
+   "status": "mips",
+   "sibling": "obj05_cara1_002_o317172959",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj05_cara2_000": {
+   "status": "mips",
+   "sibling": "obj05_cara2_000_o3109f2d74",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "obj05_cara2_002": {
+   "status": "mips",
+   "sibling": "obj05_cara2_002_o317172959",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj05_cara3_000": {
+   "status": "mips",
+   "sibling": "obj05_cara3_000_o3109f2d74",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "obj05_cara3_002": {
+   "status": "mips",
+   "sibling": "obj05_cara3_002_o317172959",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj05_itembox_001": {
+   "status": "mips",
+   "sibling": "obj05_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj05_itembox_008": {
+   "status": "mips",
+   "sibling": "obj05_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj05_parasol_000": {
+   "status": "mips",
+   "sibling": "obj05_parasol_000_o31fdb82ab",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj06_dkmonitor_002": {
+   "status": "mips",
+   "sibling": "obj06_dkmonitor_002_o351b6e436",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "obj06_dkmonitor_000": {
+   "status": "mips",
+   "sibling": "obj06_dkmonitor_000_o383ccd6d5",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "obj06_donkycannon_wii_000": {
+   "status": "mips",
+   "sibling": "obj06_donkycannon_wii_000_o3d4dbcbd9",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj06_donkycannon_wii_002": {
+   "status": "mips",
+   "sibling": "obj06_donkycannon_wii_002_o32d457dba",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj06_heyho2_000": {
+   "status": "mips",
+   "sibling": "obj06_heyho2_000_o31f2dca25",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "obj06_heyho2_002": {
+   "status": "mips",
+   "sibling": "obj06_heyho2_002_o399913e01",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "obj06_heyho2_001": {
+   "status": "mips",
+   "sibling": "obj06_heyho2_001_o3c43d830d",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "obj06_heyho_000": {
+   "status": "mips",
+   "sibling": "obj06_heyho_000_o31f2dca25",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "obj06_itembox_001": {
+   "status": "mips",
+   "sibling": "obj06_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj06_itembox_008": {
+   "status": "mips",
+   "sibling": "obj06_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj06_k_chairlift00_000": {
+   "status": "mips",
+   "sibling": "obj06_k_chairlift00_000_o343cde7e9",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "obj06_k_sticklift00_000": {
+   "status": "mips",
+   "sibling": "obj06_k_sticklift00_000_o3b07d3516",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    128,
+    64
+   ]
+  },
+  "obj06_miistatuem2_003": {
+   "status": "mips",
+   "sibling": "obj06_miistatuem2_003_o3b94c77af",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "obj07_flaga1_000": {
+   "status": "mips",
+   "sibling": "obj07_flaga1_000_o3a8b2b96e",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "obj07_flagb1_000": {
+   "status": "mips",
+   "sibling": "obj07_flagb1_000_o332f9c211",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj07_itembox_001": {
+   "status": "mips",
+   "sibling": "obj07_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj07_itembox_008": {
+   "status": "mips",
+   "sibling": "obj07_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj07_truckwagon_000": {
+   "status": "mips",
+   "sibling": "obj07_truckwagon_000_o30b536d81",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj07_truckwagon_001": {
+   "status": "mips",
+   "sibling": "obj07_truckwagon_001_o3dbf5c754",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj07_truckwagon_003": {
+   "status": "mips",
+   "sibling": "obj07_truckwagon_003_o3d78a8fc9",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj08_dokan_sfc_000": {
+   "status": "mips",
+   "sibling": "obj08_dokan_sfc_000_o3e5fddb06",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj08_flagb2_000": {
+   "status": "mips",
+   "sibling": "obj08_flagb2_000_o3e15b55e7",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj08_itembox_001": {
+   "status": "mips",
+   "sibling": "obj08_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj08_itembox_008": {
+   "status": "mips",
+   "sibling": "obj08_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj08_miistatuel3_002": {
+   "status": "mips",
+   "sibling": "obj08_miistatuel3_002_o389354ae8",
+   "bytesBefore": 2048,
+   "bytesAfter": 2688,
+   "levels": 2,
+   "size": [
+    32,
+    128
+   ]
+  },
+  "obj08_skyship_000": {
+   "status": "mips",
+   "sibling": "obj08_skyship_000_o39f8b7926",
+   "bytesBefore": 2048,
+   "bytesAfter": 2560,
+   "levels": 1,
+   "size": [
+    16,
+    256
+   ]
+  },
+  "obj09_group_enemy_a_000": {
+   "status": "mips",
+   "sibling": "obj09_group_enemy_a_000_o3f201b71a",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "obj09_group_enemy_b_000": {
+   "status": "mips",
+   "sibling": "obj09_group_enemy_b_000_o3f201b71a",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "obj09_group_enemy_c_000": {
+   "status": "mips",
+   "sibling": "obj09_group_enemy_c_000_o3eca1dcae",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj09_itembox_001": {
+   "status": "mips",
+   "sibling": "obj09_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj09_itembox_008": {
+   "status": "mips",
+   "sibling": "obj09_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj09_miistatuebl1_001": {
+   "status": "mips",
+   "sibling": "obj09_miistatuebl1_001_o36beb24bf",
+   "bytesBefore": 2048,
+   "bytesAfter": 2688,
+   "levels": 2,
+   "size": [
+    32,
+    128
+   ]
+  },
+  "obj09_pylon01_000": {
+   "status": "mips",
+   "sibling": "obj09_pylon01_000_o31a3c3231",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj10_itembox_001": {
+   "status": "mips",
+   "sibling": "obj10_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj10_itembox_008": {
+   "status": "mips",
+   "sibling": "obj10_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj10_k_bomb_car_000": {
+   "status": "mips",
+   "sibling": "obj10_k_bomb_car_000_o3b811e7cc",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj10_k_car_body_005": {
+   "status": "mips",
+   "sibling": "obj10_k_car_body_005_o37465e704",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj10_k_truck_000": {
+   "status": "mips",
+   "sibling": "obj10_k_truck_000_o32f9b42aa",
+   "bytesBefore": 256,
+   "bytesAfter": 320,
+   "levels": 1,
+   "size": [
+    32,
+    16
+   ]
+  },
+  "obj10_k_truck_005": {
+   "status": "mips",
+   "sibling": "obj10_k_truck_005_o342b4ca44",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj10_ksticketc_000": {
+   "status": "mips",
+   "sibling": "obj10_ksticketc_000_o36139906c",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj11_itembox_001": {
+   "status": "mips",
+   "sibling": "obj11_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj11_itembox_008": {
+   "status": "mips",
+   "sibling": "obj11_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj12_dossun_000": {
+   "status": "mips",
+   "sibling": "obj12_dossun_000_o3904f75b2",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "obj12_itembox_001": {
+   "status": "mips",
+   "sibling": "obj12_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj12_itembox_008": {
+   "status": "mips",
+   "sibling": "obj12_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj12_koopafirebar_000": {
+   "status": "mips",
+   "sibling": "obj12_koopafirebar_000_o3ccfe9a9c",
+   "bytesBefore": 1024,
+   "bytesAfter": 1344,
+   "levels": 2,
+   "size": [
+    32,
+    64
+   ]
+  },
+  "obj12_twistedway_000": {
+   "status": "mips",
+   "sibling": "obj12_twistedway_000_o3ec9628c7",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj12_twistedway_002": {
+   "status": "mips",
+   "sibling": "obj12_twistedway_002_o35ea66634",
+   "bytesBefore": 4096,
+   "bytesAfter": 5376,
+   "levels": 2,
+   "size": [
+    256,
+    32
+   ]
+  },
+  "obj12_twistedway_001": {
+   "status": "mips",
+   "sibling": "obj12_twistedway_001_o3cc27f6a0",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj12_wlfirebargc_002": {
+   "status": "mips",
+   "sibling": "obj12_wlfirebargc_002_o381e2075b",
+   "bytesBefore": 1024,
+   "bytesAfter": 1344,
+   "levels": 2,
+   "size": [
+    32,
+    64
+   ]
+  },
+  "obj13_insekia_000": {
+   "status": "mips",
+   "sibling": "obj13_insekia_000_o34106e5a5",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj13_itembox_001": {
+   "status": "mips",
+   "sibling": "obj13_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj13_itembox_008": {
+   "status": "mips",
+   "sibling": "obj13_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj13_starring_003": {
+   "status": "mips",
+   "sibling": "obj13_starring_003_o3bd381a08",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj14_itembox_001": {
+   "status": "mips",
+   "sibling": "obj14_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj14_itembox_008": {
+   "status": "mips",
+   "sibling": "obj14_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj15_epropeller_000": {
+   "status": "mips",
+   "sibling": "obj15_epropeller_000_o31a1aefa3",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj15_flaga5_000": {
+   "status": "mips",
+   "sibling": "obj15_flaga5_000_o3de5d856f",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "obj15_flagb3_000": {
+   "status": "mips",
+   "sibling": "obj15_flagb3_000_o39eaf2333",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj15_flagb4_000": {
+   "status": "mips",
+   "sibling": "obj15_flagb4_000_o3b579e36d",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj15_itembox_001": {
+   "status": "mips",
+   "sibling": "obj15_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj15_itembox_008": {
+   "status": "mips",
+   "sibling": "obj15_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj15_kuribo_000": {
+   "status": "mips",
+   "sibling": "obj15_kuribo_000_o3fac1e46e",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj16_group_enemy_a_000": {
+   "status": "mips",
+   "sibling": "obj16_group_enemy_a_000_o3f201b71a",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "obj16_itembox_001": {
+   "status": "mips",
+   "sibling": "obj16_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj16_itembox_008": {
+   "status": "mips",
+   "sibling": "obj16_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj16_mare_a_002": {
+   "status": "mips",
+   "sibling": "obj16_mare_a_002_o39a48f9f6",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj16_mare_b_002": {
+   "status": "mips",
+   "sibling": "obj16_mare_b_002_o312e00bfc",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj16_poihana_002": {
+   "status": "mips",
+   "sibling": "obj16_poihana_002_o381a9d767",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj16_psea_000": {
+   "status": "mips",
+   "sibling": "obj16_psea_000_o3c6898371",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj17_itembox_001": {
+   "status": "mips",
+   "sibling": "obj17_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj17_itembox_008": {
+   "status": "mips",
+   "sibling": "obj17_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj17_kuribo_000": {
+   "status": "mips",
+   "sibling": "obj17_kuribo_000_o3fac1e46e",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj17_mashballoongc_000": {
+   "status": "mips",
+   "sibling": "obj17_mashballoongc_000_o36dae2aae",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    128,
+    64
+   ]
+  },
+  "obj17_wanwan_000": {
+   "status": "mips",
+   "sibling": "obj17_wanwan_000_o3a0232d46",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj18_itembox_001": {
+   "status": "mips",
+   "sibling": "obj18_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj18_itembox_008": {
+   "status": "mips",
+   "sibling": "obj18_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj18_wlarrowgc_000": {
+   "status": "mips",
+   "sibling": "obj18_wlarrowgc_000_o3e2fde3dc",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj18_wlarrowgc_001": {
+   "status": "mips",
+   "sibling": "obj18_wlarrowgc_001_o38c87ac3a",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    128,
+    64
+   ]
+  },
+  "obj18_wlfirebargc_002": {
+   "status": "mips",
+   "sibling": "obj18_wlfirebargc_002_o381e2075b",
+   "bytesBefore": 1024,
+   "bytesAfter": 1344,
+   "levels": 2,
+   "size": [
+    32,
+    64
+   ]
+  },
+  "obj18_wlscreengc_001": {
+   "status": "mips",
+   "sibling": "obj18_wlscreengc_001_o301eb2b0f",
+   "bytesBefore": 2048,
+   "bytesAfter": 2688,
+   "levels": 2,
+   "size": [
+    128,
+    32
+   ]
+  },
+  "obj19_dkrockgc_000": {
+   "status": "mips",
+   "sibling": "obj19_dkrockgc_000_o3bba3a4e7",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj19_dkturibashigc_000": {
+   "status": "mips",
+   "sibling": "obj19_dkturibashigc_000_o377ab2493",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj19_donkycannongc_000": {
+   "status": "mips",
+   "sibling": "obj19_donkycannongc_000_o3d4dbcbd9",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj19_itembox_001": {
+   "status": "mips",
+   "sibling": "obj19_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj19_itembox_008": {
+   "status": "mips",
+   "sibling": "obj19_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj20_itembox_001": {
+   "status": "mips",
+   "sibling": "obj20_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj20_itembox_008": {
+   "status": "mips",
+   "sibling": "obj20_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj21_firesnake_000": {
+   "status": "mips",
+   "sibling": "obj21_firesnake_000_o34b33ee0a",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj21_itembox_001": {
+   "status": "mips",
+   "sibling": "obj21_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj21_itembox_008": {
+   "status": "mips",
+   "sibling": "obj21_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj22_choropu_001": {
+   "status": "mips",
+   "sibling": "obj22_choropu_001_o31c872790",
+   "bytesBefore": 1024,
+   "bytesAfter": 1344,
+   "levels": 2,
+   "size": [
+    32,
+    64
+   ]
+  },
+  "obj22_itembox_001": {
+   "status": "mips",
+   "sibling": "obj22_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj22_itembox_008": {
+   "status": "mips",
+   "sibling": "obj22_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj22_wanwan_000": {
+   "status": "mips",
+   "sibling": "obj22_wanwan_000_o3a0232d46",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj23_flaga3_000": {
+   "status": "mips",
+   "sibling": "obj23_flaga3_000_o3821974b7",
+   "bytesBefore": 8192,
+   "bytesAfter": 10880,
+   "levels": 3,
+   "size": [
+    256,
+    64
+   ]
+  },
+  "obj23_itembox_001": {
+   "status": "mips",
+   "sibling": "obj23_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj23_itembox_008": {
+   "status": "mips",
+   "sibling": "obj23_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj23_woodbox_000": {
+   "status": "mips",
+   "sibling": "obj23_woodbox_000_o307cd33a5",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj23_woodbox_001": {
+   "status": "mips",
+   "sibling": "obj23_woodbox_001_o35f23fd59",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj24_dokan_sfc_000": {
+   "status": "mips",
+   "sibling": "obj24_dokan_sfc_000_o3e5fddb06",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj24_itembox_001": {
+   "status": "mips",
+   "sibling": "obj24_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj24_itembox_008": {
+   "status": "mips",
+   "sibling": "obj24_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj25_itembox_001": {
+   "status": "mips",
+   "sibling": "obj25_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj25_itembox_008": {
+   "status": "mips",
+   "sibling": "obj25_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj25_obakeblocksfc_000": {
+   "status": "mips",
+   "sibling": "obj25_obakeblocksfc_000_o31e56f3f9",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj26_itembox_001": {
+   "status": "mips",
+   "sibling": "obj26_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj26_itembox_008": {
+   "status": "mips",
+   "sibling": "obj26_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj26_mariogo64_001": {
+   "status": "mips",
+   "sibling": "obj26_mariogo64_001_o3aa6949a6",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "obj27_ice_000": {
+   "status": "mips",
+   "sibling": "obj27_ice_000_o37b2d4bee",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj27_itembox_001": {
+   "status": "mips",
+   "sibling": "obj27_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj27_itembox_008": {
+   "status": "mips",
+   "sibling": "obj27_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj27_penguin_l_004": {
+   "status": "mips",
+   "sibling": "obj27_penguin_l_004_o3df79135b",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj27_penguin_m_004": {
+   "status": "mips",
+   "sibling": "obj27_penguin_m_004_o3df79135b",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj27_penguin_s_002": {
+   "status": "mips",
+   "sibling": "obj27_penguin_s_002_o3454dbcb3",
+   "bytesBefore": 256,
+   "bytesAfter": 320,
+   "levels": 1,
+   "size": [
+    32,
+    16
+   ]
+  },
+  "obj27_penguin_s_003": {
+   "status": "mips",
+   "sibling": "obj27_penguin_s_003_o3f7109029",
+   "bytesBefore": 256,
+   "bytesAfter": 320,
+   "levels": 1,
+   "size": [
+    32,
+    16
+   ]
+  },
+  "obj28_dossun_000": {
+   "status": "mips",
+   "sibling": "obj28_dossun_000_o3904f75b2",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "obj28_itembox_001": {
+   "status": "mips",
+   "sibling": "obj28_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj28_itembox_008": {
+   "status": "mips",
+   "sibling": "obj28_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj29_dkship64_001": {
+   "status": "mips",
+   "sibling": "obj29_dkship64_001_o3a860c49b",
+   "bytesBefore": 4096,
+   "bytesAfter": 5440,
+   "levels": 3,
+   "size": [
+    64,
+    128
+   ]
+  },
+  "obj29_group_enemy_a_000": {
+   "status": "mips",
+   "sibling": "obj29_group_enemy_a_000_o3f201b71a",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "obj29_group_enemy_b_000": {
+   "status": "mips",
+   "sibling": "obj29_group_enemy_b_000_o3f201b71a",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "obj29_itembox_001": {
+   "status": "mips",
+   "sibling": "obj29_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj29_itembox_008": {
+   "status": "mips",
+   "sibling": "obj29_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj30_dossun_000": {
+   "status": "mips",
+   "sibling": "obj30_dossun_000_o3904f75b2",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "obj30_itembox_001": {
+   "status": "mips",
+   "sibling": "obj30_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj30_itembox_008": {
+   "status": "mips",
+   "sibling": "obj30_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj31_crab_000": {
+   "status": "mips",
+   "sibling": "obj31_crab_000_o34c07932c",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj31_itembox_001": {
+   "status": "mips",
+   "sibling": "obj31_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj31_itembox_008": {
+   "status": "mips",
+   "sibling": "obj31_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj31_r_parasol_000": {
+   "status": "mips",
+   "sibling": "obj31_r_parasol_000_o32e08cd18",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj32_coin_002": {
+   "status": "mips",
+   "sibling": "obj32_coin_002_o30ad91fd4",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj32_itembox_001": {
+   "status": "mips",
+   "sibling": "obj32_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj32_itembox_008": {
+   "status": "mips",
+   "sibling": "obj32_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj32_venice_nami_011": {
+   "status": "mips",
+   "sibling": "obj32_venice_nami_011_o3279e476c",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj32_venice_nami_000": {
+   "status": "mips",
+   "sibling": "obj32_venice_nami_000_o3c6898371",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj32_venice_nami_004": {
+   "status": "mips",
+   "sibling": "obj32_venice_nami_004_o3d5617c12",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "obj32_venice_nami_006": {
+   "status": "mips",
+   "sibling": "obj32_venice_nami_006_o339bc56ad",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj32_venice_nami_007": {
+   "status": "mips",
+   "sibling": "obj32_venice_nami_007_o39d20d3af",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj33_coin_002": {
+   "status": "mips",
+   "sibling": "obj33_coin_002_o30ad91fd4",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj33_itembox_001": {
+   "status": "mips",
+   "sibling": "obj33_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj33_itembox_008": {
+   "status": "mips",
+   "sibling": "obj33_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj33_miistatuel2_002": {
+   "status": "mips",
+   "sibling": "obj33_miistatuel2_002_o3b7f9cbb3",
+   "bytesBefore": 2048,
+   "bytesAfter": 2688,
+   "levels": 2,
+   "size": [
+    32,
+    128
+   ]
+  },
+  "obj33_miistatuem1_002": {
+   "status": "mips",
+   "sibling": "obj33_miistatuem1_002_o363fc2949",
+   "bytesBefore": 2048,
+   "bytesAfter": 2688,
+   "levels": 2,
+   "size": [
+    32,
+    128
+   ]
+  },
+  "obj34_coin_002": {
+   "status": "mips",
+   "sibling": "obj34_coin_002_o30ad91fd4",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj34_itembox_001": {
+   "status": "mips",
+   "sibling": "obj34_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj34_itembox_008": {
+   "status": "mips",
+   "sibling": "obj34_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj34_spot_000": {
+   "status": "mips",
+   "sibling": "obj34_spot_000_o3a5243a59",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "obj35_coin_002": {
+   "status": "mips",
+   "sibling": "obj35_coin_002_o30ad91fd4",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj35_fks_screen_wii_001": {
+   "status": "mips",
+   "sibling": "obj35_fks_screen_wii_001_o35c30c8b1",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "obj35_itembox_001": {
+   "status": "mips",
+   "sibling": "obj35_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj35_itembox_008": {
+   "status": "mips",
+   "sibling": "obj35_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj36_coin_002": {
+   "status": "mips",
+   "sibling": "obj36_coin_002_o30ad91fd4",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj36_dossun_000": {
+   "status": "mips",
+   "sibling": "obj36_dossun_000_o3904f75b2",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "obj36_itembox_001": {
+   "status": "mips",
+   "sibling": "obj36_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj36_itembox_008": {
+   "status": "mips",
+   "sibling": "obj36_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj36_quicksand_000": {
+   "status": "mips",
+   "sibling": "obj36_quicksand_000_o3ae1f8a91",
+   "bytesBefore": 32768,
+   "bytesAfter": 43680,
+   "levels": 5,
+   "size": [
+    256,
+    256
+   ]
+  },
+  "obj37_coin_002": {
+   "status": "mips",
+   "sibling": "obj37_coin_002_o30ad91fd4",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj37_itembox_001": {
+   "status": "mips",
+   "sibling": "obj37_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj37_itembox_008": {
+   "status": "mips",
+   "sibling": "obj37_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj38_coin_002": {
+   "status": "mips",
+   "sibling": "obj38_coin_002_o30ad91fd4",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj38_itembox_001": {
+   "status": "mips",
+   "sibling": "obj38_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj38_itembox_008": {
+   "status": "mips",
+   "sibling": "obj38_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj39_coin_002": {
+   "status": "mips",
+   "sibling": "obj39_coin_002_o30ad91fd4",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj39_itembox_001": {
+   "status": "mips",
+   "sibling": "obj39_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj39_itembox_008": {
+   "status": "mips",
+   "sibling": "obj39_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj40_coin_002": {
+   "status": "mips",
+   "sibling": "obj40_coin_002_o30ad91fd4",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj40_itembox_001": {
+   "status": "mips",
+   "sibling": "obj40_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj40_itembox_008": {
+   "status": "mips",
+   "sibling": "obj40_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj41_coin_002": {
+   "status": "mips",
+   "sibling": "obj41_coin_002_o30ad91fd4",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj41_itembox_001": {
+   "status": "mips",
+   "sibling": "obj41_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj41_itembox_008": {
+   "status": "mips",
+   "sibling": "obj41_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj41_spot64_000": {
+   "status": "mips",
+   "sibling": "obj41_spot64_000_o32d27d2bc",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    128,
+    256
+   ]
+  },
+  "obj55_demojugemu_001": {
+   "status": "mips",
+   "sibling": "obj55_demojugemu_001_o32e6bcaab",
+   "bytesBefore": 1024,
+   "bytesAfter": 1344,
+   "levels": 2,
+   "size": [
+    32,
+    64
+   ]
+  },
+  "obj55_group_enemy_a_000": {
+   "status": "mips",
+   "sibling": "obj55_group_enemy_a_000_o3f201b71a",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "obj55_group_enemy_a_demo_001": {
+   "status": "mips",
+   "sibling": "obj55_group_enemy_a_demo_001_o35ea5e4b0",
+   "bytesBefore": 2048,
+   "bytesAfter": 2688,
+   "levels": 2,
+   "size": [
+    32,
+    128
+   ]
+  },
+  "obj55_group_enemy_a_demo_002": {
+   "status": "mips",
+   "sibling": "obj55_group_enemy_a_demo_002_o3d99c9c04",
+   "bytesBefore": 2048,
+   "bytesAfter": 2688,
+   "levels": 2,
+   "size": [
+    32,
+    128
+   ]
+  },
+  "obj55_group_enemy_a_demo_003": {
+   "status": "mips",
+   "sibling": "obj55_group_enemy_a_demo_003_o3a784850a",
+   "bytesBefore": 2048,
+   "bytesAfter": 2688,
+   "levels": 2,
+   "size": [
+    32,
+    128
+   ]
+  },
+  "obj55_group_enemy_a_demo_004": {
+   "status": "mips",
+   "sibling": "obj55_group_enemy_a_demo_004_o3469bd2cb",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj55_group_enemy_a_demo_005": {
+   "status": "mips",
+   "sibling": "obj55_group_enemy_a_demo_005_o39edb98b2",
+   "bytesBefore": 512,
+   "bytesAfter": 672,
+   "levels": 2,
+   "size": [
+    32,
+    32
+   ]
+  },
+  "obj55_group_enemy_b_000": {
+   "status": "mips",
+   "sibling": "obj55_group_enemy_b_000_o3f201b71a",
+   "bytesBefore": 16384,
+   "bytesAfter": 21824,
+   "levels": 4,
+   "size": [
+    256,
+    128
+   ]
+  },
+  "obj55_group_enemy_c_000": {
+   "status": "mips",
+   "sibling": "obj55_group_enemy_c_000_o3eca1dcae",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj58_flagb2_000": {
+   "status": "mips",
+   "sibling": "obj58_flagb2_000_o3e15b55e7",
+   "bytesBefore": 2048,
+   "bytesAfter": 2720,
+   "levels": 3,
+   "size": [
+    64,
+    64
+   ]
+  },
+  "obj58_itembox_001": {
+   "status": "mips",
+   "sibling": "obj58_itembox_001_o3c8a4e395",
+   "bytesBefore": 8192,
+   "bytesAfter": 10912,
+   "levels": 4,
+   "size": [
+    128,
+    128
+   ]
+  },
+  "obj58_itembox_008": {
+   "status": "mips",
+   "sibling": "obj58_itembox_008_o3cd8d9854",
+   "bytesBefore": 128,
+   "bytesAfter": 160,
+   "levels": 1,
+   "size": [
+    16,
+    16
+   ]
+  },
+  "obj58_miistatuel3_002": {
+   "status": "mips",
+   "sibling": "obj58_miistatuel3_002_o389354ae8",
+   "bytesBefore": 2048,
+   "bytesAfter": 2688,
+   "levels": 2,
+   "size": [
+    32,
+    128
+   ]
+  },
+  "obj58_skyship_000": {
+   "status": "mips",
+   "sibling": "obj58_skyship_000_o39f8b7926",
+   "bytesBefore": 2048,
+   "bytesAfter": 2560,
+   "levels": 1,
+   "size": [
+    16,
+    256
+   ]
+  }
+ }
+}

@@ -8,6 +8,10 @@
 #include <mkw/job_worker.hpp>
 #include <mkw/renderer.hpp>
 #include <mkw/render_quality.hpp>
+#include <mkw/racer_distance.hpp>
+#include <mkw/render_profile.hpp>
+#include <mkw/object_pvs.hpp>
+#include <mkw/pose_lod.hpp>
 #include <game/kart/KartObjectManager.hh>
 #include <game/kart/KartMove.hh>
 #include <game/kart/Status.hh>
@@ -31,6 +35,11 @@ struct RacerVisuals::Impl {
         VehicleAnimation vehicle;
         struct Clock {int clip=-1;unsigned start=0;} bodyClock;
         std::array<Clock,9> extraClocks;
+        bool distanceHidden=false;
+        // Old 3DS LOD (load()): radius of the posed model around the kart's
+        // origin, padded (object_pvs.hpp boxes), and its unpadded reach
+        // (pose_lod.hpp screen size).
+        float pvsRadius=0,reach=0;
     };
     std::array<std::unique_ptr<Racer>,11> racers;
     unsigned count=0;
@@ -46,10 +55,12 @@ struct RacerVisuals::Impl {
     std::array<Prepared,11> prepared;
     std::array<Job,11> jobs;
     std::array<bool,11> queued{};
-    struct Frame {Impl* impl=nullptr;ViewFrustum view{};const RaceItems* items=nullptr;Vec3 viewer{};unsigned tick=0;bool open=false;Vec3 camera{};ClipFrustum world{};} frame;
+    struct Frame {Impl* impl=nullptr;ViewFrustum view{};const RaceItems* items=nullptr;Vec3 viewer{};unsigned tick=0;bool open=false;Vec3 camera{};ClipFrustum world{};const uint8_t* pvs=nullptr;unsigned count=0;} frame;
+    unsigned frames=0;
     void openFrame(const Renderer& renderer,const RaceItems& items,Vec3 viewer,unsigned tick){
         C3D_Mtx identity;Mtx_Identity(&identity);
         frame={this,renderer.viewFrustum(),&items,viewer,tick,true,renderer.cameraPosition()};frame.world=frame.view.model(identity);
+        frame.pvs=objectPvs().set(frame.camera);frame.count=frames++;
     }
     std::array<std::pair<Impl*,unsigned>,11> jobContext{};
     void prepareRacer(unsigned i);
@@ -65,17 +76,31 @@ bool RacerVisuals::load(){
         auto r=std::make_unique<Impl::Racer>();const auto& player=config.players[i];
         for(const auto& choice:GarageChoices)if(choice.character==unsigned(player.character)&&choice.vehicle==unsigned(player.vehicle)){r->choice=&choice;break;}
         if(!r->choice){valid=false;continue;}
-        auto model=[&](const char* suffix){auto p=std::make_unique<Model>();char path[160];std::snprintf(path,sizeof path,"models/%s%s.gmdl",r->choice->prefix,suffix);if(!p->load(path))p.reset();return p;};
+        auto model=[&](const char* suffix,bool rival=false){auto p=std::make_unique<Model>();char path[160];std::snprintf(path,sizeof path,"models/%s%s.gmdl",r->choice->prefix,suffix);if(!p->load(path,rival))p.reset();return p;};
         auto bank=[&](const char* suffix,Model* model){auto p=std::make_unique<DriverAnimation>();char path[160];std::snprintf(path,sizeof path,"models/%s%s.dskm",r->choice->prefix,suffix);if(!model||!p->load(path,*model))p.reset();else p->prepareLitSkinning(*model);return p;};
-        r->body=model("body");r->driver=model("driver");r->shadow=model("shadow");r->animation=bank("driver",r->driver.get());
+        // Opponents use leaner rival models (driver, kart, wheels) on Old 3DS, as
+        // Mario Kart DS did; each falls back to the regular sidecar, then the original.
+        r->body=model("body",true);r->driver=model("driver",true);r->shadow=model("shadow",true);r->animation=bank("driver",r->driver.get());
         const char* wheelNames[]={"tire_fl","tire_fr","tire_rl","tire_rr"};
-        for(unsigned w=0;w<(r->choice->bike?2u:4u);++w){r->wheels[w]=model(wheelNames[w]);valid&=bool(r->wheels[w]);}
+        for(unsigned w=0;w<(r->choice->bike?2u:4u);++w){r->wheels[w]=model(wheelNames[w],true);valid&=bool(r->wheels[w]);}
         if(r->choice->bodyAnimation){r->bodyAnimation=bank("body",r->body.get());valid&=bool(r->bodyAnimation);}
         for(unsigned j=0;j<9;++j)if(r->choice->extrasMask&(1u<<j)){
-            r->extras[j]=model(GarageExtraNames[j]);valid&=bool(r->extras[j]);
+            r->extras[j]=model(GarageExtraNames[j],true);valid&=bool(r->extras[j]);
             if(r->choice->extraAnimationMask&(1u<<j)){r->extraAnimation[j]=bank(GarageExtraNames[j],r->extras[j].get());valid&=bool(r->extraAnimation[j]);}
         }
         valid&=bool(r->body)&&bool(r->driver)&&bool(r->animation)&&bool(r->shadow);
+        {   // Farthest bound corner from each model's origin; parts hang off the body.
+            auto reach=[](const Model* m){if(!m)return 0.f;return length(Vec3{std::max(std::fabs(m->minimum.x),std::fabs(m->maximum.x)),
+                std::max(std::fabs(m->minimum.y),std::fabs(m->maximum.y)),std::max(std::fabs(m->minimum.z),std::fabs(m->maximum.z))});};
+            const float body=reach(r->body.get());
+            float extent=std::max(body,reach(r->driver.get())+length(Vec3{0,r->choice->seatY,r->choice->seatZ}));
+            r->reach=extent;
+            for(const auto& w:r->wheels)extent=std::max(extent,body+reach(w.get()));
+            for(const auto& e:r->extras)extent=std::max(extent,body+reach(e.get()));
+            if(renderQuality().shadowVolumes)extent=std::max(extent,reach(r->shadow.get()));
+            // Posed limbs may leave the bind-pose bounds (tricks, waves).
+            r->pvsRadius=extent*1.25f+30.f;
+        }
         if(r->animation)for(unsigned c=0;c<r->animation->count();++c)r->controller.setDuration(r->animation->name(c),r->animation->duration(c));
         impl_->racers[i-1]=std::move(r);++impl_->count;
     }
@@ -83,7 +108,7 @@ bool RacerVisuals::load(){
 }
 void RacerVisuals::resetAnimation(){
     for(unsigned i=0;i<11;++i)if(auto* r=impl_->racers[i].get()){
-        r->controller.reset();r->pose={};r->bodyClock={};r->extraClocks={};
+        r->controller.reset();r->pose={};r->bodyClock={};r->extraClocks={};r->distanceHidden=false;
         r->vehicle.reset();r->vehicle.step(*K::Kart::KartObjectManager::Instance()->object(i+1));
     }
 }
@@ -114,14 +139,32 @@ void RacerVisuals::Impl::prepareRacer(unsigned i){
     if(!r->body||!r->driver||!r->animation)return;
     const auto& items=*frame.items;const unsigned tick=frame.tick;const auto& view=frame.view;
     if(items.hud(i+1).bullet)return;
+    const auto& transform=r->vehicle.body();Vec3 position{transform.r[0].w,transform.r[1].w,transform.r[2].w};
+    const auto& distancePolicy=racerDistance();const bool wasDistanceHidden=r->distanceHidden;
+    if(!distancePolicy.visible(dot(position-frame.viewer,position-frame.viewer),r->distanceHidden))return;
+    if(distancePolicy.enabled&&wasDistanceHidden){
+        // step() kept simulation, controller frames and accessory clocks live.
+        // Sample their current pose now, without blending from an old pose
+        // that may have been cached before the racer left the draw distance.
+        r->animation->clearPoseTransition();
+        if(r->bodyAnimation)r->bodyAnimation->clearPoseTransition();
+        for(auto& animation:r->extraAnimation)if(animation)animation->clearPoseTransition();
+    }
     // Reduced detail: a racer whose generous envelope (1,000 units, scaled) is
     // wholly outside the view is neither evaluated, posed nor drawn this frame.
     if(renderQuality().reduced){
         const Vec3 p=r->vehicle.position();const float e=1000.f*r->vehicle.maxScale();
         if(!frame.world.intersects({p-Vec3{e,e,e},p+Vec3{e,e,e}}))return;
     }
-    const auto& transform=r->vehicle.body();Vec3 position{transform.r[0].w,transform.r[1].w,transform.r[2].w};
-    if(dot(position-frame.viewer,position-frame.viewer)>25000.f*25000.f)return;
+    // Old 3DS object visibility: a racer inside a region the camera's column
+    // cannot see is neither posed nor drawn (object_pvs.hpp).
+    if(frame.pvs){
+        const float e=r->pvsRadius*r->vehicle.maxScale();
+        if(objectPvs().hiddenCounted(frame.pvs,{position-Vec3{e,e,e},position+Vec3{e,e,e}},true))return;
+    }
+    // Old 3DS pose LOD: small on screen, this racer keeps last frame's poses
+    // on alternate frames (pose_lod.hpp); keepPose() falls back to apply().
+    const bool keepPoses=poseLod().keep(r->reach*r->vehicle.maxScale(),dot(position-frame.camera,position-frame.camera),frame.count,i);
     const auto& quality=renderQuality();const Vec3 camera=frame.camera;
     // Reduced detail: parts too small to see are neither posed nor drawn.
     auto tiny=[&](const Model& model,const C3D_Mtx& matrix){return quality.tooSmall({model.minimum,model.maximum},matrix,camera);};
@@ -133,6 +176,8 @@ void RacerVisuals::Impl::prepareRacer(unsigned i){
         if(c!=clock.clip){clock.clip=c;clock.start=tick;}
         float f=handle?r->vehicle.driveFrame()*(bank->duration(c)-1)/30.f:float(tick-clock.start);
         auto frustum=view.model(matrix);
+        bool kept=false;
+        if(keepPoses&&bank->keepPose(&frustum,tick,kept))return kept;
         return bank->apply(model,c,f,tick,-1,0,&frustum);
     };
     const char* name=r->pose.clipName;float frame=r->pose.frame;
@@ -143,7 +188,9 @@ void RacerVisuals::Impl::prepareRacer(unsigned i){
     C3D_Mtx seated=transform;Mtx_Translate(&seated,0,r->choice->seatY,r->choice->seatZ,true);
     auto frustum=view.model(seated);
     out.draw=true;out.body=transform;out.seated=seated;
-    out.driverVisible=!tiny(*r->driver,seated)&&r->animation->apply(*r->driver,r->animation->find(name),frame,tick,expression,faceFrame,&frustum);
+    bool kept=false;
+    out.driverVisible=!tiny(*r->driver,seated)&&(keepPoses&&r->animation->keepPose(&frustum,tick,kept)?kept:
+        r->animation->apply(*r->driver,r->animation->find(name),frame,tick,expression,faceFrame,&frustum));
     out.additive=starMaterialColor(items.hud(i+1).star);
     out.bodyVisible=animate(r->bodyAnimation.get(),*r->body,r->bodyClock,false,transform);
     out.wheels=r->vehicle.wheelCount();
@@ -190,7 +237,7 @@ void RacerVisuals::draw(Renderer& renderer,const RaceItems& items,Vec3 viewer,un
     std::array<Renderer::ShadowVolume,12> shadows{};unsigned shadowCount=0;
     if(playerShadow&&playerTransform)shadows[shadowCount++]={playerShadow,*playerTransform};
     for(unsigned i=0;i<11;++i)if(auto* r=d.racers[i].get()){
-        if(d.queued[i])jobWorker().finish(d.jobs[i]);else d.prepareRacer(i);
+        if(d.queued[i])jobWorker().finish(d.jobs[i]);else{const prof::Scope timed(prof::RacerPose);d.prepareRacer(i);}
         const auto& out=d.prepared[i];
         if(out.draw&&r->shadow&&d.frame.view.visible(*r->shadow,out.body))shadows[shadowCount++]={r->shadow.get(),out.body};
     }

@@ -222,10 +222,28 @@ void drawPenguinWalk(ObjectDraw& d,Visual& v){
     d.submit(v.main.model,m,a);
     if(v.shadow.model)d.shadow(v.shadow.model,m);
 }
+// Farthest corner of a model's bounds from its origin.
+float cornerReach(const ObjModel* m){
+    if(!m)return 0.f;const auto& b=m->bounds;
+    return length(Vec3{std::max(std::fabs(b.minimum.x),std::fabs(b.maximum.x)),std::max(std::fabs(b.minimum.y),std::fabs(b.maximum.y)),std::max(std::fabs(b.minimum.z),std::fabs(b.maximum.z))});
+}
 template<class T> void drawFireballs(ObjectDraw& d,Visual& v){
     const auto& owner=*static_cast<const T*>(v.object);
     if(v.main.model)d.submit(v.main.model,liveMatrix(owner),animAt(v.main,float(d.tick)));
     const float frame=float(d.tick);
+    {   // Every ball's camera-facing model lies within reach*|scale| of its
+        // centre: when the box around all of them cannot be drawn, no ball's
+        // own test could pass, so none is built.
+        Bounds all{};bool any=false;float scale=0;
+        for(const auto* ball:owner.fireballs())if(ball){
+            const Vec3 p=vec(ball->pos());if(any)all.include(p);else{all={p,p};any=true;}
+            scale=std::max(scale,std::fabs(ball->scale().x));
+        }
+        if(!any)return;
+        const float r=std::max(cornerReach(v.extra[0].model),cornerReach(v.extra[1].model))*scale;
+        C3D_Mtx identity;Mtx_Identity(&identity);
+        if(d.culled({all.minimum-Vec3{r,r,r},all.maximum+Vec3{r,r,r}},identity))return;
+    }
     for(const auto* ball:owner.fireballs()){
         if(!ball)continue;
         // Fireballs are camera-facing: a flattened core and its flame card.
@@ -531,6 +549,43 @@ Anim finishPose(Visual& v,const ObjModel* m,Anim a){
     return a;
 }
 int jointNode(const ObjectBank& b,const char* format,int index){char name[16];std::snprintf(name,sizeof name,format,index);return b.node(name);}
+// jointNode(b, format, first + i) for i < count, looked up once per visual
+// and bank (each presenter uses one format).
+const int* joints(Visual& v,const ObjectBank& b,const char* format,int first,int count){
+    if(v.jointBank!=&b||v.joints.size()!=size_t(count)){
+        v.jointBank=&b;v.joints.resize(size_t(count));
+        for(int i=0;i<count;++i)v.joints[size_t(i)]=jointNode(b,format,first+i);
+    }
+    return v.joints.data();
+}
+// A model-space bound of every pose a procedural presenter can give `model`
+// (call after beginPose, before posing): a slot posed through one of
+// nodes[0..count) contributes every box sweep(i, node, slot box, add) adds
+// for it; any other used slot keeps its bind placement. Cached per visual.
+// Presenters skip posing when this is off screen or hidden (ObjectDraw::culled),
+// which submit() would then have rejected for the posed bounds inside it.
+template<class Sweep> const Bounds* poseEnvelope(Visual& v,const ObjModel* model,const ObjectBank& bank,const int* nodes,int count,Sweep sweep){
+    if(v.envelopeModel==model)return &v.envelope;
+    bool first=true;
+    auto add=[&](const Bounds& b){if(first){v.envelope=b;first=false;}else{v.envelope.include(b.minimum);v.envelope.include(b.maximum);}};
+    for(size_t s=0;s<model->slots.size();++s)if(model->slotUsed[s]){
+        bool posed=false;
+        for(int i=0;i<count;++i){const int n=nodes[i];if(n<0||bank.nodes()[n].slot!=int(s))continue;posed=true;sweep(i,n,model->slots[s],add);}
+        if(!posed)add(transformBoundsPadded(model->slots[s],&v.palette[s*12]));
+    }
+    v.envelopeModel=first?nullptr:model;
+    return first?nullptr:&v.envelope;
+}
+// Box b rolled by any angle about axis `axis` (0 x, 2 z) of its own frame
+// keeps that coordinate and its distance from the axis.
+Bounds rolled(const Bounds& b,int axis){
+    const float u=axis==0?std::max(std::fabs(b.minimum.y),std::fabs(b.maximum.y)):std::max(std::fabs(b.minimum.x),std::fabs(b.maximum.x));
+    const float w=axis==0?std::max(std::fabs(b.minimum.z),std::fabs(b.maximum.z)):std::max(std::fabs(b.minimum.y),std::fabs(b.maximum.y));
+    const float r=std::sqrt(u*u+w*w);
+    return axis==0?Bounds{{b.minimum.x,-r,-r},{b.maximum.x,r,r}}:Bounds{{-r,-r,b.minimum.z},{r,r,b.maximum.z}};
+}
+// parent * [I | t] (a joint's translation in its parent's frame).
+void placeAt(const float* parent,float x,float y,float z,float* out){const float at[12]={1,0,0,x, 0,1,0,y, 0,0,1,z};mul34(parent,at,out);}
 // Rainbow Road's aurora road (RMCP ObjectAurora 807fac84): joints 3..38 move
 // to (416.66n, h, 0) in joint1's frame, h being the wave Kinoko collides
 // with, sampled at 416.66(n-2): a chirp from frequency 1.25 at the start to
@@ -542,12 +597,22 @@ void drawAurora(ObjectDraw& d,Visual& v){
     const int root=bank?bank->node("joint1"):-1;
     if(root<0)return;
     uint32_t timer;
+    // stateAge() keeps the pre-race clock running whether or not it is drawn.
     const float frame=racing(timer)?float(timer):float(stateAge(d,v,0));
     const float minutes=(frame/60.f-30.f)/60.f;
     const float frequency=std::min(1.f+minutes*minutes,4.f);
     const float* parent=bank->nodes()[root].world;
+    const int* nodes=joints(v,*bank,"joint%d",3,36);
+    // Joint i's height h stays within +-80 * period: its slot sweeps between
+    // the two extreme placements.
+    const Bounds* envelope=poseEnvelope(v,model,*bank,nodes,36,[&](int j,int n,const Bounds& box,auto& add){
+        const int i=j+1;const float period=Pi*2.f*(416.66f*float(i))/15000.f,h=period*80.f*1.001f;
+        float local[12];std::memcpy(local,bank->nodes()[n].local,sizeof local);local[3]=416.66f*float(i+2);local[11]=0;
+        for(const float y:{-h,h}){local[7]=y;float placed[12];mul34(parent,local,placed);add(transformBoundsPadded(box,placed));}
+    });
+    if(envelope&&d.culled(*envelope,m))return;
     for(int i=1;i<=36;++i){
-        const int n=jointNode(*bank,"joint%d",i+2);if(n<0)continue;
+        const int n=nodes[i-1];if(n<0)continue;
         const float period=Pi*2.f*(416.66f*float(i))/15000.f;
         float local[12];std::memcpy(local,bank->nodes()[n].local,sizeof local);
         local[3]=416.66f*float(i+2);local[7]=period*80.f*std::sin(period*frequency+Pi*frame/50.f);local[11]=0;
@@ -566,13 +631,21 @@ void drawTwistedWay(ObjectDraw& d,Visual& v){
     const ObjectBank* bank=beginPose(v,model);
     const int root=bank?bank->node("joint1"):-1;
     if(root<0){d.submit(model,m,{});return;}
+    const float* parent=bank->nodes()[root].world;
+    const int* nodes=joints(v,*bank,"joint%d",3,18);
+    // Each rolled joint keeps its slot's x and distance from its x axis.
+    const Bounds* envelope=poseEnvelope(v,model,*bank,nodes,18,[&](int,int n,const Bounds& box,auto& add){
+        const float* l=bank->nodes()[n].local;float placed[12];placeAt(parent,l[3],l[7],l[11],placed);
+        add(transformBoundsPadded(rolled(box,0),placed));
+    });
+    // Off screen or hidden in every pose: not posed at all this frame.
+    if(envelope&&d.culled(*envelope,m))return;
     uint32_t timer;
     // Retail reads the intro timer before Kinoko's calc increments it.
     const uint32_t frame=racing(timer)?timer:road.introTimer()-1;
     const float t=float((frame%120)*2);
-    const float* parent=bank->nodes()[root].world;
     for(int i=1;i<19;++i){
-        const int n=jointNode(*bank,"joint%d",i+2);if(n<0)continue;
+        const int n=nodes[i-1];if(n<0)continue;
         const float z=-1.f+float(2*(i+1))/20.f;
         const float angle=.2f*(z+1.f)*(z+1.f)*(z-1.f)*(z-1.f)*std::sin(t*Pi/120.f+4.f*z);
         const float c=std::cos(angle),s=std::sin(angle);const float* l=bank->nodes()[n].local;
@@ -595,8 +668,15 @@ void drawTuribashi(ObjectDraw& d,Visual& v){
     const float narrow[12]={.8f,0,0,0, 0,1,0,0, 0,0,1,0};
     float parent[12];std::memcpy(parent,narrow,sizeof parent);
     if(const int root=bank->node("DKturibashiGC");root>=0)mul34(bank->nodes()[root].world,narrow,parent);
+    const int* nodes=joints(v,*bank,"joint0%d",1,37);
+    // Each joint rolls about its z axis.
+    const Bounds* envelope=poseEnvelope(v,model,*bank,nodes,37,[&](int,int n,const Bounds& box,auto& add){
+        const float* l=bank->nodes()[n].local;float placed[12];placeAt(parent,l[3],l[7],l[11],placed);
+        add(transformBoundsPadded(rolled(box,2),placed));
+    });
+    if(envelope&&d.culled(*envelope,m))return;
     for(int i=0;i<37;++i){
-        const int n=jointNode(*bank,"joint0%d",i+1);if(n<0)continue;
+        const int n=nodes[i];if(n<0)continue;
         float angle=0;
         if(i>0){const float z=-1.f+float(2*(i+1))/38.f;angle=.12f*(z+1.f)*(z+1.f)*(z-1.f)*(z-1.f)*std::sin(Pi*t/160.f+.7f*z);}
         const float c=std::cos(angle),s=std::sin(angle);const float* l=bank->nodes()[n].local;
@@ -618,8 +698,16 @@ void drawAmi(ObjectDraw& d,Visual& v){
     const float frame=racing(timer)?float(timer):0.f;
     const float bounce=std::sin(Pi*frame/35.f);
     const float* parent=bank->nodes()[root].world;
+    const int* nodes=joints(v,*bank,"joint%d",2,23);
+    // Joint k's height stays within -910 phase +- |550 sin(phase/2)|.
+    const Bounds* envelope=poseEnvelope(v,model,*bank,nodes,23,[&](int j,int n,const Bounds& box,auto& add){
+        const int k=j+1;const float phase=Pi*2.f*(600.f*float(k))/13800.f,amp=std::fabs(550.f*std::sin(phase*.5f))*1.001f+1.f;
+        float local[12];std::memcpy(local,bank->nodes()[n].local,sizeof local);local[3]=600.f*float(k);local[11]=0;
+        for(const float y:{-910.f*phase-amp,-910.f*phase+amp}){local[7]=y;float placed[12];mul34(parent,local,placed);add(transformBoundsPadded(box,placed));}
+    });
+    if(envelope&&d.culled(*envelope,m))return;
     for(int k=1;k<24;++k){
-        const int n=jointNode(*bank,"joint%d",k+1);if(n<0)continue;
+        const int n=nodes[k-1];if(n<0)continue;
         const float phase=Pi*2.f*(600.f*float(k))/13800.f;
         float local[12];std::memcpy(local,bank->nodes()[n].local,sizeof local);
         local[3]=600.f*float(k);local[7]=550.f*std::sin(phase*.5f)*bounce-910.f*phase;local[11]=0;

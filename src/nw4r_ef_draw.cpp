@@ -344,6 +344,23 @@ struct Writer {
         if(out.vertices.size()>=vertexLimit)return;
         out.vertices.push_back(v);++out.batches.back().count;
     }
+    // Tube segments as one GPU triangle strip per batch. Each segment is an
+    // even number of vertices; the next starts after the last vertex and its
+    // own first vertex are repeated, which forms only zero-area triangles and
+    // keeps every real triangle's winding (and so its culling) as GX draws it.
+    void beginStrip(){
+        if(out.batches.empty())return;
+        DrawBatch& b=out.batches.back();
+        if(b.strip)return;
+        if(!b.count){b.strip=1;return;}
+        DrawBatch nb=b;nb.first=u32(out.vertices.size());nb.count=0;nb.strip=1;
+        out.batches.push_back(nb);
+    }
+    void stripSegment(const DrawVertex* v1,const DrawVertex* v2,u32 n){
+        if(out.batches.empty())return;
+        if(out.batches.back().count){const DrawVertex last=out.vertices.back();emit(last);emit(v1[0]);}
+        for(u32 k=0;k<n;++k){emit(v1[k]);emit(v2[k]);}
+    }
     // GX_TRIANGLESTRIP as a triangle list; odd triangles swap their first two vertices
     // so every triangle keeps the strip's winding.
     struct Strip {
@@ -568,11 +585,15 @@ void drawStripe(Writer& w,ParticleManager& pm,const Mtx34& view){
         ring[sides][0]=0.f;ring[sides][1]=1.f;
         const float py=0.01f*float(d.pivotY);
         const float step=(d.typeOption2&0xc0)==0x40?1.f:1.f/float(int(count-1));
+        // Each section's ring of vertices joins the segment before it and the
+        // one after it. make() depends only on its arguments and this pass's
+        // setup, so each ring is made once and reused for both segments.
+        DrawVertex rings[2][33];
         for(u8 pass:{u8(1),u8(2)}){
             w.cull=pass;
-            w.setup(*first);
+            w.setup(*first);w.beginStrip();
             int index=reversed?int(count)-1:0;const int inc=reversed?-1:1;
-            Section prev{};bool havePrev=false;
+            bool havePrev=false;unsigned ringCur=0;
             forEachDraw(pm,[&](Particle& p){
                 const Mtx34 B=stripeFrame(a,p,billboard,p.p.position);
                 const Vec3 rot=drawRotate(p);
@@ -585,16 +606,17 @@ void drawStripe(Writer& w,ParticleManager& pm,const Mtx34& view){
                 const Mtx34 M=mul(viewPm,mul(B,L));
                 const Section cur{M.translate(),transformNormal(M,XUnit),transformNormal(M,ZUnit),step*float(index)};
                 index+=inc;
-                if(havePrev){
-                    const Section& v1=reversed?prev:cur;const Section& v2=reversed?cur:prev;
-                    Writer::Strip strip{w};
-                    for(u32 k=0;k<=sides;++k){
-                        const float sn=ring[k][0],cs=ring[k][1],sk=float(k)*(1.f/float(int(sides)));
-                        strip.push(w.make(v1.center+v1.a*cs+v1.b*sn,sk,v1.t));
-                        strip.push(w.make(v2.center+v2.a*cs+v2.b*sn,sk,v2.t));
-                    }
+                DrawVertex* made=rings[ringCur];
+                for(u32 k=0;k<=sides;++k){
+                    const float sn=ring[k][0],cs=ring[k][1],sk=float(k)*(1.f/float(int(sides)));
+                    made[k]=w.make(cur.center+cur.a*cs+cur.b*sn,sk,cur.t);
                 }
-                prev=cur;havePrev=true;
+                if(havePrev){
+                    const DrawVertex* before=rings[ringCur^1u];
+                    const DrawVertex* v1=reversed?before:made;const DrawVertex* v2=reversed?made:before;
+                    w.stripSegment(v1,v2,sides+1);
+                }
+                havePrev=true;ringCur^=1u;
             });
         }
         w.cull=0;
