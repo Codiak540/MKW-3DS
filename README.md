@@ -38,6 +38,7 @@ Prix award ceremony. Not yet: Mirror, online play.
 - [Python 3.11+](https://www.python.org/downloads/) and [Node.js LTS](https://nodejs.org)
 - [Git](https://git-scm.com)
 - macOS: Xcode command line tools (`xcode-select --install`)
+- Linux and Windows: a C++ compiler (`clang` or `g++`; on Linux `sudo apt install clang`)
 
 ## Building
 
@@ -47,7 +48,8 @@ window and press Return.
 **Windows:** double-click `Build MKW CIA.bat`, drag your disc image into the
 window and press Enter. *(New: please report how it goes.)*
 
-The first build takes about 30–60 minutes. Your CIA is saved to
+The first build takes about 2–3 hours; the Old 3DS models and visibility take
+about 1 h 40 min of that. Your CIA is saved to
 `build/release/mkw-3ds.cia`. If a build stops partway, run it again: finished
 steps are skipped. If it fails, share `build-cia-log.txt` when asking for help.
 

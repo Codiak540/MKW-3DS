@@ -50,6 +50,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'tools/pvs'))
 import gmdl  # noqa: E402
+from host_cxx import host_cxx  # noqa: E402
 from o3ds_kcl import DRIVABLE, read_kcl  # noqa: E402
 
 NONE = 0xFFFFFFFF
@@ -251,7 +252,7 @@ def main():
     src = ROOT / 'tools/pvs/pvs_raster.cpp'
     if not exe.exists() or exe.stat().st_mtime < src.stat().st_mtime:
         exe.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(['clang++', '-O3', '-std=c++17', '-o', str(exe), str(src)], check=True)
+        subprocess.run([*host_cxx(), '-O3', '-std=c++17', '-pthread', '-o', str(exe), str(src)], check=True)
     a.out.mkdir(parents=True, exist_ok=True)
     work = a.out.parent / 'work'
     work.mkdir(exist_ok=True)
