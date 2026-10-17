@@ -77,9 +77,9 @@ COOK_SOURCES = {
     'texture-mips': ('tools/cook_o3ds_course_textures.py', 'tools/audit_o3ds_textures.py'),
     'stage': ('tools/stage_o3ds_lowpoly.py', 'tools/check_o3ds_seams.py', 'tools/validate_model_variants.cpp',
               'include/mkw/model_variant.hpp', 'tools/optimize_o3ds_vertex_cache.mjs', 'tools/o3ds_gmdl.mjs',
-              'tools/validate_texture_mips.cpp', 'include/mkw/texture_mips.hpp'),
+              'tools/validate_texture_mips.cpp', 'include/mkw/texture_mips.hpp', 'tools/host_cxx.py'),
     'visibility': ('tools/build_o3ds_pvs.py', 'tools/build_o3ds_object_pvs.py', 'tools/pvs/gmdl.py',
-                   'tools/pvs/pvs_raster.cpp', 'tools/o3ds_kcl.py'),
+                   'tools/pvs/pvs_raster.cpp', 'tools/o3ds_kcl.py', 'tools/host_cxx.py'),
     'final': ('tools/stage_o3ds_lowpoly.py',),
 }
 

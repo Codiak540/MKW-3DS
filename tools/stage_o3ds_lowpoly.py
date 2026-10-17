@@ -31,6 +31,8 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / 'tools'))
+from host_cxx import host_cxx  # noqa: E402
 
 
 def sha(path):
@@ -154,7 +156,7 @@ def validate(a):
     exe = ROOT / 'build' / 'validate_model_variants_v2'
     src = ROOT / 'tools' / 'validate_model_variants.cpp'
     if not exe.exists() or exe.stat().st_mtime < src.stat().st_mtime:
-        subprocess.run(['c++', '-std=c++20', '-O2', '-I', str(ROOT / 'include'), str(src), '-o', str(exe)], check=True)
+        subprocess.run([*host_cxx(), '-std=c++20', '-O2', '-I', str(ROOT / 'include'), str(src), '-o', str(exe)], check=True)
     # Originals as the runtime sees them: menu.pak/race.pak entries win over loose files.
     sys.path.insert(0, str(ROOT / 'tools'))
     from cook_o3ds_textures import Assets
@@ -281,7 +283,7 @@ def texture_mips(a):
     exe = ROOT / 'build' / 'validate_texture_mips'
     src = ROOT / 'tools' / 'validate_texture_mips.cpp'
     if not exe.exists() or exe.stat().st_mtime < max(src.stat().st_mtime, (ROOT / 'include/mkw/texture_mips.hpp').stat().st_mtime):
-        subprocess.run(['c++', '-std=c++17', '-O2', '-I', str(ROOT / 'include'), str(src), '-o', str(exe)], check=True)
+        subprocess.run([*host_cxx(), '-std=c++17', '-O2', '-I', str(ROOT / 'include'), str(src), '-o', str(exe)], check=True)
     r = subprocess.run([str(exe), str(a.texture_mips), str(a.originals.parent)], capture_output=True, text=True)
     print('texture mips:', r.stdout.strip(), r.stderr.strip()[:2000])
     if r.returncode:
