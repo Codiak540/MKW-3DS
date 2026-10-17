@@ -334,6 +334,10 @@ def stage_cook(disc,jobs,force,check=False):
                 log('Node packages: installing',', '.join(added));run(cmd);continue
             present=not added and not changed
         done=(present if shared or name=='Node packages' else stamp_done(stamp,name,fingerprint)) and not rerun
+        if done and name=='Old 3DS overlay' and (ROOT/'build/o3ds-lowpoly-package/visibility-skipped.txt').is_file():
+            # Cooked without a C++ compiler (no visibility files): add them now that one is installed.
+            from host_cxx import find_host_cxx
+            if find_host_cxx():log('Old 3DS overlay: C++ compiler found, adding the visibility files');done=False
         if done:log('cooked:',name);continue
         # The course lighting re-cook rewrites files in place: no output of its own.
         if shared and not outputs:log('cooked (development tree, assumed):',name);continue
