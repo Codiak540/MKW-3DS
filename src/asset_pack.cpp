@@ -67,6 +67,7 @@ bool readRange(const char* path,size_t offset,void* destination,size_t bytes){
  const bool ok=a&&offset<=e->size&&bytes<=e->size-offset&&std::fseek(a->file,long(e->offset+offset),SEEK_SET)==0&&std::fread(destination,1,bytes,a->file)==bytes;
  LightLock_Unlock(&all.lock);return ok;
 }
+bool overlayPacked(){auto& all=archives();LightLock_Lock(&all.lock);const Entry* e=nullptr;lookup(all,"",&e);const bool open=all.list[2].file!=nullptr;LightLock_Unlock(&all.lock);return open;}
 bool read(const char* path,std::vector<uint8_t>& out){
  const long bytes=size(path);if(bytes<0)return false;
  out.resize(size_t(bytes));return readInto(path,out.data(),out.size());

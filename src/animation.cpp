@@ -3,6 +3,7 @@
 #include <mkw/asset_pack.hpp>
 #include "mkw/pose_blend.hpp"
 #include "mkw/model_variant.hpp"
+#include "mkw/load_profile.hpp"
 #include <3ds.h>
 #include <cstdio>
 #include <cstring>
@@ -64,6 +65,7 @@ bool DriverAnimation::prepareUnlitSkinning(Model& model){
     return false;
 }
 bool DriverAnimation::prepareLitSkinning(Model& model){
+    loadProfile::Scope timed(loadProfile::SkinPrep);
     skinNormals(true);
     if(!ready)return false;
     if(gpu_&&model.skinBoneIndices)return true;
@@ -73,6 +75,7 @@ bool DriverAnimation::prepareLitSkinning(Model& model){
 int DriverAnimation::find(const char* name)const{if(name)for(unsigned i=0;i<count_;++i)if(!std::strcmp(name,clips_[i].name))return i;return -1;}
 int DriverAnimation::face(const char* name)const{if(name)for(unsigned i=0;i<faceCount_;++i)if(!std::strcmp(name,faces_[i].name))return i;return -1;}
 bool DriverAnimation::load(const char* path,const Model& model){
+    loadProfile::Scope timed(loadProfile::Banks);
     reset();
     // Menu banks come from the open menu.pak; other banks are loose files.
     bool ok=false;size_t size=0;

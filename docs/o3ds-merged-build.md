@@ -124,6 +124,77 @@ Same QA binary, loose vs pak: Luigi Circuit 16.9 -> 9.4 s, Coconut Mall
 18.3 -> 10.4 s, Bowser's Castle 17.6 -> 10.1 s; identical sidecar counts and
 33/33 identical frames.
 
+## Race loading: where the time goes (2026-10-19)
+
+QA builds now log every load step with its SD work (runtime.log and
+menu-performance.csv, from the menu's course choice to the first race frame):
+
+    load opponents 3308.5 ms, 3 opens (0 missing, 46.2 ms opening), 461 reads 14957.7 KiB (3056.6 ms reading)
+      of which models 1335.4 model textures 554.9 texture mips 2.7 model checks 11.5 sidecars 306.5 banks 1871.2 skin prep 2.4
+
+Opens count every `fopen` (missing = the file was absent), reads count the SD
+requests stdio really issues (`FSFILE_Read`, wrapped in QA builds only). The
+"of which" steps nest (`include/mkw/load_profile.hpp`; no-ops in release).
+
+Luigi Circuit, emulator, before the fixes below (stage, ms, opens/missing, reads, KiB):
+
+| stage | ms | opens (missing) | reads | KiB |
+|---|---:|---:|---:|---:|
+| menu release, data checks | 689 | 22 (14, QA markers) | 80 | 659 |
+| Kinoko scene (course SZS read + decompress) | 1,137 | 6 | 2 | 3,168 |
+| course parts | 852 | 10 (4) | 60 | 2,678 |
+| course sections (visibility) | 267 | 7 | 6 | 100 |
+| course objects | 485 | 4 | 84 | 1,422 |
+| player | 451 | 6 (1) | 45 | 1,245 |
+| items, HUD, Lakitu, flow UI | 1,472 | 4 | 254 | 5,867 |
+| bottom screen | 267 | 3 | 13 | 800 |
+| course textures to VRAM | 150 | 4 | 0 | 0 |
+| grid | 68 | 2 | 0 | 0 |
+| 11 opponents | 3,710 | 26 (23) | 461 | 14,958 |
+| preview, race sound | 201 | 6 | 0 | 0 |
+| first frame | 385 | 13 (5, QA markers) | 0 | 0 |
+
+What it shows:
+
+- The opponents are over a third of the load, and it is bytes, not opens: each
+  reads its driver animation bank (`models/*driver.dskm`, 1.2 MB on average,
+  loose in `models/`, 4,461 entries), 13 of the 14.6 MiB. Banks 1.9 s, models
+  1.3 s.
+- Items, HUD, Lakitu and the flow UI do not depend on the course but reload
+  for every race (1.5 s, 5.7 MiB); so does everything else, because the menus
+  release the race to make room.
+- 23 failed opens per race were sidecar probes: an opponent part whose rival
+  sidecar is not in `o3ds.pak` probed `models/o3ds/rival/...` on the SD, and a
+  part with no sidecar at all also probed `models/o3ds/...`. On a real card
+  each failed open searches a folder.
+- Validation hashing and checks are small (model checks 12 ms for all 11
+  opponents, texture mips 3 ms there, 56 ms for the course parts).
+- The core-layout calibration adds nothing to the load: it only times frames
+  once the countdown runs (`timing` needs the preview over and the stage at
+  Countdown), long after `race_load_ms` is logged. Its log line ("race cores
+  chose ...") follows the 771-frame preview.
+
+Fixes (pixel and physics identical: replay pass, 920/920 CPU log lines, 44/44
+top-screen captures; the 8 differing bottom captures differ only in the QA
+FPS/ms readout):
+
+- With `o3ds.pak` open, an absent sidecar is not probed on the SD
+  (`pack::overlayPacked`); the builder ships either the archive or loose files.
+  Luigi Circuit opponents 26 -> 3 opens, 23 -> 0 missing, 3,710 -> 3,309 ms.
+  `race_load_ms`, both with the QA counters: Luigi Circuit 10,133 -> 9,698,
+  Coconut Mall 11,052 -> 10,417, Bowser's Castle 10,801 -> 10,316. (The
+  counters cost 0.5-0.8 s in the emulator; the uncounted starting build
+  measured 9,414 / 10,283 / 10,082. Release builds compile them out.)
+- The first decided core calibration stands for the session: later countdowns
+  no longer switch layouts nine times (each switch drains the GPU, and the
+  slower trials make the countdown stutter).
+
+Next levers, not done (largest first): keep the course-independent race assets
+and, for a restart or the next race of a set with the same lineup, the
+opponents resident between races (about 5 s of the 10 s in the emulator);
+pack the `.dskm` banks into `race.pak` and give opponents only the clips they
+play; ship course archives already decompressed (about 0.5 s).
+
 ## Merged with the fork's `main` (2026-10-16)
 
 `origin/main` (`Codiak540/MKW-3DS`: 7d84ac5, e96a01b, then d268788) merged
