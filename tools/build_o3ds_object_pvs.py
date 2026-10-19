@@ -57,6 +57,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'tools/pvs'))
 import gmdl  # noqa: E402
+from host_cxx import compile_command, exe as executable, host_cxx  # noqa: E402
 from build_o3ds_pvs import columns, material, samples_for  # noqa: E402
 from o3ds_kcl import DRIVABLE, read_kcl  # noqa: E402
 
@@ -398,11 +399,11 @@ def main():
     ap.add_argument('--max-sets', type=int, default=256, help='distinct column sets after merging adjacent zones')
     ap.add_argument('--reuse-raster', action='store_true', help='reuse work/vis-<id>.npy from an earlier run with the same regions')
     a = ap.parse_args()
-    exe = ROOT / 'build/o3ds-ovis/pvs_raster'
+    exe = executable(ROOT / 'build/o3ds-ovis/pvs_raster')
     src = ROOT / 'tools/pvs/pvs_raster.cpp'
     if not exe.exists() or exe.stat().st_mtime < src.stat().st_mtime:
         exe.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(['clang++', '-O3', '-std=c++17', '-o', str(exe), str(src)], check=True)
+        subprocess.run(compile_command(host_cxx(), '-O3', '-std=c++17', '-o', str(exe), str(src)), check=True)
     a.out.mkdir(parents=True, exist_ok=True)
     work = a.out.parent / 'work'
     work.mkdir(exist_ok=True)

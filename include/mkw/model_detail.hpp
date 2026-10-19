@@ -4,17 +4,17 @@
 #include <string>
 
 namespace mkw {
-// Old 3DS low-poly models (models/o3ds sidecars). Only a console positively
-// identified as an Old 3DS uses them; New 3DS and unknown hardware always keep
-// the original models. QA builds can force the originals for A/B comparisons
-// with full-quality.txt or o3ds-models-off.txt.
+// Low-poly models (models/o3ds sidecars, cooked for the Old 3DS). A console
+// positively identified as an Old or New 3DS uses them (both have the same
+// GPU); unknown hardware keeps the original models. QA builds can force the
+// originals for A/B comparisons with full-quality.txt or o3ds-models-off.txt.
 struct ModelDetail {
     enum Hardware {Unknown,Old3DS,New3DS};
     Hardware hardware=Unknown;
     bool candidate=false;
     std::atomic<uint32_t> loaded{0},fallbacks{0};
-    static constexpr bool eligible(bool known,bool new3ds,bool fullQuality,bool disabled){
-        return known&&!new3ds&&!fullQuality&&!disabled;
+    static constexpr bool eligible(bool known,[[maybe_unused]] bool new3ds,bool fullQuality,bool disabled){
+        return known&&!fullQuality&&!disabled;
     }
     void configure(bool known,bool new3ds,bool fullQuality,bool disabled){
         hardware=!known?Unknown:new3ds?New3DS:Old3DS;

@@ -32,6 +32,8 @@
 #include <vector>
 
 namespace {
+// M_PI is POSIX, not standard C++: strict -std=c++17 builds (GCC) may lack it.
+constexpr double Pi=3.14159265358979323846;
 struct Tri {float v[9];uint32_t block,flags;};
 struct Box {float lo[3],hi[3];};
 struct V3 {double x,y,z;};
@@ -239,7 +241,7 @@ int main(int argc,char** argv){
     std::fclose(in);
     std::vector<uint32_t> occluders;
     for(uint32_t i=0;i<triCount;++i){if(tris[i].block>=blocks)return 1;if(tris[i].flags&1)occluders.push_back(i);}
-    const Params params{res,nearPlane,1./std::tan(fov*.5*M_PI/180.),frontSign};
+    const Params params{res,nearPlane,1./std::tan(fov*.5*Pi/180.),frontSign};
     const size_t blockBytes=(blocks+7)/8,stride=blockBytes+(boxes.size()+7)/8;
     std::vector<uint8_t> result(size_t(samples)*stride,0);
     std::atomic<uint32_t> next{0},done{0};

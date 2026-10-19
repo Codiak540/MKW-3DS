@@ -150,9 +150,9 @@ void RacerVisuals::Impl::prepareRacer(unsigned i){
         if(r->bodyAnimation)r->bodyAnimation->clearPoseTransition();
         for(auto& animation:r->extraAnimation)if(animation)animation->clearPoseTransition();
     }
-    // Reduced detail: a racer whose generous envelope (1,000 units, scaled) is
-    // wholly outside the view is neither evaluated, posed nor drawn this frame.
-    if(renderQuality().reduced){
+    // A racer whose generous envelope (1,000 units, scaled) is wholly outside
+    // the view is neither evaluated, posed nor drawn this frame.
+    if(renderQuality().racerViewCull){
         const Vec3 p=r->vehicle.position();const float e=1000.f*r->vehicle.maxScale();
         if(!frame.world.intersects({p-Vec3{e,e,e},p+Vec3{e,e,e}}))return;
     }

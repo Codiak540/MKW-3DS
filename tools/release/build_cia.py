@@ -122,7 +122,8 @@ def stage_tools():
     if not shutil.which('node'):raise SystemExit('Missing Node.js (https://nodejs.org), used by the model exporters')
 
 def stage_sources():
-    if all((ROOT/'vendor'/n).is_dir() for n in ('kinoko','noclip','gclib','citro3d')):log('sources present');return
+    # Every build: a checkout from an earlier build may hold an older version
+    # of a vendor patch (tools/bootstrap.py brings it to the current one).
     run([sys.executable,'tools/bootstrap.py'])
 
 def stage_disc(disc):
@@ -298,6 +299,23 @@ def step_jobs(name,jobs):
     if fit<jobs:log(f'{name}: {fit} at a time ({free/2**30:.1f} GiB free memory)')
     return min(jobs,fit)
 
+def node_packages_state(root=None):
+    """Packages package-lock.json requires that node_modules lacks (added) or
+    holds at another version (changed), by npm's own record of what it
+    installed (node_modules/.package-lock.json). Platform-specific optional
+    packages (esbuild's per-OS builds) are not required."""
+    root=root or ROOT
+    want=json.loads((root/'package-lock.json').read_text()).get('packages',{})
+    try:have=json.loads((root/'node_modules/.package-lock.json').read_text()).get('packages',{})
+    except (OSError,ValueError):have={}
+    added,changed=[],[]
+    for key,meta in want.items():
+        if not key.startswith('node_modules/') or meta.get('optional'):continue
+        name=key[len('node_modules/'):]
+        if key not in have:added.append(name)
+        elif have[key].get('version')!=meta.get('version'):changed.append(name)
+    return added,changed
+
 def stage_cook(disc,jobs,force,check=False):
     shared=shared_checkout();stamps=ROOT/'build/release/cook';stamps.mkdir(parents=True,exist_ok=True)
     rerun=force
@@ -308,7 +326,19 @@ def stage_cook(disc,jobs,force,check=False):
         # outputs half written) and, once a step runs, re-runs every later step.
         # Development trees, cooked by hand, are judged by their outputs; so are
         # the Node packages, which a development tree links from elsewhere.
+        if name=='Node packages' and present and not shared and not rerun:
+            added,changed=node_packages_state()
+            # A package new to package-lock.json (a tool gained a dependency) is
+            # installed without re-cooking every later step: the steps that use
+            # it changed themselves. A changed version re-runs everything after.
+            if added and not changed and not check:
+                log('Node packages: installing',', '.join(added));run(cmd);continue
+            present=not added and not changed
         done=(present if shared or name=='Node packages' else stamp_done(stamp,name,fingerprint)) and not rerun
+        if done and name=='Old 3DS overlay' and (ROOT/'build/o3ds-lowpoly-package/visibility-skipped.txt').is_file():
+            # Cooked without a C++ compiler (no visibility files): add them now that one is installed.
+            from host_cxx import find_host_cxx
+            if find_host_cxx():log('Old 3DS overlay: C++ compiler found, adding the visibility files');done=False
         if done:log('cooked:',name);continue
         # The course lighting re-cook rewrites files in place: no output of its own.
         if shared and not outputs:log('cooked (development tree, assumed):',name);continue

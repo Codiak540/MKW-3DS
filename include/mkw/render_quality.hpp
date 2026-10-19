@@ -43,11 +43,17 @@ struct RenderQuality {
     // after the race's VRAM users have loaded, leaving vramReserve bytes free.
     bool vramCourseTextures=false;
     static constexpr std::size_t vramReserve=1024*1024;
-    void setReduced(bool on){
+    // A racer whose generous envelope is wholly outside the view is neither
+    // evaluated, posed nor drawn that frame (racer_visuals.cpp).
+    bool racerViewCull=false;
+    // reduced: the detail traded above (Old 3DS). lossless: the reductions that
+    // change no pixel, on New 3DS too: racer view culling, VRAM textures.
+    void setReduced(bool on,bool lossless){
         *this=RenderQuality{};
+        racerViewCull=vramCourseTextures=on||lossless;
         if(!on)return;
         reduced=true;minScreenRatio=.015f;objectLowDistance=150.f;
-        shadowVolumes=false;bloomBlurRounds=1;boxSparkleRatio=.02f;particleBudget=16;kartEffectScreens=2;animationStep=5;vramCourseTextures=true;
+        shadowVolumes=false;bloomBlurRounds=1;boxSparkleRatio=.02f;particleBudget=16;kartEffectScreens=2;animationStep=5;
     }
 #ifdef MKW_RENDER_QUALITY_C3D
     // True when bounds b placed by transform t are too small to draw from camera.

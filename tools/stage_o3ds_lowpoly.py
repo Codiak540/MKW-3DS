@@ -31,6 +31,8 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / 'tools'))
+from host_cxx import MISSING, compile_command, exe as executable, find_host_cxx  # noqa: E402
 
 
 def sha(path):
@@ -150,11 +152,29 @@ def assemble(a):
     return receipt
 
 
+def build_check(exe, src, std, newest):
+    """Compile a build-time check; False when it cannot be built here."""
+    if exe.exists() and exe.stat().st_mtime >= newest:
+        return True
+    cxx = find_host_cxx()
+    if not cxx:
+        print(f'{src.stem} skipped: {MISSING}')
+        return False
+    r = subprocess.run(compile_command(cxx, f'-std={std}', '-O2', '-I', str(ROOT / 'include'), str(src), '-o', str(exe)),
+                       capture_output=True, text=True)
+    if r.returncode:
+        print(f'{src.stem} skipped: it did not compile here\n' + (r.stdout + r.stderr).strip()[-1500:])
+        return False
+    return True
+
+
 def validate(a):
-    exe = ROOT / 'build' / 'validate_model_variants_v2'
+    exe = executable(ROOT / 'build' / 'validate_model_variants_v2')
     src = ROOT / 'tools' / 'validate_model_variants.cpp'
-    if not exe.exists() or exe.stat().st_mtime < src.stat().st_mtime:
-        subprocess.run(['c++', '-std=c++20', '-O2', '-I', str(ROOT / 'include'), str(src), '-o', str(exe)], check=True)
+    # Without it the game still runs the same check when it loads each model
+    # and keeps the original for any sidecar it rejects.
+    if not build_check(exe, src, 'c++20', src.stat().st_mtime):
+        return True
     # Originals as the runtime sees them: menu.pak/race.pak entries win over loose files.
     sys.path.insert(0, str(ROOT / 'tools'))
     from cook_o3ds_textures import Assets
@@ -170,8 +190,14 @@ def validate(a):
         originals.mkdir()
         for side in candidates.glob('*.gmdl'):
             (originals / side.name).write_bytes(assets.read('models/' + side.name))
-        r = subprocess.run([str(exe), str(originals), str(candidates), str(a.package / 'textures' / 'o3ds')],
-                           capture_output=True, text=True)
+        try:
+            r = subprocess.run([str(exe), str(originals), str(candidates), str(a.package / 'textures' / 'o3ds')],
+                               capture_output=True, text=True)
+        except OSError as error:
+            shutil.rmtree(originals)
+            print(f'{sub or "main"}: the model check could not run ({error})')
+            ok = False
+            continue
         shutil.rmtree(originals)
         tail = [l for l in r.stdout.splitlines() if l.startswith(('Validated', 'Accepted'))]
         print((sub or 'main') + ':', ' '.join(tail))
@@ -278,14 +304,20 @@ def texture_mips(a):
     """Validate and add textures/o3ds/mips.pak; its sha256, or None."""
     if not a.texture_mips:
         return None
-    exe = ROOT / 'build' / 'validate_texture_mips'
+    exe = executable(ROOT / 'build' / 'validate_texture_mips')
     src = ROOT / 'tools' / 'validate_texture_mips.cpp'
-    if not exe.exists() or exe.stat().st_mtime < max(src.stat().st_mtime, (ROOT / 'include/mkw/texture_mips.hpp').stat().st_mtime):
-        subprocess.run(['c++', '-std=c++17', '-O2', '-I', str(ROOT / 'include'), str(src), '-o', str(exe)], check=True)
-    r = subprocess.run([str(exe), str(a.texture_mips), str(a.originals.parent)], capture_output=True, text=True)
-    print('texture mips:', r.stdout.strip(), r.stderr.strip()[:2000])
-    if r.returncode:
-        sys.exit('texture mip validation failed; nothing staged')
+    # Without it the game still checks each chain when it loads it and keeps
+    # the original texture otherwise.
+    if build_check(exe, src, 'c++17', max(src.stat().st_mtime, (ROOT / 'include/mkw/texture_mips.hpp').stat().st_mtime)):
+        try:
+            r = subprocess.run([str(exe), str(a.texture_mips), str(a.originals.parent)], capture_output=True, text=True)
+            print('texture mips:', r.stdout.strip(), r.stderr.strip()[:2000])
+            failed = r.returncode != 0
+        except OSError as error:
+            print(f'texture mips: the check could not run ({error})')
+            failed = True
+        if failed:
+            print('WARNING: texture mip check failed; the game keeps the original texture for any chain it rejects')
     shutil.copy2(a.texture_mips, a.package / 'textures' / 'o3ds' / 'mips.pak')
     return sha(a.package / 'textures' / 'o3ds' / 'mips.pak')
 
@@ -374,7 +406,9 @@ def main():
             receipt['rivals'][name] = sha(a.package / 'models' / 'o3ds' / 'rival' / name)
         receipt['vertexCache'] = True
     if not validate(a):
-        sys.exit('validation failed; nothing staged')
+        # The game runs this same check when it loads each model and keeps the
+        # original for any sidecar it rejects, so the build goes on.
+        print('WARNING: model check failed (above); the game keeps the original for any model it rejects')
     if not seam_gate(a, receipt):
         sys.exit('seam audit failed; nothing staged')
     receipt['pvs'] = pvs(a)

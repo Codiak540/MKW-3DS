@@ -355,7 +355,7 @@ int main() {
     {float ratio=0;if(kQa)if(FILE* m=fopen("sdmc:/3ds/mkw-3ds/o3ds-pose-lod.txt","r")){if(fscanf(m,"%f",&ratio)!=1)ratio=0;fclose(m);}
      mkw::poseLod().configure(hardwareKnown&&!new3ds&&!fullQuality&&!(kQa&&exists("sdmc:/3ds/mkw-3ds/o3ds-pose-lod-off.txt")),ratio);}
     // Old 3DS course-object early culling (world_cull.hpp); QA: o3ds-objcull-off.txt.
-    mkw::worldCullEnabled()=hardwareKnown&&!new3ds&&!fullQuality&&!(kQa&&exists("sdmc:/3ds/mkw-3ds/o3ds-objcull-off.txt"));
+    mkw::worldCullEnabled()=hardwareKnown&&!fullQuality&&!(kQa&&exists("sdmc:/3ds/mkw-3ds/o3ds-objcull-off.txt"));
     mkw::objectGpuSkin().configure(hardwareKnown,new3ds,kQa,fullQuality,
         kQa&&exists("sdmc:/3ds/mkw-3ds/o3ds-object-gpu-test.txt"));
     mkw::textureDetail().configure(hardwareKnown,new3ds,kQa,fullQuality,
@@ -957,7 +957,8 @@ int main() {
     // QA: o3ds-pvs-off.txt keeps authored order; o3ds-pvs-mask-off.txt keeps
     // the sectioned blocks but draws every block the frustum keeps.
     mkw::CourseSections courseSections;
-    const bool coursePvs=mkw::modelDetail().hardware==mkw::ModelDetail::Old3DS&&!(kQa&&exists("sdmc:/3ds/mkw-3ds/o3ds-pvs-off.txt"));
+    // Visibility files match the low-poly geometry: on wherever those models are.
+    const bool coursePvs=mkw::modelDetail().candidate&&!(kQa&&exists("sdmc:/3ds/mkw-3ds/o3ds-pvs-off.txt"));
     const bool coursePvsMasks=!(kQa&&exists("sdmc:/3ds/mkw-3ds/o3ds-pvs-mask-off.txt"));
     // Old 3DS frame pipelining (Renderer::setPipelined, docs/o3ds-draw-pipeline.md):
     // the GPU draws frame N while this core records frame N+1. QA marker
@@ -968,7 +969,7 @@ int main() {
     if(kQa)if(FILE* f=fopen("sdmc:/3ds/mkw-3ds/o3ds-displaylists-diag.txt","r")){int mode=0;if(fscanf(f,"%d",&mode)==1)renderer.setDisplayListDiagnostic(mode);fclose(f);}
     // Old 3DS object/racer visibility (models/pvs/*.opvs, object_pvs.hpp).
     // QA: o3ds-objpvs-off.txt draws every object and racer the frustum keeps.
-    const bool objectPvsOn=mkw::modelDetail().hardware==mkw::ModelDetail::Old3DS&&!fullQuality&&!(kQa&&exists("sdmc:/3ds/mkw-3ds/o3ds-objpvs-off.txt"));
+    const bool objectPvsOn=mkw::modelDetail().candidate&&!(kQa&&exists("sdmc:/3ds/mkw-3ds/o3ds-objpvs-off.txt"));
     std::unique_ptr<mkw::Model> vehicle,driver,vehicleShadow;
     std::array<std::unique_ptr<mkw::Model>,4> wheels;
     std::array<std::unique_ptr<mkw::Model>,9> accessories;
@@ -1051,7 +1052,7 @@ int main() {
         if(!bottomScreen.load(renderer,courseChoice))report("bottom screen unavailable");
         if(kQa){bottomScreen.describe(line,sizeof line);report(line);}
     };
-    // Reduced quality: the course's textures move to VRAM once bloom and the
+    // Known consoles: the course's textures move to VRAM once bloom and the
     // bottom screen have theirs, which frees their LINEAR (render_quality.hpp).
     auto moveCourseTexturesToVram=[&](){
         if(!mkw::renderQuality().vramCourseTextures)return;
@@ -1165,9 +1166,10 @@ int main() {
         vehicle.reset();driver.reset();vehicleShadow.reset();trackLists.clear();skyLists.clear();track.clear();sky.clear();
         return attempt();
     };
-    // Old 3DS draws reduced detail; full-quality.txt keeps every draw for QA.
+    // Old 3DS draws reduced detail; every known console takes the reductions
+    // that change no pixel. full-quality.txt keeps every draw for QA.
     // Set before the first race loads: some reductions apply at load.
-    mkw::renderQuality().setReduced(!new3ds&&!fullQuality);
+    mkw::renderQuality().setReduced(!new3ds&&!fullQuality,hardwareKnown&&!fullQuality);
     report(mkw::renderQuality().reduced?"render quality reduced":"render quality full");
     if(dataReady){
         K::System::RaceConfig::RegisterInitCallback(configure,&raceGrid);

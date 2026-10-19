@@ -4,15 +4,15 @@
 
 int main(){
     using mkw::ModelDetail;
-    // Every combination: only a positively identified Old 3DS uses the
-    // low-poly models, in QA and release alike; New 3DS and unknown never do.
+    // Every combination: a positively identified Old or New 3DS uses the
+    // low-poly models, in QA and release alike; unknown hardware never does.
     for(unsigned mask=0;mask<16;++mask){
         const bool known=mask&1,new3ds=mask&2,full=mask&4,off=mask&8;
-        const bool expected=known&&!new3ds&&!full&&!off;
+        const bool expected=known&&!full&&!off;
         assert(ModelDetail::eligible(known,new3ds,full,off)==expected);
         ModelDetail detail;detail.configure(known,new3ds,full,off);
         assert(detail.candidate==expected);
-        assert(!(new3ds&&detail.candidate)&&!(!known&&detail.candidate));
+        assert(!(!known&&detail.candidate));
         assert(std::strcmp(detail.hardwareName(),!known?"unknown":new3ds?"new3ds":"old3ds")==0);
         assert(std::strcmp(detail.profileName(),expected?"o3ds_candidate":"original")==0);
     }
