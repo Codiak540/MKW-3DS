@@ -1,6 +1,7 @@
 #include <mkw/display_layout.hpp>
 #include <3ds.h>
 #include <mkw/renderer.hpp>
+#include <mkw/load_profile.hpp>
 #include <mkw/course_objects.hpp>
 #include <mkw/course_catalog.hpp>
 #include <mkw/course_pvs.hpp>
@@ -113,7 +114,7 @@ namespace K = Kinoko;
 extern "C" void __gcov_dump(void);
 #endif
 static constexpr const char* DATA = "sdmc:/3ds/mkw-3ds";
-namespace mkw {extern std::atomic<unsigned> fileOpens;extern std::atomic<unsigned long long> fileOpenTicks;}
+namespace mkw {extern std::atomic<unsigned> fileOpens,fileOpenMisses,fileReads;extern std::atomic<unsigned long long> fileOpenTicks,fileReadBytes,fileReadTicks;}
 static bool exists(const char* p) { FILE* f=fopen(p,"rb"); if(!f)return false; fclose(f);return true; }
 static K::u8* replayData=nullptr;
 using mkw::Courses;
@@ -389,12 +390,20 @@ int main() {
     if(autoplay||(kQa&&exists("sdmc:/3ds/mkw-3ds/menu-performance.txt")))menuProfile->enable();
     using MenuStage=mkw::MenuProfile::Stage;
     uint64_t raceLoadStart=0;
-    // QA: race load stage timing with file-open counts.
-    uint64_t stageTick=0;unsigned stageOpens=0;unsigned long long stageOpenTicks=0;
+    // QA: race load stage timing with file-open counts (misses are opens of
+    // absent files), SD read requests and their bytes.
+    unsigned long long stageSteps[mkw::loadProfile::Count]{};
+    struct StageMark {uint64_t tick=0;unsigned opens=0,misses=0,reads=0;unsigned long long openTicks=0,bytes=0,readTicks=0;} stageMark;
     auto stage=[&](const char* name){
-        const auto now=svcGetSystemTick();const unsigned opens=mkw::fileOpens.load();const auto openTicks=mkw::fileOpenTicks.load();
-        if(stageTick&&menuProfile->enabled()){char text[160];snprintf(text,sizeof text,"load %s %.1f ms, %u opens (%.1f ms opening)",name,double(now-stageTick)*1000.0/SYSCLOCK_ARM11,opens-stageOpens,double(openTicks-stageOpenTicks)*1000.0/SYSCLOCK_ARM11);menuProfile->event(text);report(text);}
-        stageTick=now;stageOpens=opens;stageOpenTicks=openTicks;
+        const StageMark now{svcGetSystemTick(),mkw::fileOpens.load(),mkw::fileOpenMisses.load(),mkw::fileReads.load(),mkw::fileOpenTicks.load(),mkw::fileReadBytes.load(),mkw::fileReadTicks.load()};
+        if(stageMark.tick&&menuProfile->enabled()){const auto& was=stageMark;auto ms=[](unsigned long long ticks){return double(ticks)*1000.0/SYSCLOCK_ARM11;};
+            char text[200];snprintf(text,sizeof text,"load %s %.1f ms, %u opens (%u missing, %.1f ms opening), %u reads %.1f KiB (%.1f ms reading)",name,ms(now.tick-was.tick),
+                now.opens-was.opens,now.misses-was.misses,ms(now.openTicks-was.openTicks),now.reads-was.reads,double(now.bytes-was.bytes)/1024.0,ms(now.readTicks-was.readTicks));
+            menuProfile->event(text);report(text);
+            int length=snprintf(text,sizeof text,"  of which");
+            for(unsigned i=0;i<mkw::loadProfile::Count;++i)if(const auto t=mkw::loadProfile::ticks[i].load()-stageSteps[i];t&&length>0&&size_t(length)<sizeof text)length+=snprintf(text+length,sizeof text-size_t(length)," %s %.1f",mkw::loadProfile::names[i],ms(t));
+            report(text);}
+        stageMark=now;for(unsigned i=0;i<mkw::loadProfile::Count;++i)stageSteps[i]=mkw::loadProfile::ticks[i].load();
     };
     auto finishAutoplay=[&](){
 #ifdef MKW_PGO_GENERATE
@@ -722,7 +731,7 @@ int main() {
     }
     auto applySelection=[&](){timeTrial=menu.selection.mode==mkw::UiMode::TimeTrials;newRecord=false;if(timeTrial)loadBestTimes();courseChoice=menu.selection.course;driverChoice=menu.selection.driver;vehicleChoice=menu.selection.vehicle;automaticDrift=menu.selection.automatic;
         engineClass=menu.selection.mode==mkw::UiMode::GrandPrix&&menu.selection.engineClass==mkw::UiEngineClass::CC50?0:menu.selection.mode==mkw::UiMode::GrandPrix&&menu.selection.engineClass==mkw::UiEngineClass::CC100?1:2;};
-    if(fullRace){if(runMenu()!=mkw::UiAction::StartRace){finishAutoplay();renderer.waitForGpu();menuModels.reset(renderer);menuIcons.reset(renderer);menuRenderer.release();mkw::SoundSystem::instance().stop();mkw::MenuMovieAudio::shutdown();renderer.shutdown();gfxExit();return 0;}applySelection();menu.raceStarted();raceLoadStart=svcGetSystemTick();}
+    if(fullRace){if(runMenu()!=mkw::UiAction::StartRace){finishAutoplay();renderer.waitForGpu();menuModels.reset(renderer);menuIcons.reset(renderer);menuRenderer.release();mkw::SoundSystem::instance().stop();mkw::MenuMovieAudio::shutdown();renderer.shutdown();gfxExit();return 0;}applySelection();menu.raceStarted();raceLoadStart=svcGetSystemTick();stageMark={};stage("begin");}
     bool dataReady=exists("Race/Common.szs")&&courseAvailable(courseChoice);
     if(dataReady&&(kQa&&exists("sdmc:/3ds/mkw-3ds/trace-test.txt"))) {
         // Invoke upstream's complete per-frame KRKG comparison, not just final position.
@@ -1040,6 +1049,7 @@ int main() {
         raceItems->resetFromCourse(raceGrid.count());
         if(!raceItems->oddsReady()){trackLoadFailed=true;report("FAIL original item odds load");}
         if(timeTrial){raceItems->reset({},raceGrid.count());raceItems->give(0,mkw::ItemKind::TripleMushroom);newRecord=false;}
+        stage("grid");
         if(reload){if(!opponents.load()){trackLoadFailed=true;report("FAIL opponent graphics load");}}
         else opponents.resetAnimation();
         LOGF("race_grid count=%u opponents=%u route=%d item_boxes=%u",raceGrid.count(),opponents.count(),raceGrid.routeReady(),unsigned(raceItems->boxes().size()));
@@ -1083,6 +1093,7 @@ int main() {
         };
         loadList(Courses[courseChoice].models,track);
         loadList(Courses[courseChoice].sky,sky);
+        stage("course parts");
         // map_model.brres is the minimap projection, not race scenery. Several
         // courses contain a full-size untextured map mesh that otherwise draws
         // a white sheet over the actual road.
@@ -1093,6 +1104,7 @@ int main() {
         for(size_t i=0;i<courseSections.parts.size();++i){const auto& p=courseSections.parts[i];
             LOGF("course_pvs part=%u sectioned=%d blocks=%u columns=%u sets=%u masks=%d",unsigned(i),int(p.sectioned()),p.blocks(),p.columns(),p.sets(),int(coursePvsMasks));}
         trackLoadFailed|=track.empty();
+        stage("course sections");
         if(Courses[courseChoice].id==K::Course::Coconut_Mall){
             if(!courseObjects.loadCoconut()){trackLoadFailed=true;report("FAIL Coconut object assets");}
             LOGF("Coconut palms=%u; escalators use live collision transforms",courseObjects.palmCount());
@@ -1189,7 +1201,7 @@ int main() {
         }
         if((kQa&&exists("sdmc:/3ds/mkw-3ds/controls-test.txt"))){bool ok=mkw::runControlChecks(scenes);report(ok?"CONTROLS PASS":"CONTROLS FAIL");for(auto& texture:sparkTexture)texture.reset();for(auto& texture:*effectTextures)texture.reset();renderer.shutdown();gfxExit();return ok?0:3;}
         LOGF("race_heap_free=%lu linear_free=%lu",(unsigned long)scenes.currentScene()->heap()->getAllocatableSize(),(unsigned long)linearSpaceFree());
-        loadTrack();stage("track");
+        loadTrack();stage("course objects");
         // A race stops loading at its first failure: nothing more is allocated
         // for an attempt that will be unwound to the error page.
         if(!fullRace)animationPass&=loadDriver();
@@ -1199,11 +1211,11 @@ int main() {
         // Lakitu is presentation only: skip it rather than crowd LINEAR on large courses.
         if(fullRace&&!trackLoadFailed&&!(linearSpaceFree()>4u*1024*1024&&lakitu.load()))report("Lakitu unavailable");
         if(fullRace&&!trackLoadFailed&&!flowUi.load())report("FAIL race flow UI load");
-        if(fullRace&&!trackLoadFailed){loadBottomScreen();moveCourseTexturesToVram();}
-        stage("hud");
+        if(fullRace&&!trackLoadFailed){stage("hud");loadBottomScreen();stage("bottom screen");moveCourseTexturesToVram();}
+        stage("vram");
         if(!trackLoadFailed)resetRaceSystems(true);
-        stage("grid+opponents");raceResident=fullRace;
-        if(!trackLoadFailed){startIntro();beginRaceSound();}
+        stage("opponents");raceResident=fullRace;
+        if(!trackLoadFailed){startIntro();stage("intro");beginRaceSound();stage("race sound");}
         prepareGarageFixture();
         LOGF("graphics_loaded track_parts=%u vehicle=%d driver=%d linear_free=%lu vram_free=%lu",unsigned(track.size()),!!vehicle,!!driver,(unsigned long)linearSpaceFree(),(unsigned long)vramSpaceFree());
     }else report("WAIT required game data absent");
@@ -1317,6 +1329,10 @@ int main() {
     const Cores::Mode startCores=pinnedCores!=Cores::ModeCount?pinnedCores:Cores::MainOnly;
     const bool calibrateCores=old3dsCores&&fullRace&&pinnedCores==Cores::ModeCount;
     Cores cores;cores.reset(calibrateCores&&raceResident&&!trackLoadFailed,startCores);
+    // The first decided calibration stands for the rest of the session: how
+    // much of the system core the console lends does not change between
+    // races, and each trial of a slower layout makes the countdown stutter.
+    Cores::Mode sessionCores=Cores::ModeCount;
     bool deferredRace=!animationTest;
     auto applyCores=[&](Cores::Mode m){
         if(!old3dsCores)return;
@@ -1386,7 +1402,7 @@ int main() {
                 }
                 if(action==mkw::UiAction::StartRace||action==mkw::UiAction::RestartRace){
                     raceGraphicsSuspended=false;
-                    raceLoadStart=svcGetSystemTick();
+                    raceLoadStart=svcGetSystemTick();stageMark={};stage("begin");
                     renderer.waitForGpu();menuRenderer.release();
                     applySelection();startVsRace(action==mkw::UiAction::RestartRace);
                     // A different or previously failed course reloads completely;
@@ -1401,19 +1417,19 @@ int main() {
                         intro.stop(); // Its rail belongs to the scene being replaced.
                         scenes.currentScene()->heap()->enableAllocation();scenes.changeSiblingScene(2);courseObjects.invalidate();stage("kinoko scene");
                         if(reloadTrack)loadTrack();
-                        stage("track");
+                        stage("course objects");
                         if(!trackLoadFailed&&!loadDriver())trackLoadFailed=true;
                         stage("player");
                         driftEffects.reset();raceEffects.reset();resetKartFx();cameraShake.reset();shakeActionStarts=~0u;lightningFlash={};boostFov=0;driverPose={};wasTricking=false;wasBoosting=false;trickModel.reset();++restarts;
                         if(!trackLoadFailed&&!raceHud.load()){trackLoadFailed=true;report("FAIL item or HUD asset load");}
                         if(!trackLoadFailed&&!(linearSpaceFree()>4u*1024*1024&&lakitu.load()))report("Lakitu unavailable");
                         if(!trackLoadFailed&&!flowUi.load())report("FAIL race flow UI load");
-                        if(!trackLoadFailed){loadBottomScreen();moveCourseTexturesToVram();}
-                        stage("hud");
+                        if(!trackLoadFailed){stage("hud");loadBottomScreen();stage("bottom screen");moveCourseTexturesToVram();}
+                        stage("vram");
                         if(!trackLoadFailed)resetRaceSystems(true);
-                        stage("grid+opponents");
+                        stage("opponents");
                     }
-                    if(!trackLoadFailed){startIntro();beginRaceSound();cores.reset(calibrateCores,startCores);applyCores(startCores);busyTicks=0;}
+                    if(!trackLoadFailed){startIntro();stage("intro");beginRaceSound();stage("race sound");cores.reset(calibrateCores&&sessionCores==Cores::ModeCount,sessionCores!=Cores::ModeCount?sessionCores:startCores);applyCores(cores.mode());busyTicks=0;}
                     raceResident=true;menu.raceStarted();uiRace={};
                 }
                 accumulator=0;previous=svcGetSystemTick();lastRefresh=C3D_FrameCounter(0);presentation.reset();continue;
@@ -2188,12 +2204,13 @@ int main() {
             if(timing){
                 const bool decided=cores.frameDone(float(double(busyTicks)*1000.0/SYSCLOCK_ARM11));
                 applyCores(cores.mode());
+                if(decided)sessionCores=cores.chosen();
                 if(decided)LOGF("race cores chose %s; main-core ms per frame: main-only %.2f, main+worker %.2f, render-thread %.2f; gpu pipeline %s write_misses=%u",Cores::name(cores.chosen()),cores.meanMs(Cores::MainOnly),cores.meanMs(Cores::MainWorker),cores.meanMs(Cores::RenderThread),renderer.pipelined()?"on":"off",renderer.pipelineWriteMisses);
             }
             busyTicks=0;
         }
         if(raceLoadStart){
-            const double ms=double(svcGetSystemTick()-raceLoadStart)*1000.0/SYSCLOCK_ARM11;raceLoadStart=0;lastRaceFrame=0;GameState::reset();
+            const double ms=double(svcGetSystemTick()-raceLoadStart)*1000.0/SYSCLOCK_ARM11;raceLoadStart=0;lastRaceFrame=0;GameState::reset();stage("first frame");
             LOGF("race_load_ms=%.1f course=%s driver=%u vehicle=%u failed=%d",ms,Courses[courseChoice].name,driverChoice,vehicleChoice,int(trackLoadFailed));menuProfile->event(line);
             if(!trackLoadFailed){auto* karts=K::Kart::KartObjectManager::Instance();LOGF("engine_class=%u base_speed player=%.2f cpu1=%.2f",engineClass,karts->object(0)->move()->statBaseSpeed(),raceGrid.count()>1?karts->object(1)->move()->statBaseSpeed():0.f);}
         }

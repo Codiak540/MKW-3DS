@@ -4,6 +4,7 @@
 #include "mkw/model_variant.hpp"
 #include "mkw/texture_detail.hpp"
 #include "mkw/texture_mips.hpp"
+#include "mkw/load_profile.hpp"
 #include "mkw/display_layout.hpp"
 #include "mkw/bloom_math.hpp"
 #include "mkw/race_effects.hpp"
@@ -20,6 +21,7 @@
 #include <cstdio>
 #include <cstring>
 #include <map>
+#include <optional>
 #include <algorithm>
 #include <cstdlib>
 #include <cstddef>
@@ -93,7 +95,7 @@ bool Texture::load(const char* path) {
     }
 #endif
     // Old 3DS course textures: the original level 0 plus validated mip levels.
-    if(textureMips().enabled&&loadTextureMips(path,file,*this))return true;
+    if(textureMips().enabled){loadProfile::Scope timed(loadProfile::TextureMips);if(loadTextureMips(path,file,*this))return true;}
     return loadMemory(file.data(),file.size());
 }
 bool Texture::loadVram(const char* path) {
@@ -141,14 +143,15 @@ bool Model::beginWrite(){
     return true;
 }
 bool Model::load(const char* path,bool rival) {
+    loadProfile::Scope timed(loadProfile::Models);
     // Menu models come from the open menu.pak (one seek+read). Others stream
     // large payloads straight into LINEAR memory; a 32 KiB stdio buffer
     // coalesces the header/submesh/name reads into few FS requests.
     struct File {
         FILE* f=nullptr;char buffer[32*1024];
         std::vector<uint8_t> packed;size_t offset=0;
-        explicit File(const char* path){
-            if(pack::read(path,packed))return;
+        explicit File(const char* path,bool packedOnly=false){
+            if(pack::read(path,packed)||packedOnly)return;
             f=std::fopen(path,"rb");if(f)std::setvbuf(f,buffer,_IOFBF,sizeof buffer);
         }
         ~File(){if(f)std::fclose(f);}
@@ -188,6 +191,7 @@ return false;}
     }
     std::vector<std::array<char,64>> textureNames;
     if(modelDetail().candidate)textureNames.reserve(h[5]);
+    std::optional<loadProfile::Scope> texturesTimed(std::in_place,loadProfile::ModelTextures);
     for(uint32_t i=0;i<h[5];++i){
         char name[64]; if(!f.read(name,sizeof name)||!std::memchr(name,0,sizeof name)||std::strchr(name,'/')||std::strchr(name,'\\')||std::strstr(name,".."))return false;
         if(modelDetail().candidate){textureNames.emplace_back();std::memcpy(textureNames.back().data(),name,sizeof name);}
@@ -217,21 +221,27 @@ return false;}
         }
         textures.push_back(std::move(t));
     }
+    texturesTimed.reset();
     vertices=static_cast<Vertex*>(linearAlloc(vertexCount*sizeof(Vertex)));
     indices=static_cast<uint16_t*>(linearAlloc(indexCount*sizeof(uint16_t)));
     if(!vertices||!indices||!f.read(vertices,vertexCount*sizeof(Vertex))||!f.read(indices,indexCount*sizeof(uint16_t)))return false;
     if(!f.atEnd())return false;
     file.reset();
+    std::optional<loadProfile::Scope> checksTimed(std::in_place,loadProfile::ModelChecks);
     for(uint32_t i=0;i<indexCount;++i)if(indices[i]>=vertexCount)return false;
     minimum=maximum=vertices[0].position;
     for(uint32_t i=0;i<vertexCount;++i){auto p=vertices[i].position;if(!std::isfinite(p.x)||!std::isfinite(p.y)||!std::isfinite(p.z))return false;
         minimum={std::min(minimum.x,p.x),std::min(minimum.y,p.y),std::min(minimum.z,p.z)};
         maximum={std::max(maximum.x,p.x),std::max(maximum.y,p.y),std::max(maximum.z,p.z)};}
+    checksTimed.reset();
     // Old 3DS only (ModelDetail): low-poly sidecars, in QA and release builds.
-    if(modelDetail().candidate){
+    if(modelDetail().candidate){loadProfile::Scope sidecarTimed(loadProfile::Sidecars);
         std::string candidatePath=ModelDetail::variantPath(path,rival);
+        // With o3ds.pak open, an absent sidecar is not probed on the SD: each
+        // probe is a failed open in a large folder (see pack::overlayPacked).
+        const bool packedOnly=pack::overlayPacked();
         if(rival&&!candidatePath.empty()){
-            const bool present=pack::size(candidatePath.c_str())>=0||[&]{FILE* f=std::fopen(candidatePath.c_str(),"rb");if(f)std::fclose(f);return f!=nullptr;}();
+            const bool present=pack::size(candidatePath.c_str())>=0||(!packedOnly&&[&]{FILE* f=std::fopen(candidatePath.c_str(),"rb");if(f)std::fclose(f);return f!=nullptr;}());
             if(!present)candidatePath=ModelDetail::variantPath(path);
         }
         // The original remains resident until every candidate byte is checked.
@@ -239,7 +249,7 @@ return false;}
         // sidecar additionally supplies a validated map into its animation bank.
         auto applyCandidate=[&](){
             if(candidatePath.empty())return false;
-            auto candidate=std::make_unique<File>(candidatePath.c_str());
+            auto candidate=std::make_unique<File>(candidatePath.c_str(),packedOnly);
             if(!candidate->open())return false;
             struct Allocation {
                 uint16_t* data=nullptr;

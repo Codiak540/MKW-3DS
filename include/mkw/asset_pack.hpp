@@ -21,5 +21,9 @@ long size(const char* path);
 bool readInto(const char* path,void* destination,size_t bytes);
 // Reads `bytes` starting `offset` bytes into the asset; false past its end.
 bool readRange(const char* path,size_t offset,void* destination,size_t bytes);
+// True when o3ds.pak is open: it then holds the whole Old 3DS overlay, so a
+// models/o3ds path it lacks has no loose file either (the builder ships one
+// form or the other) and the caller skips the SD open of an absent file.
+bool overlayPacked();
 }
 }

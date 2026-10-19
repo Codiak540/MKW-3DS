@@ -96,6 +96,8 @@ def main():
  # The background menu asset loader allocates LINEAR memory; src/linear_lock.cpp
  # serializes every LINEAR heap call, including those made inside Citro3D/libctru.
  wraps=['-Wl,--wrap='+name for name in ('linearAlloc','linearMemAlign','linearRealloc','linearGetSize','linearFree','linearSpaceFree','fopen')]
+ # QA builds also count SD read requests (src/linear_lock.cpp, race load stages).
+ if not a.release:wraps.append('-Wl,--wrap=FSFILE_Read')
  # The object list goes through a response file: ~240 absolute paths can pass
  # the Windows command-line limit. GCC response files use / and quotes.
  objects_file=out/'objects.rsp';objects_file.write_text(''.join('"'+Path(o).as_posix()+'"\n' for o in objs))
