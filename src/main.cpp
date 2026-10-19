@@ -1333,6 +1333,7 @@ int main() {
     uint64_t busyStart=0,busyTicks=0;
     renderer.setDeferred(deferredRace);
     GameState::reset();
+    bool renderBottomThisFrame = true;
     while(aptMainLoop()){
         // Poll controls and advance source state once per top-screen refresh.
         // Submit once per presentation slot. FrameBegin below retires
@@ -2160,12 +2161,13 @@ int main() {
             if(fullRace&&menu.page!=mkw::UiPage::Race)menuRenderer.draw(renderer,raceQuads,false);
             // Leaving after the end-of-race menu: the scene fader covers everything.
             if(fullRace)renderer.drawScreenFade(results.leaveFade(),false);
-            if(fullRace&&bottomScreen.active()){
+            if(renderBottomThisFrame && fullRace && bottomScreen.active()){
                 // The lower LCD: the race read, never written (src/race_bottom_screen.cpp).
                 mkw::fillBottomView(bottomView,raceGrid,*raceItems,intro.active(),physicsSteps,results.leaveFade());
                 renderer.beginBottom();
                 bottomScreen.draw(renderer,bottomView);
             }
+            renderBottomThisFrame = !renderBottomThisFrame;
             profiler->mark(Profile::Bottom);
             if(qaMode&&frames%15==0){
                 printf("\x1b[18;1H%-39s",trackLoadFailed?"ASSET LOAD FAILED: check build/package":"");

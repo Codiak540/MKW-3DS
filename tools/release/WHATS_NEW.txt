@@ -5,4 +5,6 @@ Old 3DS: faster engine, two-core
 Old 3DS: GPU frame pipelining and
   course display lists
 Old 3DS: bloom is back on
-New o3DS optimizations by Codiak540
+Micro-Optimizations for o3DS
+and general o3DS Optimizations
+by darkXwolf17 and Jane
